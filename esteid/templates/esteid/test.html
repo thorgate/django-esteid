@@ -1,0 +1,319 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>ESTEID Test Page</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+    {# TypedArray for ie <= 9 #}
+    <!--[if lte IE 9]>
+    <script src="{% static 'esteid-test/typedarray.js' %}"></script>
+    <![endif]-->
+
+    {# Promises for ie <= 10 #}
+    <!--[if lte IE 10]>
+    <script src="{% static 'esteid-test/npo.js' %}"></script>
+    <![endif]-->
+</head>
+
+<body>
+    <div class="container">
+        <h1>Esteid Test page</h1>
+        <p>
+            This is a test page for digital signing of files via python. The calls are
+            made against <a href="http://www.id.ee/?id=30340" target="_blank">Test-DigiDocService</a>.
+        </p>
+
+        <ul>
+            <li>
+                For mobile-id <a href="http://www.id.ee/?id=36373" target="_blank">test-numbers</a> can be used
+            </li>
+            <li>
+                To use with a real mobile-id, one must upload the proper certificates to the
+                Test-DigiDocService
+                <a href="https://www.openxades.org/MIDCertsReg/" target="_blank">database</a>
+            </li>
+            <li>
+                To use a real ID card please make
+                sure you upload the ID-card certificate to Test-DigiDocService
+                <a href="https://www.openxades.org/upload_cert.php" target="_blank">database</a>
+            </li>
+        </ul>
+
+        <hr/>
+
+        <h3>Uploaded files</h3>
+
+        {% if files %}
+            <ul class="list-group">
+                {% for file_name, file in files.items %}
+                    <li class="list-group-item">
+                        <form method="post" class="pull-right">
+                            {% csrf_token %}
+
+                            <input name="action" type="hidden" value="remove_file" />
+                            <input name="file_name" type="hidden" value="{{ file_name }}" />
+
+                            <input type="submit" class="btn btn-xs btn-danger" value="X" />
+                        </form>
+                        <span class="badge">{{ file.size }} bytes</span>
+
+                        {{ file_name }}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <hr/>
+
+            <h3>Sign the files</h3>
+
+            <a href="#" id="sign-id"><img src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
+            <a href="#" id="sign-mid"><img src="{% static 'images/esteid/mid-logo.gif' %}"></a>
+
+        {% else %}
+            <p>No files uploaded, to begin the signing process, please upload some files</p>
+        {% endif %}
+
+        <hr/>
+
+        <h2>Upload files</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="exampleInputFile">Select file</label>
+                <input type="file" id="exampleInputFile" name="the_file">
+            </div>
+
+            <button type="submit" class="btn btn-default">Submit</button>
+
+        </form>
+    </div>
+
+    <div class="modal fade" id="mid-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Sign the files</h4>
+                </div>
+
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="phoneNrInput">Phone nr:</label>
+                            <input type="text" name="phone_nr" id="phoneNrInput" class="form-control" />
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="signMobile">Sign</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="challenge-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">MID Step 2</h4>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Please enter the following code into your mobile to proceed with
+                        the signing process: <b id="challenge-code">KOOD</b>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="id-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Signing with digital ID</h4>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Please follow the instructions to complete the signing process.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="success-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Signing complete</h4>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        The uploaded files were successfully digitally signed, please click the following link
+                        to download the container and finish the signing process.
+                    </p>
+
+                    <a href="#" id="get-document" target="_blank">Download file</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="{% static 'esteid-test/hwcrypto.js' %}"></script>
+    <script type="text/javascript" src="{% static 'esteid-test/Esteid.main.js' %}"></script>
+
+    <script type="text/javascript">
+        $(function () {
+            var manager = new Esteid.IdentificationManager({
+                language: Esteid.Languages.ET,
+
+                idEndpoints: {
+                    start: '{% url 'test_id_start' %}',
+                    finish: '{% url 'test_id_finish' %}',
+                    finalize: '{% url 'test_id_finalize' %}'
+                },
+
+                midEndpoints: {
+                    start: '{% url 'test_mid_start' %}',
+                    status: '{% url 'test_mid_status' %}',
+                    finalize: '{% url 'test_mid_finalize' %}'
+                }
+            });
+
+            function onSigned(url) {
+                $('#get-document').attr('href', url);
+
+                $('#success-modal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+
+            $('#sign-mid').on('click', function (e) {
+                e.preventDefault();
+
+                $('#mid-modal').modal();
+            });
+
+            $('#signMobile').on('click', function (e) {
+                e.preventDefault();
+                var phoneNr = $(this).parents('.modal').find('#phoneNrInput').val();
+
+                if (!phoneNr) {
+                    alert('Please enter a phone number');
+                    return;
+                }
+
+                console.log('MID: signing with phoneNr', phoneNr);
+
+                // Call IdentificationManager.sign which calls the backend endpoint to start mobileId signing process
+                manager.sign(Esteid.IdentificationManager.SIGN_MOBILE, {
+                    phone_nr: phoneNr,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                })
+
+                .then(function (response) {
+                    console.log('MID: got challenge', response.challenge);
+
+                    // Got response, show challenge modal
+                    $('#challenge-code').text(response.challenge);
+                    $('#challenge-modal').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+
+                    $('#mid-modal').modal('hide');
+
+                    manager.midStatus(response.challenge, {csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
+                        function () {
+                            $('#challenge-modal').modal('hide');
+                            onSigned(manager.midEndpoints.finalize);
+                        },
+
+                        function (res) {
+                            if (res.message) {
+                                alert(res.message + ' Please try again');
+                            } else {
+                                alert('Something went wrong, please try again');
+                            }
+
+                            $('#challenge-modal').modal('hide');
+                        }
+                    );
+
+                }, function (res) {
+                    if (res.message) {
+                        alert('MID Response[' + res.error_code + ']: ' + res.message);
+                    }
+
+                    else {
+                        alert('Something went wrong, please try again');
+                    }
+                });
+            });
+
+            $('#sign-id').on('click', function (e) {
+                e.preventDefault();
+
+                $('#id-modal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+
+                manager.sign(Esteid.IdentificationManager.SIGN_ID, {csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
+                    function () {
+                        $('#id-modal').modal('hide');
+                        onSigned(manager.idEndpoints.finalize);
+                    },
+
+                    function (res) {
+                        if (res instanceof Error) {
+                            console.log(res.message, res);
+                            res = manager.getError(res.message);
+
+                            alert(res.message);
+
+                            console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']');
+                            $('#id-modal').modal('hide');
+                        }
+
+                        else {
+                            if (typeof res === 'string' || res.error_code) {
+                                var msg = res.message !== undefined ? res.message : res;
+
+                                alert(msg + ', please try again');
+                                $('#id-modal').modal('hide');
+                            }
+
+                            else {
+                                console.error(res.message !== undefined ? res.message : res);
+                                alert('Something went wrong, please refresh the page and try again');
+                            }
+                        }
+                    }
+                );
+            });
+
+            $('#get-document').on('click', function () {
+                setTimeout(function () {
+                    window.location.reload();
+                }, 2000);
+            });
+        });
+    </script>
+
+  </body>
+</html>
