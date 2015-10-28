@@ -131,3 +131,55 @@ class MobileIdStatusAction(BaseAction):
             return {
                 'success': True,
             }
+
+
+class MobileIdAuthenticateAction(BaseAction):
+    @classmethod
+    def do_action(cls, view, action_kwargs):
+        service = view.get_service()
+
+        try:
+            # Call mobile_authenticate
+            resp = service.mobile_authenticate(**action_kwargs)
+
+        except DigiDocError as e:
+            return {
+                'success': False,
+                'error_code': e.error_code,
+                'message': service.ERROR_CODES.get(int(e.error_code), service.ERROR_CODES[100])
+            }
+
+        view.request.session['mid_person_code'] = resp['UserIDCode']
+        view.request.session['mid_common_name'] = resp['UserCN']
+
+        return {
+            'success': True,
+            'challenge': resp['ChallengeID'],
+        }
+
+
+class MobileIdAuthenticateStatusAction(BaseAction):
+    @classmethod
+    def do_action(cls, view, action_kwargs):
+        service = view.get_service()
+
+        status_info = service.get_mobile_authenticate_status()
+
+        # If error occured
+        if status_info['Status'] not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED', 'REQUEST_OK']:
+            return {
+                'success': False,
+                'code': status_info['StatusCode'],
+                'message': service.MID_STATUS_ERROR_CODES[status_info['StatusCode']],
+            }
+
+        elif status_info['Status'] == 'OUTSTANDING_TRANSACTION':
+            return {
+                'success': False,
+                'pending': True,
+            }
+
+        else:
+            return {
+                'success': True,
+            }

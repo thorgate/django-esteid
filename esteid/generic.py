@@ -1,5 +1,6 @@
 from . import config
-from .actions import IdCardPrepareAction, IdCardFinishAction, SignCompleteAction, MobileIdSignAction, MobileIdStatusAction, BaseAction
+from .actions import (IdCardPrepareAction, IdCardFinishAction, SignCompleteAction, MobileIdSignAction, MobileIdStatusAction, BaseAction,
+                      MobileIdAuthenticateAction, MobileIdAuthenticateStatusAction)
 from .digidocservice.service import DigiDocService, DigiDocError
 from .response import JSONResponse
 
@@ -124,3 +125,11 @@ class MobileIdSignViewMixin(BaseDigitalSignViewMixin):
 
 class MobileIdStatusViewMixin(BaseDigitalSignViewMixin):
     ACTION_CLASS = MobileIdStatusAction
+
+
+class MobileIdAuthenticateViewMixin(BaseDigitalSignViewMixin):
+    ACTION_CLASS = MobileIdAuthenticateAction
+
+
+class MobileIdAuthenticateStatusViewMixin(BaseDigitalSignViewMixin):
+    ACTION_CLASS = MobileIdAuthenticateStatusAction

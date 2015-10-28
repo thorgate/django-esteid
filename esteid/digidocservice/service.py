@@ -1,6 +1,8 @@
 # Needs suds_jurko
 import base64
+import binascii
 import logging
+import os
 
 from django.utils.encoding import force_text, force_bytes
 from suds import WebFault
@@ -165,6 +167,30 @@ class DigiDocService(object):
 
         return False
 
+    def mobile_authenticate(self, phone_nr, message=None, language=None):
+        if language is None:
+            language = self.LANGUAGE_ET
+
+        assert language in [self.LANGUAGE_ET, self.LANGUAGE_EN, self.LANGUAGE_RU, self.LANGUAGE_LT]
+
+        response = self.__invoke('MobileAuthenticate', {
+            'PhoneNo': phone_nr,
+            'Language': language,
+            'ServiceName': self.service_name,
+            'MessageToDisplay': message or self.mobile_message,
+            'SPChallenge': force_text(binascii.hexlify(os.urandom(10))),
+            'MessagingMode': 'asynchClientServer',
+        })
+
+        return response
+
+    def get_mobile_authenticate_status(self, wait=False):
+        response = self.__invoke('GetMobileAuthenticateStatus', {
+            'WaitSignature': 'TRUE' if wait else 'FALSE',
+        }, no_raise=True)
+
+        return response
+
     def create_signed_document(self, file_format='BDOC'):
         if self.container and isinstance(self.container, PreviouslyCreatedContainer):
             raise DigiDocException('CreateSignedDoc', {}, 'PreviouslyCreatedContainer already in session')
@@ -313,7 +339,7 @@ class DigiDocService(object):
 
         return response
 
-    def __invoke(self, command, params=None):
+    def __invoke(self, command, params=None, no_raise=False):
         params = params or {}
 
         if command != 'StartSession':
@@ -321,7 +347,6 @@ class DigiDocService(object):
 
         try:
             response = getattr(self.client.service, command)(**params)
-
             if self.debug:
                 logging.info('%s:Response: %s', command, response)
 
@@ -329,6 +354,9 @@ class DigiDocService(object):
                 return True
 
             elif response['Status'] == self.RESPONSE_STATUS_OK:
+                return response
+
+            if no_raise:
                 return response
 
             raise Exception(response)
