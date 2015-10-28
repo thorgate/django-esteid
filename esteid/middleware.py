@@ -1,6 +1,10 @@
+import re
+
 from django.utils.cache import patch_vary_headers
 
 from . import config
+from .ocsp import OCSPVerifier
+
 
 class MultiHostMiddleware(object):
     def process_request(self, request):
@@ -20,3 +24,41 @@ class MultiHostMiddleware(object):
             patch_vary_headers(response, ('Host',))
 
         return response
+
+
+class IdCardMiddleware(object):
+    def process_request(self, request):
+        x_client = request.META.get('HTTP_X_CLIENT', None)
+
+        if x_client is not None:
+            response = self.verify_ocsp(request)
+
+            if response != 0:
+                setattr(request, 'id_err', response)
+
+            else:
+                setattr(request, 'id_auth', self.parse_x_client(x_client))
+
+    @classmethod
+    def verify_ocsp(cls, request):
+        issuer = request.META.get('HTTP_X_ISSUER', None)
+        certificate = request.META.get('HTTP_X_CLIENTCERT', None)
+        return OCSPVerifier(certificate, issuer).verify()
+
+    @classmethod
+    def ucs_to_utf8(cls, val):
+        return bytes([ord(x) for x in re.sub(r"\\x([0-9ABCDEF]{1,2})", lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
+
+    @classmethod
+    def parse_x_client(cls, x_client):
+        if not x_client:
+            return None
+
+        x_client = x_client.strip().strip('/').split('/')
+        res = {}
+
+        for part in x_client:
+            part = cls.ucs_to_utf8(part).split('=')
+            res[part[0]] = part[1]
+
+        return res

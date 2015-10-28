@@ -148,9 +148,11 @@ class AuthenticationView(TemplateView):
 
     def __init__(self, *args, **kwargs):
         self.id_auth = None
+        self.id_err = None
 
     def dispatch(self, request, *args, **kwargs):
-        self.id_auth = self.parse_x_client(self.request.META.get('HTTP_X_CLIENT', None))
+        self.id_auth = getattr(request, 'id_auth', None)
+        self.id_err = getattr(request, 'id_err', None)
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -159,23 +161,6 @@ class AuthenticationView(TemplateView):
 
         self.request.session['id_auth'] = self.id_auth
         context['id_auth'] = self.id_auth
+        context['id_err'] = self.id_err
 
         return context
-
-    @classmethod
-    def ucs_to_utf8(cls, val):
-        return bytes([ord(x) for x in re.sub(r"\\x([0-9ABCDEF]{1,2})", lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
-
-    @classmethod
-    def parse_x_client(cls, x_client):
-        if not x_client:
-            return None
-
-        x_client = x_client.strip().strip('/!').split('/')
-        res = {}
-
-        for part in x_client:
-            part = cls.ucs_to_utf8(part).split('=')
-            res[part[0]] = part[1]
-
-        return res
