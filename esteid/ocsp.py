@@ -15,6 +15,7 @@ class OCSPVerifier(object):
     ISSUER_CERTS = {
         "ESTEID-SK 2007": "ESTEID-SK_2007.pem",
         "ESTEID-SK 2011": "ESTEID-SK_2011.pem",
+        "ESTEID-SK 2015": "ESTEID-SK_2015.pem",
     }
 
     OCSP_URLS = {
