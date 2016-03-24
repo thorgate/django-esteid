@@ -3,12 +3,11 @@ import hashlib
 import io
 import re
 import sys
-import tempfile
+from zipfile import ZipFile
+
 from lxml import etree
 
 from django.utils.encoding import force_bytes, force_text
-
-from .czip import CustomZipArchive, OpenMode
 
 
 class BDOCException(Exception):
@@ -91,105 +90,86 @@ class BdocContainer(object):
 
         self.file_data = raw_data
         self.data_files = data_files
-        self.temp_dir = tempfile.TemporaryDirectory()
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
-        self.temp_dir.cleanup()
+        pass
 
     def get_temporary_file(self):
-        the_file = tempfile.NamedTemporaryFile(dir=self.temp_dir.name, suffix='.zip', delete=False)
+        buf = io.BytesIO(self.file_data)
 
-        with open(the_file.name, 'wb') as f:
-            f.write(self.file_data)
+        try:
+            return buf, ZipFile(buf, 'a')
 
-        return the_file.name
+        except:
+            raise BDOCException('ZipArchive could not be opened')
 
     def hash_codes_format(self):
-        zip_file = self.get_temporary_file()
-        archive = CustomZipArchive(zip_file)
+        buf, archive = self.get_temporary_file()
 
-        if archive.open(OpenMode.WRITE):
-            # Load entries
-            entries = archive.get_entries()
+        # Remove data files
+        buf, archive, data_files = self.delete_data_files(archive)
 
-            # Remove data files
-            data_files = self.delete_data_files(archive, entries)
+        # Write hashcode files
+        self.write_hash_code_files(archive, data_files)
 
-            # Write hashcode files
-            self.write_hash_code_files(archive, data_files)
+        # Set comment
+        archive.comment = force_bytes(self.__get_container_comment())
 
-            # Set comment
-            archive.set_comment(self.__get_container_comment())
+        # Commit changes
+        archive.close()
 
-            # Commit changes
-            archive.close()
-
-            with open(zip_file, 'rb') as handle:
-                return handle.read()
-
-        else:
-            raise BDOCException('ZipArchive could not be opened')
+        return buf.getvalue()
 
     def data_files_format(self):
-        zip_file = self.get_temporary_file()
-        archive = CustomZipArchive(zip_file)
+        buf, archive = self.get_temporary_file()
 
-        if archive.open(OpenMode.WRITE):
-            # Load entries
-            entries = archive.get_entries()
+        # Remove hashcode files
+        buf, archive, data_files = self.delete_hashcode_files(archive)
 
-            # Remove hashcode files
-            self.delete_hashcode_files(archive, entries)
+        assert self.data_files
 
-            # Write datafiles
-            for datafile in self.data_files:
-                archive.add_entry(datafile.file_name, datafile.content)
+        # Write datafiles
+        for datafile in self.data_files:
+            archive.writestr(datafile.file_name, datafile.content)
 
-            # Commit changes
-            archive.close()
+        # Commit changes
+        archive.close()
 
-            # Return result
-            with open(zip_file, 'rb') as handle:
-                file_data = handle.read()
+        return buf.getvalue()
 
-            return file_data
+    def delete_data_files(self, archive):
+        return self.__delete_files(archive, lambda filename: self.__is_data_file(filename))
 
-        else:
-            raise BDOCException('ZipArchive could not be opened')
-
-    def delete_data_files(self, archive, entries=None):
-        return self.__delete_files(archive, entries, lambda filename: self.__is_data_file(filename))
-
-    def delete_hashcode_files(self, archive, entries=None):
-        return self.__delete_files(archive, entries, lambda filename: self.__is_hash_code_file(filename))
+    def delete_hashcode_files(self, archive):
+        return self.__delete_files(archive, lambda filename: self.__is_hash_code_file(filename))
 
     def write_hash_code_files(self, archive, data_files):
         for algorithm in self.HASH_ALGORITHMS:
             filename = "META-INF/hashcodes-%s.xml" % algorithm
             file_data = HashCodesXml(algorithm).from_data_files(data_files)
 
-            archive.add_entry(filename, file_data)
+            archive.writestr(filename, file_data)
 
     @staticmethod
-    def __delete_files(archive, entries, test_func):
+    def __delete_files(archive, test_func):
         deleted_files = []
 
-        if entries is None:
-            entries = archive.get_entries()
+        buf = io.BytesIO()
+        z_out = ZipFile(buf, 'w')
 
-        for file_entry in entries:
-            filename = file_entry.name
+        for zip_info in archive.infolist():
+            content = archive.read(zip_info)
 
-            if test_func(filename):
-                deleted_files.append(ZipDataFile(file_entry.name, file_entry.read(), file_entry.size))
+            if test_func(zip_info.filename):
+                deleted_files.append(ZipDataFile(zip_info.filename, content, zip_info.file_size))
 
-                # Remove the entry from archive
-                archive.delete_entry(file_entry)
+            else:
+                z_out.writestr(zip_info, content)
 
-        return deleted_files
+        return buf, z_out, deleted_files
 
     @classmethod
     def __is_hash_code_file(cls, file_name):

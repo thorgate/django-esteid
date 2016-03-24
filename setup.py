@@ -35,7 +35,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'lxml==3.5.0b1',
+        'lxml>=3.4',
     ],
     license="BSD",
     zip_safe=False,
