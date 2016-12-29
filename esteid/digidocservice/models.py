@@ -160,10 +160,10 @@ class Signer(BaseDigidocServiceObject):
     def fix_name_part(part):
         uc_first = lambda x: '%s%s' % (x[0].upper(), x[1:].lower())
 
-        if len(re.findall(r"\W", part)) == 0:
+        if len(re.findall(r"\W", part, flags=re.UNICODE)) == 0:
             return uc_first(part)
 
-        return re.sub(r"([\w]+)", lambda m: uc_first(m.group(1)), part)
+        return re.sub(r"([\w]+)", lambda m: uc_first(m.group(1)), part, flags=re.UNICODE)
 
 
 class ResponderCertificate(Certificate):

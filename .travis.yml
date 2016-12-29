@@ -1,0 +1,41 @@
+language: python
+python:
+- '3.4'
+install:
+- pip install -r requirements-test.txt
+script:
+- tox
+env:
+  matrix:
+  - TOXENV=py27-django15
+  - TOXENV=py27-django16
+  - TOXENV=py27-django17
+  - TOXENV=py27-django18
+  - TOXENV=py32-django15
+  - TOXENV=py32-django16
+  - TOXENV=py32-django17
+  - TOXENV=py32-django18
+  - TOXENV=py33-django15
+  - TOXENV=py33-django16
+  - TOXENV=py33-django17
+  - TOXENV=py33-django18
+  - TOXENV=py34-django15
+  - TOXENV=py34-django16
+  - TOXENV=py34-django17
+  - TOXENV=py34-django18
+deploy:
+  provider: pypi
+  user: thorgate
+  password:
+    secure: >
+      Imy/J8t5yrIf+1+RephZjLr+caA2Q66O57ju3zOcSIYqbBw07Q7rHWyiUcOZdqL9JXf+FwHmDGxuq4JEvwo0vcSBdsdsblY1h8FvBf466REjn
+      uAij3/GejR46v0LDJjOxbYOcuOB2N/svFapcI/keStrg3Tx5C6dEjeioN7FAzwjBb4wk+O6XkyMYVgXcVBI7rrWYxLyDzRXVRLWVKQszWptDA
+      D6cD7XPP5OdVMNBQIfc/aK+89PMgkc+83IeVVpi7ye4pcIjrhMua1SsI+koXODrDCJ8vplcWwX1a3jZmCGk8SDEQvf7xl2kM97unO9uijS8iB
+      MIt/cCfIElI8AX8zhp3LPjHzAzVBwJvziVZaX92zFmTvRS0L9wRLlXwoP9AIGqF0GqE5vpSGon+DPgupx3LacJE0pdyfC/4gReF4Vb5ffNESK
+      oR2PL4xYvSeiZ7tsY7We+KWFS6qRe59HJaSk1i1nz8aanpJMqbIkIbMRrXL3gLE9s8CqEgMoPUOwLfH6Juwtq8aPwYU29i0D0rYQl7r1eQSaw
+      Z9bYerf8H+Uhm/NSX97yz8aGktAU7TCg1gQL6rWR5ug5F1uf8o8kw3QNSy2cH/I2VZQMuSFjZfPKyd816MphOSnRWMLylMUK6pIMcKWaTxby/
+      VOUl62p+swmjGoiBsqQozt5oKORgM=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: thorgate/django-esteid

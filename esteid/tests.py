@@ -1,13 +1,17 @@
+# -*- coding: utf-8 -*-
 import base64
 import os
-from urllib.request import urlopen
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
 
 from django.test import TestCase
 from django.utils.encoding import force_text
 
-from .containers import BdocContainer
-from .models import Signer
-from .service import DigiDocService, DataFile
+from .digidocservice.containers import BdocContainer
+from .digidocservice.models import Signer
+from .digidocservice.service import DigiDocService, DataFile
 
 
 class TestParseCommonName(TestCase):
@@ -23,7 +27,7 @@ class TestParseCommonName(TestCase):
         self.__name_test('TEST-NUMBER,SEITSMES MEES,51001091072', '51001091072', 'Seitsmes Mees Test-Number')
 
     def test_complex(self):
-        self.__name_test('O’CONNEŽ-ŠUSLIK,MARY ÄNN,11412090004', '11412090004', 'Mary Änn O’Connež-Šuslik')
+        self.__name_test(u'O’CONNEŽ-ŠUSLIK,MARY ÄNN,11412090004', '11412090004', u'Mary Änn O’Connež-Šuslik')
 
 
 class TestSigningWithMobile(TestCase):
