@@ -1,10 +1,14 @@
 language: python
+
 python:
 - '3.4'
+
 install:
 - pip install -r requirements-test.txt
+
 script:
 - tox
+
 env:
   matrix:
   - TOXENV=py27-django15
@@ -19,6 +23,7 @@ env:
   - TOXENV=py34-django16
   - TOXENV=py34-django17
   - TOXENV=py34-django18
+
 deploy:
   provider: pypi
   user: thorgate
@@ -35,3 +40,6 @@ deploy:
     tags: true
     distributions: sdist bdist_wheel
     repo: thorgate/django-esteid
+
+notifications:
+    email: false
