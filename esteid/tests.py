@@ -94,7 +94,7 @@ class TestSigningWithMobile(TestCase):
         # attempt to sign again
         service2 = DigiDocService('Testimine', debug=True)
         service2.start_session(True, sig_doc_xml=force_text(base64.b64encode(own_hash_file_data)))
-        service2.mobile_sign('', phone_nr='+37200007')
+        service2.mobile_sign('', phone_nr='+37200000766')
         status_info = service2.get_status_info(wait=True)
         self.assertEqual(status_info['StatusCode'], 'SIGNATURE')
 
