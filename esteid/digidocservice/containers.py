@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import base64
 import hashlib
 import io
@@ -151,7 +152,7 @@ class BdocContainer(object):
             filename = "META-INF/hashcodes-%s.xml" % algorithm
             file_data = HashCodesXml(algorithm).from_data_files(data_files)
 
-            archive.writestr(filename, file_data)
+            archive.writestr(filename, file_data.encode())
 
     @staticmethod
     def __delete_files(archive, test_func):

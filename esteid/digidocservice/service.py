@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Needs suds_jurko
 import base64
 import binascii
