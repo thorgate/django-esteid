@@ -6,7 +6,14 @@ from . import config
 from .ocsp import OCSPVerifier
 
 
-class MultiHostMiddleware(object):
+try:
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:  # Django < 1.10
+    # Works perfectly for everyone using MIDDLEWARE_CLASSES
+    MiddlewareMixin = object
+
+
+class MultiHostMiddleware(MiddlewareMixin):
     def process_request(self, request):
         # Choose which subhost to use (if any):
         host = request.META["HTTP_HOST"]
@@ -26,7 +33,7 @@ class MultiHostMiddleware(object):
         return response
 
 
-class IdCardMiddleware(object):
+class IdCardMiddleware(MiddlewareMixin):
     def process_request(self, request):
         x_client = request.META.get('HTTP_X_CLIENT', None)
 
