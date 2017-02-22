@@ -10,11 +10,19 @@ Django-esteid is a package that provides Esteid based authentication for your Dj
 Quickstart
 ----------
 
-Install Django esteid::
+Install Django esteid:
 
     pip install django-esteid
 
-Then use it in a project::
+Add django-esteid to installed apps:
+
+    INSTALLED_APPS = [
+        # ...
+        'esteid',
+        # ...
+    ]
+
+Then use it in a project:
 
     import esteid
 

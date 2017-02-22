@@ -36,6 +36,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'lxml>=3.4',
+        'suds-jurko==0.6'
     ],
     license="BSD",
     zip_safe=False,
