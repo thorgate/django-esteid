@@ -82,7 +82,7 @@ class DigiDocService(object):
     HOST_LIVE = 'LIVE'
 
     WSDL_HOSTS = {
-        HOST_TEST: "https://tsp.demo.sk.ee/?wsdl",
+        HOST_TEST: "https://tsp.demo.sk.ee/dds.wsdl",
         HOST_LIVE: "https://www.sk.ee/DigiDocService/DigiDocService_2_3.wsdl",
     }
 
