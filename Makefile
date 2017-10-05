@@ -1,11 +1,13 @@
-.PHONY: clean-pyc clean-build
+.PHONY: help clean clean-build clean-pyc lint test test-all test-full coverage
 
 help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "lint - check style with flake8"
-	@echo "release - package and upload a release"
-	@echo "sdist - package"
+	@echo "test - run tests quickly with the default Python"
+	@echo "test-all - run tests on every Python version with tox"
+	@echo "test-full - shorthand for test lint coverage"
+	@echo "coverage - check code coverage quickly with the default Python"
 
 clean: clean-build clean-pyc
 
@@ -19,10 +21,16 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
-release: clean
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+lint:
+	flake8 esteid tests
 
-sdist: clean
-	python setup.py sdist
-	ls -l dist
+test:
+	py.test
+
+test-all:
+	tox
+
+test-full: test lint coverage
+
+coverage:
+	py.test --cov-config .coveragerc --cov=esteid --cov-report html --cov-report term-missing

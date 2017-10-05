@@ -1,0 +1,11 @@
+[run]
+branch = True
+source =
+    esteid/
+
+omit =
+    */migrations/*
+    setup.py
+
+[html]
+directory = htmlcov

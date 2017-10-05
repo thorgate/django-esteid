@@ -9,9 +9,9 @@ except ImportError:
 from django.test import TestCase
 from django.utils.encoding import force_text
 
-from .digidocservice.containers import BdocContainer
-from .digidocservice.models import Signer
-from .digidocservice.service import DigiDocService, DataFile
+from esteid.digidocservice.containers import BdocContainer
+from esteid.digidocservice.models import Signer
+from esteid.digidocservice.service import DigiDocService, DataFile
 
 
 class TestParseCommonName(TestCase):
@@ -32,6 +32,7 @@ class TestParseCommonName(TestCase):
 
 class TestSigningWithMobile(TestCase):
     def get_example_file(self):
+        # TODO: lorempixel is dead
         return urlopen('http://lorempixel.com/1920/1920/').read()
 
     def get_service(self):
