@@ -1,8 +1,18 @@
+import os
+
 from django.conf import settings
 
 
-def client_type():
-    return getattr(settings, 'DIGIDOC_SERVICE_HOST', 'TEST')
+def wsdl_url():
+    """Url of the DigidocService wsdl
+
+    Test: https://tsp.demo.sk.ee/dds.wsdl
+    Live: https://www.sk.ee/DigiDocService/DigiDocService_2_3.wsdl
+
+    :return: str
+    """
+    return getattr(settings, 'DIGIDOC_SERVICE_WSDL_URL', 'https://tsp.demo.sk.ee/dds.wsdl')
+
 
 
 def service_name():
@@ -15,3 +25,32 @@ def mobile_message():
 
 def get_hosts():
     return getattr(settings, 'HOSTS', {})
+
+
+def ocsp_url():
+    """OCSP server url
+
+    Test: http://demo.sk.ee/ocsp
+    Live: http://ocsp.sk.ee
+
+    :return: str
+    """
+    return getattr(settings, 'ESTEID_OCSP_URL', 'http://demo.sk.ee/ocsp')
+
+
+def ocsp_responder_certificate_path():
+    """Get ocsp responder certificate path
+
+    Test: TEST_OCSP_2011.pem
+    Live: sk-ocsp-responder-certificates.pem
+
+    Note: These files are under certs directory
+
+    :return:
+    """
+    certificate_path = getattr(settings, 'ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH', 'TEST_OCSP_2011.pem')
+
+    if certificate_path in ['TEST_OCSP_2011.pem', 'sk-ocsp-responder-certificates.pem']:
+        return os.path.join(os.path.dirname(__file__), 'certs', certificate_path)
+
+    return certificate_path

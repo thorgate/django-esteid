@@ -56,8 +56,8 @@ class GenericDigitalSignViewMixin(object):
 
     def flat_service(self):
         return DigiDocService(
+            wsdl_url=config.wsdl_url(),
             service_name=config.service_name(),
-            client_type=config.client_type(),
             mobile_message=config.mobile_message(),
         )
 

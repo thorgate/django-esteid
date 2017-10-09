@@ -47,10 +47,30 @@ class IdCardMiddleware(MiddlewareMixin):
                 setattr(request, 'id_auth', self.parse_x_client(x_client))
 
     @classmethod
+    def get_ocsp_url(cls):
+        """Get ocsp responder certificate path
+
+        Note: This is a separate method to allow easier overwriting via subclassing
+
+        :return:str
+        """
+        return config.ocsp_url()
+
+    @classmethod
+    def get_ocsp_responder_certificate_path(cls):
+        """Get ocsp responder certificate path
+
+        Note: This is a separate method to allow easier overwriting via subclassing
+
+        :return:str
+        """
+        return config.ocsp_responder_certificate_path()
+
+    @classmethod
     def verify_ocsp(cls, request):
         issuer = request.META.get('HTTP_X_ISSUER', None)
         certificate = request.META.get('HTTP_X_CLIENTCERT', None)
-        return OCSPVerifier(certificate, issuer).verify()
+        return OCSPVerifier(certificate, issuer, cls.get_ocsp_url(), cls.get_ocsp_responder_certificate_path()).verify()
 
     @classmethod
     def ucs_to_utf8(cls, val):

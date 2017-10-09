@@ -83,14 +83,6 @@ class SoapFixer(MessagePlugin):
 
 
 class DigiDocService(object):
-    HOST_TEST = 'TEST'
-    HOST_LIVE = 'LIVE'
-
-    WSDL_HOSTS = {
-        HOST_TEST: "https://tsp.demo.sk.ee/dds.wsdl",
-        HOST_LIVE: "https://www.sk.ee/DigiDocService/DigiDocService_2_3.wsdl",
-    }
-
     RESPONSE_STATUS_OK = "OK"
 
     ERROR_CODES = {
@@ -133,7 +125,7 @@ class DigiDocService(object):
     HASHCODE = 'HASHCODE'
     EMBEDDED_BASE64 = 'EMBEDDED_BASE64'
 
-    def __init__(self, service_name, mobile_message='Signing via python', client_type=None, debug=False):
+    def __init__(self, wsdl_url, service_name, mobile_message='Signing via python', debug=False):
         self.service_name = service_name
         self.mobile_message = mobile_message
 
@@ -141,20 +133,11 @@ class DigiDocService(object):
         self.data_files = []
         self.container = None
 
-        if client_type is None:
-            client_type = self.HOST_TEST
-
-        assert client_type in [self.HOST_TEST, self.HOST_LIVE]
-
-        if client_type == self.HOST_TEST:
-            assert service_name == 'Testimine'
+        if wsdl_url == 'https://tsp.demo.sk.ee/dds.wsdl':
+            assert service_name == 'Testimine', 'When using Test DigidocService the service name must be `Testimine`'
 
         plugin = SoapFixer()
-        self.client = Client(self.WSDL_HOSTS[client_type],
-                             xstq=False,
-                             prefixes=True,
-                             prettyxml=True,
-                             plugins=[plugin])
+        self.client = Client(wsdl_url, xstq=False, prefixes=True, prettyxml=True, plugins=[plugin])
 
         self.debug = debug
 
