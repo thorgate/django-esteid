@@ -5,6 +5,10 @@ from django.utils import timezone
 from suds.sudsobject import asdict, Object as SudsObject
 
 
+def uc_first(value):
+    return '%s%s' % (value[0].upper(), value[1:].lower())
+
+
 class BaseDigidocServiceObject(object):
     def __str__(self):
         return '%s: %s' % (self.__class__.__name__, self.as_dict())
@@ -15,7 +19,8 @@ class BaseDigidocServiceObject(object):
     @staticmethod
     def make_dict(instance):
         if not isinstance(instance, BaseDigidocServiceObject):
-            raise Exception('BaseDigidocServiceObject.make_dict instance should be an instance of BaseDigidocServiceObject')
+            raise Exception('BaseDigidocServiceObject.make_dict instance should be an '
+                            'instance of BaseDigidocServiceObject')
 
         result = {}
 
@@ -82,7 +87,8 @@ class BaseDigidocServiceObject(object):
                 return model.from_dict(the_data)
 
             else:
-                raise Exception('BaseDigidocServiceObject.ensure_instance: The data must be one of: [cls, list, tuple, dict]')
+                raise Exception('BaseDigidocServiceObject.ensure_instance: The data must be one of: '
+                                '[cls, list, tuple, dict]')
 
         else:
             # It's an instance of the required class, all good
@@ -158,8 +164,6 @@ class Signer(BaseDigidocServiceObject):
 
     @staticmethod
     def fix_name_part(part):
-        uc_first = lambda x: '%s%s' % (x[0].upper(), x[1:].lower())
-
         if len(re.findall(r"\W", part, flags=re.UNICODE)) == 0:
             return uc_first(part)
 
@@ -175,7 +179,8 @@ class Confirmation(BaseDigidocServiceObject):
         self.produced_at = produced_at
         self.responder_id = responder_id
 
-        self.responder_certificate = BaseDigidocServiceObject.ensure_instance(ResponderCertificate, responder_certificate)
+        self.responder_certificate = BaseDigidocServiceObject.ensure_instance(ResponderCertificate,
+                                                                              responder_certificate)
 
 
 class SignatureProductionPlace(BaseDigidocServiceObject):
@@ -193,7 +198,8 @@ class SignerRole(BaseDigidocServiceObject):
 
 
 class SignatureInfo(BaseDigidocServiceObject):
-    def __init__(self, signing_time, status, id, signer, confirmation, signature_production_place=None, signer_role=None):
+    def __init__(self, signing_time, status, id, signer, confirmation, signature_production_place=None,
+                 signer_role=None):
         self.signing_time = self.convert_time(signing_time)
         self.status = self.convert_status(status)
         self.id = id
@@ -201,10 +207,13 @@ class SignatureInfo(BaseDigidocServiceObject):
         self.signer = BaseDigidocServiceObject.ensure_instance(Signer, signer)
         self.confirmation = BaseDigidocServiceObject.ensure_instance(Confirmation, confirmation)
 
-        self.signature_production_place = BaseDigidocServiceObject.ensure_instance(SignatureProductionPlace, signature_production_place,
+        self.signature_production_place = BaseDigidocServiceObject.ensure_instance(SignatureProductionPlace,
+                                                                                   signature_production_place,
                                                                                    allow_none=True)
 
-        self.signer_role = BaseDigidocServiceObject.ensure_instance(SignerRole, signer_role, allow_list=True, allow_none=True)
+        self.signer_role = BaseDigidocServiceObject.ensure_instance(SignerRole, signer_role,
+                                                                    allow_list=True,
+                                                                    allow_none=True)
 
 
 class SignedDocInfo(BaseDigidocServiceObject):

@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
 import os
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
 
 from django.test import TestCase
 from django.utils.encoding import force_text
@@ -14,11 +10,17 @@ from esteid.digidocservice.models import Signer
 from esteid.digidocservice.service import DigiDocService, DataFile
 
 
+def get_random_file():
+    return os.urandom(4096)
+
+
 class TestParseCommonName(TestCase):
     def __name_test(self, common_name, id_code, expected):
         result = Signer.parse_common_name(common_name, id_code)
         self.assertEqual(expected, result,
-                         'parse_common_name: Expected "%s", got "%s" from common_name "%s"' % (expected, result, common_name))
+                         'parse_common_name: Expected "%s", got "%s" from common_name "%s"' % (expected,
+                                                                                               result,
+                                                                                               common_name))
 
     def test_simple(self):
         self.__name_test('TESTNUMBER,SEITSMES,51001091072', '51001091072', 'Seitsmes Testnumber')
@@ -31,10 +33,6 @@ class TestParseCommonName(TestCase):
 
 
 class TestSigningWithMobile(TestCase):
-    def get_example_file(self):
-        # TODO: lorempixel is dead
-        return urlopen('http://lorempixel.com/1920/1920/').read()
-
     def get_service(self):
         return DigiDocService('Testimine', debug=False)
 
@@ -64,10 +62,10 @@ class TestSigningWithMobile(TestCase):
         service.create_signed_document()
 
         # Add some files
-        ex_file = self.get_example_file()
+        ex_file = get_random_file()
         service.add_datafile('Picture 1.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file)
 
-        ex_file = self.get_example_file()
+        ex_file = get_random_file()
         service.add_datafile('Picture 2.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file)
 
         # Sign with mid

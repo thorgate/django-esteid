@@ -9,4 +9,5 @@ class JSONResponse(HttpResponse):
         if cls is None:
             cls = DjangoJSONEncoder
 
-        super(JSONResponse, self).__init__(json.dumps(content, cls=cls), content_type='application/json', status=status)
+        super(JSONResponse, self).__init__(json.dumps(content, cls=cls),
+                                           content_type='application/json', status=status)
