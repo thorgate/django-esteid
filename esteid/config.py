@@ -14,7 +14,6 @@ def wsdl_url():
     return getattr(settings, 'DIGIDOC_SERVICE_WSDL_URL', 'https://tsp.demo.sk.ee/dds.wsdl')
 
 
-
 def service_name():
     return getattr(settings, 'DIGIDOC_SERVICE_NAME', 'Testimine')
 
@@ -44,7 +43,7 @@ def ocsp_responder_certificate_path():
     Test: TEST_OCSP_2011.pem
     Live: sk-ocsp-responder-certificates.pem
 
-    Note: These files are under certs directory
+    Note: These files are distributed under esteid/certs
 
     :return:
     """

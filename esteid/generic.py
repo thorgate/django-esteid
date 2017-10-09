@@ -7,38 +7,56 @@ from .response import JSONResponse
 
 
 class GenericDigitalSignViewMixin(object):
+    autostart_digidoc_session = True
+
+    DIGIDOC_SESSION_KEY = '__ddoc_session'
+    DIGIDOC_SESSION_DATA_KEY = '__ddoc_session_data'
+
     def get_files(self):
         """ This should be implemented on view level, and should return a list
             of files that should be digitally signed
         """
         return []
 
-    def start_digidoc_session(self, session_code):
+    def set_digidoc_session(self, session_code):
         """ Stores the new session token so it is remembered across requests.
 
         """
+        self.request.session[self.DIGIDOC_SESSION_KEY] = session_code
 
-        self.request.session['__ddoc_session'] = session_code
+    def set_digidoc_session_data(self, key, value):
+        session_data = self.request.session.get(self.DIGIDOC_SESSION_DATA_KEY, {})
+        session_data.update({key: value})
+
+        self.request.session[self.DIGIDOC_SESSION_DATA_KEY] = session_data
+
+    def get_digidoc_session_data(self, key):
+        session_data = self.request.session.get(self.DIGIDOC_SESSION_DATA_KEY, {})
+
+        return session_data.get(key, None)
 
     def get_digidoc_session(self):
         """ This method returns the active digidoc session
             associated with the active request.
 
-            DigiDocService session is stored in request.session['__ddoc_session']
+            DigiDocService session is stored in request.session[I{DIGIDOC_SESSION_KEY}]
         """
 
         try:
-            return self.request.session['__ddoc_session']
+            return self.request.session[self.DIGIDOC_SESSION_KEY]
 
         except KeyError:
             return None
 
     def destroy_digidoc_session(self):
-        """ Closes DigiDocService session and clears request.session['__ddoc_session']
+        """ Closes DigiDocService session and clears request.session[I{DIGIDOC_SESSION_KEY}]
         """
 
+        # cleanup data too
+        self.destroy_digidoc_session_data()
+
         try:
-            session = self.request.session['__ddoc_session']
+            session = self.request.session[self.DIGIDOC_SESSION_KEY]
 
             if session:
                 try:
@@ -49,10 +67,15 @@ class GenericDigitalSignViewMixin(object):
                 except DigiDocError:
                     pass
 
-            del self.request.session['__ddoc_session']
+            del self.request.session[self.DIGIDOC_SESSION_KEY]
 
         except KeyError:
             pass
+
+    def destroy_digidoc_session_data(self):
+        # clear it just in case and then delete
+        self.request.session[self.DIGIDOC_SESSION_KEY] = {}
+        del self.request.session[self.DIGIDOC_SESSION_KEY]
 
     def flat_service(self):
         return DigiDocService(
@@ -77,8 +100,13 @@ class GenericDigitalSignViewMixin(object):
             service.session_code = session
 
         else:
-            if service.start_session(**self.start_session_kwargs()):
-                self.start_digidoc_session(service.session_code)
+            if self.autostart_digidoc_session:
+                if service.start_session(**self.start_session_kwargs()):
+                    # Clear session data to avoid data leakage
+                    self.destroy_digidoc_session_data()
+
+                    # Store the new session identifier
+                    self.set_digidoc_session(service.session_code)
 
         setattr(self, 'stored_service', service)
         return service
@@ -92,7 +120,7 @@ class BaseDigitalSignViewMixin(GenericDigitalSignViewMixin):
         if self.CATCH_POST:
             return JSONResponse(self.do_action(*args, **kwargs))
 
-        return super().post(request, *args, **kwargs)
+        return super(BaseDigitalSignViewMixin, self).post(request, *args, **kwargs)
 
     def build_action_kwargs(self):
         return {}

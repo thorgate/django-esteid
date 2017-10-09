@@ -70,7 +70,9 @@ class IdCardMiddleware(MiddlewareMixin):
     def verify_ocsp(cls, request):
         issuer = request.META.get('HTTP_X_ISSUER', None)
         certificate = request.META.get('HTTP_X_CLIENTCERT', None)
-        return OCSPVerifier(certificate, issuer, cls.get_ocsp_url(), cls.get_ocsp_responder_certificate_path()).verify()
+        return OCSPVerifier(certificate, issuer,
+                            cls.get_ocsp_url(),
+                            cls.get_ocsp_responder_certificate_path()).verify()
 
     @classmethod
     def ucs_to_utf8(cls, val):

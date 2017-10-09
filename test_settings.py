@@ -19,3 +19,36 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'esteid',
 ]
+
+
+LOGGING = {
+    'version': 1,
+    'formatters': {
+        'verbose': {
+            'format': '%(name)s: %(message)s'
+        }
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'django': {'handlers': [], 'propagate': True},
+        'django.request': {'handlers': [], 'propagate': True},
+        'django.security': {'handlers': [], 'propagate': True},
+
+        # Uncomment to enable zeep debug logging
+        # 'zeep.transports': {
+        #     'level': 'DEBUG',
+        #     'propagate': True,
+        #     'handlers': ['console'],
+        # },
+    }
+}

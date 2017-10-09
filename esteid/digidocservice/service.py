@@ -1,37 +1,40 @@
 # -*- coding: utf-8 -*-
-# Needs suds_jurko
 import base64
 import binascii
 import logging
 import os
 
 from django.utils.encoding import force_text, force_bytes
-from suds import WebFault
-from suds.client import Client
-from suds.plugin import MessagePlugin
+
+from zeep import Client, Transport
+from zeep.cache import SqliteCache
+from zeep.exceptions import Fault
+from zeep.xsd import SkipValue
 
 from .containers import BdocContainer
+from .util import get_bool, get_optional_bool
 
 
 class DigiDocException(Exception):
     """ Unknown errors
     """
 
-    def __init__(self, command, params, *args, **kwargs):
+    def __init__(self, command, params, *args):
         self.command = command
         self.params = params
 
-        super().__init__(*args, **kwargs)
+        super(DigiDocException, self).__init__(*args)
 
 
 class DigiDocError(Exception):
     """ Known errors
     """
 
-    def __init__(self, error_code, *args, **kwargs):
+    def __init__(self, error_code, known_fault, *args):
         self.error_code = error_code
+        self.known_fault = known_fault
 
-        super().__init__(*args, **kwargs)
+        super(DigiDocError, self).__init__(*args)
 
 
 class PreviouslyCreatedContainer(object):
@@ -49,42 +52,10 @@ class DataFile(object):
         self.info = info
 
 
-class SoapFixer(MessagePlugin):
-    def marshalled(self, context):
-        context.envelope.nsprefixes = {
-            'ns1': "http://www.sk.ee/DigiDocService/DigiDocService_2_3.wsdl",
-            'SOAP-ENV': "http://schemas.xmlsoap.org/soap/envelope/",
-        }
-
-        if context.envelope.attributes:
-            context.envelope.attributes = list(filter(
-                lambda attr: attr.prefix != 'SOAP-ENV' and attr.name != 'encodingStyle',
-                context.envelope.attributes
-            ))
-
-        context.envelope.walk(self.fix_namespaces)
-
-    def fix_namespaces(self, element):
-        if element.prefix:
-            if element.prefix != 'ns1' and element.prefix[:2] == 'ns':
-                element.prefix = 'ns1'
-
-        if element.name == 'Header':
-            del element
-
-        elif element.name == 'Body':
-            element.prefix = 'SOAP-ENV'
-
-        elif element.attributes:
-            element.attributes = list(filter(
-                lambda attr: attr.prefix != 'xsi' and attr.name != 'type',
-                element.attributes
-            ))
-
-
 class DigiDocService(object):
     RESPONSE_STATUS_OK = "OK"
 
+    # FIXME: error i18n (allow to set language in init, can be overwritten in mobile_authenticate/mobile_sign)
     ERROR_CODES = {
         100: 'Üldine viga.',
         101: 'Vigased sissetulevad parameetrid.',
@@ -125,7 +96,13 @@ class DigiDocService(object):
     HASHCODE = 'HASHCODE'
     EMBEDDED_BASE64 = 'EMBEDDED_BASE64'
 
-    def __init__(self, wsdl_url, service_name, mobile_message='Signing via python', debug=False):
+    # Commands which don't need Sesscode as input
+    SESSION_INIT_COMMANDS = [
+        'StartSession',
+        'MobileAuthenticate',
+    ]
+
+    def __init__(self, wsdl_url, service_name, mobile_message='Signing via python', transport=None):
         self.service_name = service_name
         self.mobile_message = mobile_message
 
@@ -133,20 +110,17 @@ class DigiDocService(object):
         self.data_files = []
         self.container = None
 
-        if wsdl_url == 'https://tsp.demo.sk.ee/dds.wsdl':
+        if wsdl_url == 'https://tsp.demo.sk.ee/dds.wsdl':  # pragma: no branch
             assert service_name == 'Testimine', 'When using Test DigidocService the service name must be `Testimine`'
 
-        plugin = SoapFixer()
-        self.client = Client(wsdl_url, xstq=False, prefixes=True, prettyxml=True, plugins=[plugin])
-
-        self.debug = debug
+        self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), strict=False)
 
     def start_session(self, b_hold_session, signing_profile=None, sig_doc_xml=None, datafile=None):
         response = self.__invoke('StartSession', {
             'bHoldSession': b_hold_session,
-            'SigningProfile': signing_profile,
-            'SigDocXML': sig_doc_xml,
-            'datafile': datafile,
+            'SigningProfile': signing_profile or self.get_signingprofile(),
+            'SigDocXML': sig_doc_xml or SkipValue,
+            'datafile': datafile or SkipValue,
         })
 
         if response['Sesscode']:
@@ -160,37 +134,69 @@ class DigiDocService(object):
 
         return False
 
-    def mobile_authenticate(self, phone_nr, message=None, language=None):
-        if language is None:
-            language = self.LANGUAGE_ET
-
-        assert language in [self.LANGUAGE_ET, self.LANGUAGE_EN, self.LANGUAGE_RU, self.LANGUAGE_LT]
+    # FIXME: Default return_cert_data to True once signature verification is implemented
+    def mobile_authenticate(self, id_code, country, phone_nr, message=None, language=None,
+                            return_cert_data=False, return_revocation_data=False):
+        challenge = self.get_sp_challenge()
 
         response = self.__invoke('MobileAuthenticate', {
+            'IDCode': id_code,
+            'CountryCode': country,
+
             'PhoneNo': phone_nr,
-            'Language': language,
+            'Language': self.parse_language(language),
             'ServiceName': self.service_name,
             'MessageToDisplay': message or self.mobile_message,
-            'SPChallenge': force_text(binascii.hexlify(os.urandom(10))),
+            'SPChallenge': force_text(binascii.hexlify(challenge)),
+
             'MessagingMode': 'asynchClientServer',
+            'AsyncConfiguration': SkipValue,
+
+            'ReturnCertData': get_optional_bool(return_cert_data),
+            'ReturnRevocationData': get_optional_bool(return_revocation_data),
         })
 
-        return response
+        # Update session code
+        if response['Sesscode']:
+            self.data_files = []
+            self.session_code = response['Sesscode']
+
+        if 'CertificateData' in response and response['CertificateData']:
+            # certificate data is b64 encoded binary (not PEM)
+            response['CertificateData'] = base64.b64decode(response['CertificateData'])
+
+        else:
+            response['CertificateData'] = None
+
+        if 'RevocationData' in response and response['RevocationData']:
+            # certificate data is b64 encoded binary (not PEM)
+            response['RevocationData'] = base64.b64decode(response['RevocationData'])
+
+        else:
+            response['RevocationData'] = None
+
+        return response, challenge
 
     def get_mobile_authenticate_status(self, wait=False):
         response = self.__invoke('GetMobileAuthenticateStatus', {
-            'WaitSignature': 'TRUE' if wait else 'FALSE',
+            'WaitSignature': get_bool(wait),
         }, no_raise=True)
 
-        return response
+        status_code, signature = response['Status'], None
+
+        if 'Signature' in response:
+            if response['Signature']:
+                signature = base64.b64decode(response['Signature'])
+
+        return status_code, signature
 
     def create_signed_document(self, file_format='BDOC'):
         if self.container and isinstance(self.container, PreviouslyCreatedContainer):
             raise DigiDocException('CreateSignedDoc', {}, 'PreviouslyCreatedContainer already in session')
 
         versions = {
-            # 'DIGIDOC-XML': '1.3',
             'BDOC': '2.1',
+            # FIXME: Add Asic support
         }
         containers = {
             'BDOC': BdocContainer,
@@ -201,6 +207,7 @@ class DigiDocService(object):
         self.__invoke('CreateSignedDoc', {
             'Format': file_format,
             'Version': versions[file_format],
+            'SigningProfile': self.get_signingprofile(),
         })
 
         self.container = containers[file_format]
@@ -222,6 +229,7 @@ class DigiDocService(object):
             'FileName': file_name,
             'MimeType': mimetype,
             'ContentType': content_type,
+            'Content': SkipValue,
             'Size': size,
 
             'DigestType': digest_type,
@@ -243,7 +251,7 @@ class DigiDocService(object):
 
         return self.data_files
 
-    def mobile_sign(self, id_code, phone_nr, language=None):
+    def mobile_sign(self, id_code, country, phone_nr, language=None):
         """ This can be used to add a signature to existing data files
 
             WARNING: Must have at least one datafile in the session
@@ -253,22 +261,28 @@ class DigiDocService(object):
             assert self.data_files, 'To use MobileSign endpoint the application must ' \
                                     'add at least one data file to users session'
 
-        if language is None:
-            language = self.LANGUAGE_ET
-
-        assert language in [self.LANGUAGE_ET, self.LANGUAGE_EN, self.LANGUAGE_RU, self.LANGUAGE_LT]
-
         response = self.__invoke('MobileSign', {
             'SignerIDCode': id_code,
+            'SignersCountry': country,
             'SignerPhoneNo': phone_nr,
-            'Language': language,
+            'Language': self.parse_language(language),
+
+            'Role': SkipValue,
+            'City': SkipValue,
+            'StateOrProvince': SkipValue,
+            'PostalCode': SkipValue,
+            'CountryName': SkipValue,
 
             'ServiceName': self.service_name,
             'AdditionalDataToBeDisplayed': self.mobile_message,
 
+            'SigningProfile': self.get_signingprofile(),
+
             'MessagingMode': 'asynchClientServer',
-            'ReturnDocInfo': '',
-            'ReturnDocData': '',
+            'AsyncConfiguration': SkipValue,
+
+            'ReturnDocInfo': SkipValue,
+            'ReturnDocData': SkipValue,
         })
 
         return response
@@ -337,13 +351,13 @@ class DigiDocService(object):
     def __invoke(self, command, params=None, no_raise=False):
         params = params or {}
 
-        if command != 'StartSession':
+        if command not in self.SESSION_INIT_COMMANDS:
             params.update({'Sesscode': self.session_code})
 
         try:
             response = getattr(self.client.service, command)(**params)
-            if self.debug:
-                logging.info('%s:Response: %s', command, response)
+
+            logging.debug('%s:Response: %s', command, response)
 
             if response == self.RESPONSE_STATUS_OK:
                 return True
@@ -356,15 +370,15 @@ class DigiDocService(object):
 
             raise Exception(response)
 
-        except WebFault as e:
-            error_code = e.fault.faultstring
-            known_fault = self.ERROR_CODES.get(int(error_code), None)
+        except Fault as e:
+            error_code = int(str(e))
+            known_fault = self.ERROR_CODES.get(error_code, None)
 
-            if self.debug:
-                logging.info('Response body [/%s - %s]: %s', command, error_code, e.document.str())
+            logging.debug('Response body [/%s - %s]: %s', command, error_code, e.message)
 
             if known_fault is not None:
-                raise DigiDocError(error_code, "Server result [/%s - %s]: %s" % (command, error_code, known_fault))
+                raise DigiDocError(error_code, known_fault,
+                                   "Server result [/%s - %s]: %s" % (command, error_code, known_fault))
 
             else:
                 logging.exception('Request to %s with params %s caused an error', command, params)
@@ -391,3 +405,23 @@ class DigiDocService(object):
 
     def to_bdoc(self, file_data):
         return BdocContainer(file_data, self.data_files)
+
+    def verify_mid_signature(self, certificate_data, signature, sp_challenge):
+        # FIXME: verification of the signature based on certificate_data and signature
+        # see: https://github.com/vvk-ehk/ivxv/blob/003282512343a08ec88ab547d4b1a8e83ac9369d/
+        #  common/collector/src/ivxv.ee/dds/authenticate.go
+        raise NotImplementedError('Verification does not work at this moment')
+
+    def get_signingprofile(self):
+        return SkipValue
+
+    def get_sp_challenge(self):
+        return os.urandom(10)
+
+    def parse_language(self, language):
+        if language is None:
+            return self.LANGUAGE_ET
+
+        assert language in [self.LANGUAGE_ET, self.LANGUAGE_EN, self.LANGUAGE_RU, self.LANGUAGE_LT]
+
+        return language

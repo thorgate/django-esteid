@@ -13,7 +13,7 @@ class SKTestView(TemplateView):
     template_name = 'esteid/test.html'
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = super(SKTestView, self).get_context_data(**kwargs)
 
         try:
             files = self.request.session['__ddoc_files']
@@ -153,10 +153,10 @@ class AuthenticationView(TemplateView):
         self.id_auth = getattr(request, 'id_auth', None)
         self.id_err = getattr(request, 'id_err', None)
 
-        return super().dispatch(request, *args, **kwargs)
+        return super(AuthenticationView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = super(AuthenticationView, self).get_context_data(**kwargs)
 
         self.request.session['id_auth'] = self.id_auth
         context['id_auth'] = self.id_auth

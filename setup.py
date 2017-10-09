@@ -13,13 +13,6 @@ except ImportError:
 
 version = esteid.__version__
 
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist upload')
-    print("You probably want to also tag the version now:")
-    print("  git tag -a %s -m 'version %s'" % (version, version))
-    print("  git push --tags")
-    sys.exit()
-
 readme = open('README.md').read()
 
 setup(
@@ -35,8 +28,9 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'lxml>=3.4',
-        'suds-jurko==0.6'
+        'django>=1.5.1,<1.9',
+        'lxml>=3.4,<4',
+        'zeep>=2.4.0',
     ],
     license="BSD",
     zip_safe=False,

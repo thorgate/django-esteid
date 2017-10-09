@@ -6,8 +6,6 @@ from tempfile import NamedTemporaryFile
 
 from django.utils.encoding import force_bytes, force_text
 
-from . import config
-
 
 class OCSPVerifier(object):
     CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs')

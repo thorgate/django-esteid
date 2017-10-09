@@ -6,6 +6,3 @@ pytest-django==2.9.1
 flake8
 mock>=1.0.1
 tox>=1.7.0
-
-# just for tests, since this is usually monkeypatched
-suds-jurko==0.6
