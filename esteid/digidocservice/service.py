@@ -140,7 +140,10 @@ class DigiDocService(object):
         challenge = self.get_sp_challenge()
 
         response = self.__invoke('MobileAuthenticate', {
-            'IDCode': id_code,
+            # allow to not define IDCode - it's only required w/ Lithuanian Mobile-ID
+            # see section 7.1 in http://www.sk.ee/upload/files/DigiDocService_spec_eng.pdf
+            'IDCode': id_code or SkipValue,
+
             'CountryCode': country,
 
             'PhoneNo': phone_nr,
@@ -180,7 +183,7 @@ class DigiDocService(object):
     def get_mobile_authenticate_status(self, wait=False):
         response = self.__invoke('GetMobileAuthenticateStatus', {
             'WaitSignature': get_bool(wait),
-        }, no_raise=True)
+        })
 
         status_code, signature = response['Status'], None
 
@@ -348,7 +351,7 @@ class DigiDocService(object):
 
         return response
 
-    def __invoke(self, command, params=None, no_raise=False):
+    def __invoke(self, command, params=None):
         params = params or {}
 
         if command not in self.SESSION_INIT_COMMANDS:
@@ -365,9 +368,7 @@ class DigiDocService(object):
             elif response['Status'] == self.RESPONSE_STATUS_OK:
                 return response
 
-            if no_raise:
-                return response
-
+            # This should usually not happen, hence the over-the-top raise Exception
             raise Exception(response)
 
         except Fault as e:

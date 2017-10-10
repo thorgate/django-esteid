@@ -149,7 +149,10 @@ class MobileIdAuthenticateAction(BaseAction):
             view.set_digidoc_session(service.session_code)
 
             # Store CertificateData in session (so we can verify later based on it)
-            view.set_digidoc_session_data('mid_person_code', resp['UserIDCode'])
+            view.set_digidoc_session_data('mid_id_code', resp['UserIDCode'])
+            view.set_digidoc_session_data('mid_firstname', resp['UserGivenname'])
+            view.set_digidoc_session_data('mid_lastname', resp['UserSurname'])
+            view.set_digidoc_session_data('mid_country', resp['UserCountry'])
             view.set_digidoc_session_data('mid_common_name', resp['UserCN'])
             view.set_digidoc_session_data('mid_certificate_data', resp['CertificateData'])
 
@@ -171,25 +174,32 @@ class MobileIdAuthenticateStatusAction(BaseAction):
     def do_action(cls, view, action_kwargs):
         service = view.get_service()
 
+        # TODO: handle exceptions here?
         status_code, signature = service.get_mobile_authenticate_status()
 
         # FIXME: After signature verification is added, make sure to verify the signature here
 
-        # If error occured
-        if status_code not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED', 'REQUEST_OK']:
+        # If an error occurred
+        if status_code not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED']:
             return {
                 'success': False,
+                'pending': False,
                 'code': status_code,
                 'message': service.MID_STATUS_ERROR_CODES[status_code],
             }
 
-        elif status_code == 'OUTSTANDING_TRANSACTION':
+        if status_code == 'OUTSTANDING_TRANSACTION':
             return {
                 'success': False,
                 'pending': True,
+                'code': status_code,
+                'message': None,
             }
 
-        else:
-            return {
-                'success': True,
-            }
+        # USER_AUTHENTICATED
+        return {
+            'success': True,
+            'pending': False,
+            'code': status_code,
+            'message': None,
+        }
