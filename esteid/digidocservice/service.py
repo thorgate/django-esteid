@@ -183,7 +183,7 @@ class DigiDocService(object):
     def get_mobile_authenticate_status(self, wait=False):
         response = self.__invoke('GetMobileAuthenticateStatus', {
             'WaitSignature': get_bool(wait),
-        })
+        }, no_raise=True)
 
         status_code, signature = response['Status'], None
 
