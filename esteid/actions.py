@@ -166,6 +166,7 @@ class MobileIdAuthenticateAction(BaseAction):
         return {
             'success': True,
             'challenge': resp['ChallengeID'],
+            'challenge_raw': resp['Challenge'],
         }
 
 
@@ -174,8 +175,16 @@ class MobileIdAuthenticateStatusAction(BaseAction):
     def do_action(cls, view, action_kwargs):
         service = view.get_service()
 
-        # TODO: handle exceptions here?
-        status_code, signature = service.get_mobile_authenticate_status()
+        try:
+            status_code, signature = service.get_mobile_authenticate_status(**action_kwargs)
+
+        except DigiDocError as e:
+            return {
+                'success': False,
+                'pending': False,
+                'code': e.error_code,
+                'message': e.known_fault,
+            }
 
         # FIXME: After signature verification is added, make sure to verify the signature here
 
