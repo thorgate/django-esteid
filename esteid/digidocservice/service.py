@@ -157,7 +157,7 @@ class DigiDocService(object):
 
             'ReturnCertData': get_optional_bool(return_cert_data),
             'ReturnRevocationData': get_optional_bool(return_revocation_data),
-        })
+        }, no_raise=True)
 
         # Update session code
         if response['Sesscode']:
@@ -351,7 +351,7 @@ class DigiDocService(object):
 
         return response
 
-    def __invoke(self, command, params=None):
+    def __invoke(self, command, params=None, no_raise=False):
         params = params or {}
 
         if command not in self.SESSION_INIT_COMMANDS:
@@ -366,6 +366,10 @@ class DigiDocService(object):
                 return True
 
             elif response['Status'] == self.RESPONSE_STATUS_OK:
+                return response
+
+            elif no_raise:
+                # Some service methods use the status field for other things (e.g. MobileAuthenticate)
                 return response
 
             # This should usually not happen, hence the over-the-top raise Exception
