@@ -118,9 +118,12 @@ class DigiDocService(object):
     def start_session(self, b_hold_session, signing_profile=None, sig_doc_xml=None, datafile=None):
         response = self.__invoke('StartSession', {
             'bHoldSession': b_hold_session,
-            'SigningProfile': signing_profile or self.get_signingprofile(),
             'SigDocXML': sig_doc_xml or SkipValue,
             'datafile': datafile or SkipValue,
+
+            # This parameter is deprecated and exists only due to historical reasons. We need to specify it as
+            #  SkipValue to keep zeep happy
+            'SigningProfile': SkipValue,
         })
 
         if response['Sesscode']:
@@ -372,7 +375,8 @@ class DigiDocService(object):
                 # Some service methods use the status field for other things (e.g. MobileAuthenticate)
                 return response
 
-            # This should usually not happen, hence the over-the-top raise Exception
+            # This should usually not happen, hence the over-the-top raise Exception which gets re-raised as
+            #  DigiDocException below
             raise Exception(response)
 
         except Fault as e:

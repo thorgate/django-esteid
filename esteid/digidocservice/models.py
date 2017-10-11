@@ -154,7 +154,7 @@ class Signer(BaseDigidocServiceObject):
 
     @staticmethod
     def parse_common_name(common_name, id_code):
-        # FIXME: This parses legacy common name format, however we should also parse RFC2253
+        # FIXME: This parses legacy common name format, however we should also add a method for parsing RFC2253
         # see $ssl_client_i_dn vs $ssl_client_i_dn_legacy in nginx docs:
         # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#variables
         common_name = common_name.replace(str(id_code), '')

@@ -7,7 +7,7 @@ def wsdl_url():
     """Url of the DigidocService wsdl
 
     Test: https://tsp.demo.sk.ee/dds.wsdl
-    Live: https://www.sk.ee/DigiDocService/DigiDocService_2_3.wsdl
+    Live: https://digidocservice.sk.ee/dds.wsdl
 
     :return: str
     """
