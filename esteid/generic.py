@@ -1,6 +1,7 @@
 from . import config
-from .actions import (IdCardPrepareAction, IdCardFinishAction, SignCompleteAction, MobileIdSignAction, MobileIdStatusAction, BaseAction,
-                      MobileIdAuthenticateAction, MobileIdAuthenticateStatusAction)
+from .actions import (IdCardPrepareAction, IdCardFinishAction, SignCompleteAction, MobileIdSignAction,
+                      MobileIdStatusAction, BaseAction, MobileIdAuthenticateAction,
+                      MobileIdAuthenticateStatusAction)
 from .digidocservice.service import DigiDocService, DigiDocError
 from .response import JSONResponse
 

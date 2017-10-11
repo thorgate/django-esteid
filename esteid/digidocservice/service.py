@@ -57,8 +57,10 @@ class SoapFixer(MessagePlugin):
         }
 
         if context.envelope.attributes:
-            context.envelope.attributes = list(filter(lambda attr: attr.prefix != 'SOAP-ENV' and attr.name != 'encodingStyle',
-                                                      context.envelope.attributes))
+            context.envelope.attributes = list(filter(
+                lambda attr: attr.prefix != 'SOAP-ENV' and attr.name != 'encodingStyle',
+                context.envelope.attributes
+            ))
 
         context.envelope.walk(self.fix_namespaces)
 
@@ -74,7 +76,10 @@ class SoapFixer(MessagePlugin):
             element.prefix = 'SOAP-ENV'
 
         elif element.attributes:
-            element.attributes = list(filter(lambda attr: attr.prefix != 'xsi' and attr.name != 'type', element.attributes))
+            element.attributes = list(filter(
+                lambda attr: attr.prefix != 'xsi' and attr.name != 'type',
+                element.attributes
+            ))
 
 
 class DigiDocService(object):
@@ -145,7 +150,11 @@ class DigiDocService(object):
             assert service_name == 'Testimine'
 
         plugin = SoapFixer()
-        self.client = Client(self.WSDL_HOSTS[client_type], xstq=False, prefixes=True, prettyxml=True, plugins=[plugin])
+        self.client = Client(self.WSDL_HOSTS[client_type],
+                             xstq=False,
+                             prefixes=True,
+                             prettyxml=True,
+                             plugins=[plugin])
 
         self.debug = debug
 
@@ -258,7 +267,8 @@ class DigiDocService(object):
         """
 
         if not (self.container and isinstance(self.container, PreviouslyCreatedContainer)):
-            assert self.data_files, 'To use MobileSign endpoint the application must add at least one data file to users session'
+            assert self.data_files, 'To use MobileSign endpoint the application must ' \
+                                    'add at least one data file to users session'
 
         if language is None:
             language = self.LANGUAGE_ET
@@ -282,7 +292,8 @@ class DigiDocService(object):
 
     def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country=''):
         if not (self.container and isinstance(self.container, PreviouslyCreatedContainer)):
-            assert self.data_files, 'To use PrepareSignature endpoint the application must add at least one data file to users session'
+            assert self.data_files, 'To use PrepareSignature endpoint the application must ' \
+                                    'add at least one data file to users session'
 
         response = self.__invoke('PrepareSignature', {
             'SignersCertificate': certificate,

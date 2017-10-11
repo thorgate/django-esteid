@@ -1,5 +1,4 @@
 import base64
-import re
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.encoding import force_text, force_bytes

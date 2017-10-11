@@ -2,7 +2,7 @@ from django.conf import settings
 from django.conf.urls import url
 
 from .views import (SKTestView, TestMobileIdSignView, TestMobileIdStatusView, TestDownloadContainerView,
-                    TestIdCardSignView, TestIdCardFinishView, AuthenticationView)
+                    TestIdCardSignView, TestIdCardFinishView)
 
 
 urlpatterns = [

@@ -18,7 +18,7 @@ class MultiHostMiddleware(MiddlewareMixin):
         # Choose which subhost to use (if any):
         host = request.META["HTTP_HOST"]
         if host[-3:] == ":80":
-            host = host[:-3] # ignore default port number, if present
+            host = host[:-3]  # ignore default port number, if present
 
         request.subhost_name = 'default'
         for host_name, host_config in config.get_hosts().items():
@@ -54,7 +54,8 @@ class IdCardMiddleware(MiddlewareMixin):
 
     @classmethod
     def ucs_to_utf8(cls, val):
-        return bytes([ord(x) for x in re.sub(r"\\x([0-9ABCDEF]{1,2})", lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
+        return bytes([ord(x) for x in re.sub(r"\\x([0-9ABCDEF]{1,2})",
+                                             lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
 
     @classmethod
     def parse_x_client(cls, x_client):
