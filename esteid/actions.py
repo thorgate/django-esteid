@@ -134,13 +134,27 @@ class MobileIdStatusAction(BaseAction):
 
 
 class MobileIdAuthenticateAction(BaseAction):
+    # MobileAuthenticate starts session automatically and does not accept Sesscode
+    autostart_digidoc_session = False
+
     @classmethod
     def do_action(cls, view, action_kwargs):
         service = view.get_service()
 
         try:
             # Call mobile_authenticate
-            resp = service.mobile_authenticate(**action_kwargs)
+            resp, _ = service.mobile_authenticate(**action_kwargs)
+
+            # Modify stored digidoc session
+            view.set_digidoc_session(service.session_code)
+
+            # Store CertificateData in session (so we can verify later based on it)
+            view.set_digidoc_session_data('mid_id_code', resp['UserIDCode'])
+            view.set_digidoc_session_data('mid_firstname', resp['UserGivenname'])
+            view.set_digidoc_session_data('mid_lastname', resp['UserSurname'])
+            view.set_digidoc_session_data('mid_country', resp['UserCountry'])
+            view.set_digidoc_session_data('mid_common_name', resp['UserCN'])
+            view.set_digidoc_session_data('mid_certificate_data', resp['CertificateData'])
 
         except DigiDocError as e:
             return {
@@ -149,12 +163,10 @@ class MobileIdAuthenticateAction(BaseAction):
                 'message': service.ERROR_CODES.get(int(e.error_code), service.ERROR_CODES[100])
             }
 
-        view.request.session['mid_person_code'] = resp['UserIDCode']
-        view.request.session['mid_common_name'] = resp['UserCN']
-
         return {
             'success': True,
             'challenge': resp['ChallengeID'],
+            'challenge_raw': resp['Challenge'],
         }
 
 
@@ -163,23 +175,40 @@ class MobileIdAuthenticateStatusAction(BaseAction):
     def do_action(cls, view, action_kwargs):
         service = view.get_service()
 
-        status_info = service.get_mobile_authenticate_status()
+        try:
+            status_code, signature = service.get_mobile_authenticate_status(**action_kwargs)
 
-        # If error occured
-        if status_info['Status'] not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED', 'REQUEST_OK']:
+        except DigiDocError as e:
             return {
                 'success': False,
-                'code': status_info['StatusCode'],
-                'message': service.MID_STATUS_ERROR_CODES[status_info['StatusCode']],
+                'pending': False,
+                'code': e.error_code,
+                'message': e.known_fault,
             }
 
-        elif status_info['Status'] == 'OUTSTANDING_TRANSACTION':
+        # FIXME: After signature verification is added, make sure to verify the signature here
+
+        # If an error occurred
+        if status_code not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED']:
+            return {
+                'success': False,
+                'pending': False,
+                'code': status_code,
+                'message': service.MID_STATUS_ERROR_CODES[status_code],
+            }
+
+        if status_code == 'OUTSTANDING_TRANSACTION':
             return {
                 'success': False,
                 'pending': True,
+                'code': status_code,
+                'message': None,
             }
 
-        else:
-            return {
-                'success': True,
-            }
+        # USER_AUTHENTICATED
+        return {
+            'success': True,
+            'pending': False,
+            'code': status_code,
+            'message': None,
+        }

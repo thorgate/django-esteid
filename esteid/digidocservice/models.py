@@ -2,7 +2,8 @@ from datetime import datetime
 import re
 
 from django.utils import timezone
-from suds.sudsobject import asdict, Object as SudsObject
+# FIXME: remove suds
+# from suds.sudsobject import asdict, Object as SudsObject
 
 
 def uc_first(value):
@@ -40,8 +41,9 @@ class BaseDigidocServiceObject(object):
 
     @classmethod
     def from_dict(cls, the_data):
-        if isinstance(the_data, SudsObject):
-            the_data = asdict(the_data)
+        # FIXME: remove suds
+        # if isinstance(the_data, SudsObject):
+        #     the_data = asdict(the_data)
 
         kwargs = BaseDigidocServiceObject.camel_2_py(the_data)
 
@@ -69,8 +71,8 @@ class BaseDigidocServiceObject(object):
             return None
 
         if not isinstance(the_data, model):
-            if isinstance(the_data, SudsObject):
-                the_data = asdict(the_data)
+            # if isinstance(the_data, SudsObject):
+            #     the_data = asdict(the_data)
 
             if isinstance(the_data, (list, tuple)):
                 if not allow_list:
@@ -152,6 +154,9 @@ class Signer(BaseDigidocServiceObject):
 
     @staticmethod
     def parse_common_name(common_name, id_code):
+        # FIXME: This parses legacy common name format, however we should also add a method for parsing RFC2253
+        # see $ssl_client_i_dn vs $ssl_client_i_dn_legacy in nginx docs:
+        # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#variables
         common_name = common_name.replace(str(id_code), '')
 
         if common_name[-1] == ',':

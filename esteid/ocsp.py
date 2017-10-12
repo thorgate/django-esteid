@@ -6,8 +6,6 @@ from tempfile import NamedTemporaryFile
 
 from django.utils.encoding import force_bytes, force_text
 
-from . import config
-
 
 class OCSPVerifier(object):
     CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs')
@@ -18,19 +16,12 @@ class OCSPVerifier(object):
         "ESTEID-SK 2015": "ESTEID-SK_2015.pem",
     }
 
-    OCSP_URLS = {
-        'TEST': 'http://demo.sk.ee/ocsp',
-        'LIVE': 'http://ocsp.sk.ee',
-    }
-
-    VA_FILES = {
-        'TEST': 'TEST_OCSP_2011.pem',
-        'LIVE': 'sk-ocsp-responder-certificates.pem',
-    }
-
-    def __init__(self, certificate, issuer):
+    def __init__(self, certificate, issuer, ocsp_url, va_file_path):
         self.certificate = certificate
         self.issuer = self.parse_issuer(issuer)
+
+        self.ocsp_url = ocsp_url
+        self.va_file_path = va_file_path
 
     def verify(self):
         if not self.certificate:
@@ -56,8 +47,8 @@ class OCSPVerifier(object):
             'openssl', 'ocsp',
             '-issuer %s' % os.path.join(self.CERT_PATH, self.ISSUER_CERTS[issuer_cn]),
             '-cert %s' % cert_file.name,
-            '-url %s' % self.OCSP_URLS[config.client_type()],
-            '-VAfile %s' % os.path.join(self.CERT_PATH, self.VA_FILES[config.client_type()]),
+            '-url %s' % self.ocsp_url,
+            '-VAfile %s' % self.va_file_path,
         ]
 
         try:
