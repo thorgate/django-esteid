@@ -42,11 +42,7 @@ class GenericDigitalSignViewMixin(object):
             DigiDocService session is stored in request.session[I{DIGIDOC_SESSION_KEY}]
         """
 
-        try:
-            return self.request.session[self.DIGIDOC_SESSION_KEY]
-
-        except KeyError:
-            return None
+        return self.request.session.get(self.DIGIDOC_SESSION_KEY)
 
     def destroy_digidoc_session(self):
         """ Closes DigiDocService session and clears request.session[I{DIGIDOC_SESSION_KEY}]
@@ -73,9 +69,9 @@ class GenericDigitalSignViewMixin(object):
             pass
 
     def destroy_digidoc_session_data(self):
-        # clear it just in case and then delete
-        self.request.session[self.DIGIDOC_SESSION_KEY] = {}
-        del self.request.session[self.DIGIDOC_SESSION_KEY]
+        # Ensure hanging references to the data are cleared and then remove it from session
+        self.request.session.get(self.DIGIDOC_SESSION_DATA_KEY, {}).clear()
+        self.request.session.pop(self.DIGIDOC_SESSION_DATA_KEY, {})
 
     def flat_service(self):
         return DigiDocService(
