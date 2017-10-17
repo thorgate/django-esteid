@@ -145,10 +145,13 @@ class MobileIdAuthenticateAction(BaseAction):
             # Modify stored digidoc session
             view.set_digidoc_session(service.session_code)
 
+            full_name = ' '.join([resp['UserGivenname'], resp['UserSurname']]).title()
+
             # Store CertificateData in session (so we can verify later based on it)
             view.set_digidoc_session_data('mid_id_code', resp['UserIDCode'])
             view.set_digidoc_session_data('mid_firstname', resp['UserGivenname'])
             view.set_digidoc_session_data('mid_lastname', resp['UserSurname'])
+            view.set_digidoc_session_data('mid_full_name', full_name)
             view.set_digidoc_session_data('mid_country', resp['UserCountry'])
             view.set_digidoc_session_data('mid_common_name', resp['UserCN'])
             view.set_digidoc_session_data('mid_certificate_data', resp['CertificateData'])
