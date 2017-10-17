@@ -134,9 +134,6 @@ class MobileIdStatusAction(BaseAction):
 
 
 class MobileIdAuthenticateAction(BaseAction):
-    # MobileAuthenticate starts session automatically and does not accept Sesscode
-    autostart_digidoc_session = False
-
     @classmethod
     def do_action(cls, view, action_kwargs):
         service = view.get_service()

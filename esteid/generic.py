@@ -108,6 +108,11 @@ class GenericDigitalSignViewMixin(object):
         return service
 
 
+class MobileIdAuthenticateViewMixin(GenericDigitalSignViewMixin):
+    # MobileAuthenticate starts session automatically and does not accept Sesscode
+    autostart_digidoc_session = False
+
+
 class BaseDigitalSignViewMixin(GenericDigitalSignViewMixin):
     CATCH_POST = True
     ACTION_CLASS = None
