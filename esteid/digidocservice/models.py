@@ -118,7 +118,7 @@ class DataFileInfo(BaseDigidocServiceObject):
 
 
 class CertificatePolicy(BaseDigidocServiceObject):
-    def __init__(self, url, oid, description=None):
+    def __init__(self, oid, url=None, description=None):
         self.description = description
         self.url = url
         self.oid = oid
