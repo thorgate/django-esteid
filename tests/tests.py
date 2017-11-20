@@ -15,7 +15,6 @@ from mock import patch
 from esteid import config
 
 from esteid.digidocservice.containers import BdocContainer
-from esteid.digidocservice.models import Signer
 from esteid.digidocservice.service import DigiDocService, DataFile, DigiDocError
 
 
@@ -27,24 +26,6 @@ def get_digidoc_service():
     return DigiDocService(wsdl_url=config.wsdl_url(),
                           service_name='Testimine',
                           transport=Transport(cache=InMemoryCache()))
-
-
-class TestParseCommonName(TestCase):
-    def __name_test(self, common_name, id_code, expected):
-        result = Signer.parse_common_name(common_name, id_code)
-        self.assertEqual(expected, result,
-                         'parse_common_name: Expected "%s", got "%s" from common_name "%s"' % (expected,
-                                                                                               result,
-                                                                                               common_name))
-
-    def test_simple(self):
-        self.__name_test('TESTNUMBER,SEITSMES,51001091072', '51001091072', 'Seitsmes Testnumber')
-
-    def test_two_names(self):
-        self.__name_test('TEST-NUMBER,SEITSMES MEES,51001091072', '51001091072', 'Seitsmes Mees Test-Number')
-
-    def test_complex(self):
-        self.__name_test(u'O’CONNEŽ-ŠUSLIK,MARY ÄNN,11412090004', '11412090004', u'Mary Änn O’Connež-Šuslik')
 
 
 class TestMobileAuthenticate(TestCase):

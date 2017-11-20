@@ -2,12 +2,11 @@ from datetime import datetime
 import re
 
 from django.utils import timezone
+
 # FIXME: remove suds
 # from suds.sudsobject import asdict, Object as SudsObject
 
-
-def uc_first(value):
-    return '%s%s' % (value[0].upper(), value[1:].lower())
+from esteid.helpers import get_name_from_legacy_common_name
 
 
 class BaseDigidocServiceObject(object):
@@ -148,31 +147,9 @@ class Signer(BaseDigidocServiceObject):
         assert common_name or full_name
 
         self.id_code = id_code
-        self.full_name = full_name or self.parse_common_name(common_name, id_code)
+        self.full_name = full_name or get_name_from_legacy_common_name(common_name)
 
         self.certificate = BaseDigidocServiceObject.ensure_instance(Certificate, certificate)
-
-    @staticmethod
-    def parse_common_name(common_name, id_code):
-        # FIXME: This parses legacy common name format, however we should also add a method for parsing RFC2253
-        # see $ssl_client_i_dn vs $ssl_client_i_dn_legacy in nginx docs:
-        # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#variables
-        common_name = common_name.replace(str(id_code), '')
-
-        if common_name[-1] == ',':
-            common_name = common_name[:-1]
-
-        parts = common_name.split(',')
-        parts.reverse()
-
-        return ' '.join([Signer.fix_name_part(x) for x in parts])
-
-    @staticmethod
-    def fix_name_part(part):
-        if len(re.findall(r"\W", part, flags=re.UNICODE)) == 0:
-            return uc_first(part)
-
-        return re.sub(r"([\w]+)", lambda m: uc_first(m.group(1)), part, flags=re.UNICODE)
 
 
 class ResponderCertificate(Certificate):

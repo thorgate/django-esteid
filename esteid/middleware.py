@@ -2,6 +2,7 @@ import re
 
 from django.utils.cache import patch_vary_headers
 
+from esteid.helpers import parse_legacy_dn
 from . import config
 from .ocsp import OCSPVerifier
 
@@ -34,6 +35,9 @@ class MultiHostMiddleware(MiddlewareMixin):
 
 
 class IdCardMiddleware(MiddlewareMixin):
+    # This allows one to easily change the DN format used (legacy, rfc)
+    parse_x_client = parse_legacy_dn
+
     def process_request(self, request):
         x_client = request.META.get('HTTP_X_CLIENT', None)
 
@@ -44,7 +48,7 @@ class IdCardMiddleware(MiddlewareMixin):
                 setattr(request, 'id_err', response)
 
             else:
-                setattr(request, 'id_auth', self.parse_x_client(x_client))
+                setattr(request, 'id_auth', self.parse_x_client(x_client) if x_client else None)
 
     @classmethod
     def get_ocsp_url(cls):
@@ -73,22 +77,3 @@ class IdCardMiddleware(MiddlewareMixin):
         return OCSPVerifier(certificate, issuer,
                             cls.get_ocsp_url(),
                             cls.get_ocsp_responder_certificate_path()).verify()
-
-    @classmethod
-    def ucs_to_utf8(cls, val):
-        return bytes([ord(x) for x in re.sub(r"\\x([0-9ABCDEF]{1,2})",
-                                             lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
-
-    @classmethod
-    def parse_x_client(cls, x_client):
-        if not x_client:
-            return None
-
-        x_client = x_client.strip().strip('/').split('/')
-        res = {}
-
-        for part in x_client:
-            part = cls.ucs_to_utf8(part).split('=')
-            res[part[0]] = part[1]
-
-        return res
