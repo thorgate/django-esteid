@@ -1,9 +1,19 @@
 import re
+import sys
+
+from six import unichr
 
 
 def ucs_to_utf8(val):
-    return bytes([ord(x) for x in re.sub(r"\\([0-9ABCDEF]{1,2})",
-                                         lambda x: chr(int(x.group(1), 16)), val)]).decode('utf-8')
+    klass = bytes
+
+    # For py2:
+    #  - bytes is an alias for str: use bytearray instead
+    if sys.version_info[0] < 3:
+        klass = bytearray
+
+    return klass([ord(x) for x in re.sub(r"\\([0-9ABCDEF]{1,2})",
+                                         lambda x: unichr(int(x.group(1), 16)), val)]).decode('utf-8')
 
 
 def get_name_from_legacy_common_name(common_name):
@@ -47,6 +57,6 @@ def parse_rfc_dn(dn):
             res[l] = part[1]
 
         elif l:
-            res[l] = '{0},{1}'.format(res[l], part)
+            res[l] = u'{0},{1}'.format(res[l], part)
 
     return res
