@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 
 from esteid.helpers import get_name_from_legacy_common_name, get_id_from_legacy_common_name

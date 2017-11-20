@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 
 from esteid.helpers import parse_rfc_dn, parse_legacy_dn
