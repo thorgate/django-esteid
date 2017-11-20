@@ -47,16 +47,16 @@ def parse_legacy_dn(dn):
 def parse_rfc_dn(dn):
     dn = ucs_to_utf8(dn).replace('\,', ',')
     res = {}
-    l = None
+    c_key = None
 
     for part in dn.strip().split(','):
         if '=' in part:
             part = part.split('=')
 
-            l = part[0]
-            res[l] = part[1]
+            c_key = part[0]
+            res[c_key] = part[1]
 
-        elif l:
-            res[l] = u'{0},{1}'.format(res[l], part)
+        elif c_key:
+            res[c_key] = u'{0},{1}'.format(res[c_key], part)
 
     return res

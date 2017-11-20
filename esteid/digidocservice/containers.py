@@ -104,7 +104,7 @@ class BdocContainer(object):
         try:
             return buf, ZipFile(buf, 'a')
 
-        except:
+        except Exception:
             raise BDOCException('ZipArchive could not be opened')
 
     def hash_codes_format(self):

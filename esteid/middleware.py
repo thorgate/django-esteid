@@ -1,5 +1,3 @@
-import re
-
 from django.utils.cache import patch_vary_headers
 
 from esteid.helpers import parse_legacy_dn
