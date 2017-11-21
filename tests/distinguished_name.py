@@ -22,8 +22,6 @@ from esteid.helpers import parse_rfc_dn, parse_legacy_dn
 def test_parse_rfc_dn(distinguished_name, expected_res):
     result = parse_rfc_dn(distinguished_name)
 
-    print('result', result)
-    print('expected', expected_res)
     assert result == expected_res
 
 
