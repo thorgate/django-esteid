@@ -29,6 +29,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'django>=1.5.1,<1.9',
+        'attrs>=17.2.0',
         'lxml>=3.4,<4',
         'zeep>=2.4.0',
     ],

@@ -16,6 +16,7 @@ from esteid import config
 
 from esteid.digidocservice.containers import BdocContainer
 from esteid.digidocservice.service import DigiDocService, DataFile, DigiDocError
+from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
 
 
 def get_random_file():
@@ -144,6 +145,7 @@ class TestSigningWithMobile(TestCase):
 
         # Got response, lets load the signed document
         hash_file_data = service.get_signed_doc()
+        doc_info = service.get_signed_doc_info()
 
         # Get BdocContainer
         with service.to_bdoc(hash_file_data) as container:
@@ -152,10 +154,14 @@ class TestSigningWithMobile(TestCase):
 
         service.close_session()
 
-        data_files = [
-            DataFile('Picture 1.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file),
-            DataFile('Picture 2.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file),
-        ]
+        # Test that doc_info is parsed properly
+        assert isinstance(doc_info, SignedDocInfo)
+        assert len(doc_info.signature_info) == 1
+        assert isinstance(doc_info.signature_info[0], SignatureInfo)
+        assert doc_info.signature_info[0].id == 'S0'
+        assert isinstance(doc_info.signature_info[0].signer, Signer)
+        assert doc_info.signature_info[0].signer.id_code == '11412090004'
+        assert doc_info.signature_info[0].signer.full_name == u'Mary Änn O’Connež-Šuslik'
 
         # attempt to sign again
         service2 = get_digidoc_service()
@@ -164,4 +170,8 @@ class TestSigningWithMobile(TestCase):
         status_info = service2.get_status_info(wait=True)
         self.assertEqual(status_info['StatusCode'], 'SIGNATURE')
 
+        data_files = [
+            DataFile('Picture 1.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file),
+            DataFile('Picture 2.jpg', 'image/jpeg', DigiDocService.HASHCODE, len(ex_file), ex_file),
+        ]
         service2.get_file_data(data_files)

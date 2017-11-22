@@ -9,9 +9,11 @@ from django.utils.encoding import force_text, force_bytes
 from zeep import Client, Transport
 from zeep.cache import SqliteCache
 from zeep.exceptions import Fault
+from zeep.helpers import serialize_object
 from zeep.xsd import SkipValue
 
 from .containers import BdocContainer
+from .types import SignedDocInfo
 from .util import get_bool, get_optional_bool
 
 
@@ -343,8 +345,9 @@ class DigiDocService(object):
 
     def get_signed_doc_info(self):
         response = self.__invoke('GetSignedDocInfo')
+        response_dict = serialize_object(response['SignedDocInfo'])
 
-        return response
+        return SignedDocInfo.from_dict(response_dict)
 
     def get_status_info(self, wait=False):
         response = self.__invoke('GetStatusInfo', {
