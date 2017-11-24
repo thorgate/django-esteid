@@ -82,3 +82,21 @@ class TestMobileAuthenticate(TestCase):
                 service.mobile_authenticate(id_code=id_code, country=country, phone_nr=phone_nr)
 
             self.assertEqual(e.value.error_code, error_code)
+
+    def test_mobileauthenticate_user_cancel(self):
+        service = get_digidoc_service()
+
+        # Data from https://www.id.ee/?id=36381
+        id_code, phone_nr, country = '14212128022', '+37200004', 'EE'
+        service.mobile_authenticate(id_code=id_code, country=country, phone_nr=phone_nr)
+
+        # Test get_mobile_authenticate_status works properly
+        status_code, signature = service.get_mobile_authenticate_status(wait=False)
+        self.assertIn(status_code, ['OUTSTANDING_TRANSACTION', 'USER_CANCEL'])
+
+        # try again if the authentication is not completed yet
+        if status_code != 'USER_CANCEL':
+            status_code, signature = service.get_mobile_authenticate_status(wait=True)
+
+        self.assertEqual(status_code, 'USER_CANCEL')
+        self.assertIsNone(signature)
