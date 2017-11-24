@@ -7,7 +7,8 @@ import pytest
 from mock import patch
 
 from esteid.digidocservice.service import DigiDocError
-from tests.tests import get_digidoc_service
+
+from .conftest import get_digidoc_service
 
 
 class TestMobileAuthenticate(TestCase):

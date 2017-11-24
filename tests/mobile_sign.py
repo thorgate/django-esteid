@@ -5,25 +5,12 @@ import os
 import pytest
 from django.test import TestCase
 from django.utils.encoding import force_text
-from zeep import Transport
-from zeep.cache import InMemoryCache
-
-
-from esteid import config
 
 from esteid.digidocservice.containers import BdocContainer
 from esteid.digidocservice.service import DigiDocService, DataFile, DigiDocException
 from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
 
-
-def get_random_file():
-    return os.urandom(4096)
-
-
-def get_digidoc_service():
-    return DigiDocService(wsdl_url=config.wsdl_url(),
-                          service_name='Testimine',
-                          transport=Transport(cache=InMemoryCache()))
+from .conftest import get_digidoc_service, get_random_file
 
 
 class TestSigningWithMobile(TestCase):
