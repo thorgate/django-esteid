@@ -165,7 +165,7 @@ class DigiDocService(object):
         }, no_raise=True)
 
         # Update session code
-        if response['Sesscode']:
+        if response['Sesscode']:  # pragma: no branch (only missing in older service versions)
             self.data_files = []
             self.session_code = response['Sesscode']
 
@@ -192,9 +192,8 @@ class DigiDocService(object):
 
         status_code, signature = response['Status'], None
 
-        if 'Signature' in response:
-            if response['Signature']:
-                signature = base64.b64decode(response['Signature'])
+        if 'Signature' in response and response['Signature']:
+            signature = base64.b64decode(response['Signature'])
 
         return status_code, signature
 
@@ -227,8 +226,8 @@ class DigiDocService(object):
             raise DigiDocException('AddDataFile', {}, 'Cannot add files to PreviouslyCreatedContainer')
 
         assert self.container, 'Must create a signed document before adding files'
-        assert content_type in [self.HASHCODE, self.EMBEDDED_BASE64]
-        assert content_type == self.HASHCODE, 'Currently only HASHCODE mode works'
+        assert content_type in [self.HASHCODE, self.EMBEDDED_BASE64], 'Invalid content_type'
+        assert content_type == self.HASHCODE, 'Only HASHCODE mode is supported'
 
         digest_type = self.container.DEFAULT_HASH_ALGORITHM
         digest_value = force_text(self.container.hash_code(content))
@@ -244,16 +243,14 @@ class DigiDocService(object):
             'DigestValue': digest_value,
         }
 
-        if content_type == self.EMBEDDED_BASE64:
-            args['Content'] = base64.b64encode(content)
+        # We only support HASHCODE format, see above
+        # if content_type == self.EMBEDDED_BASE64:
+        #     args['Content'] = base64.b64encode(content)
 
         response = self.__invoke('AddDataFile', args)
 
-        info = None
-        for file in response['SignedDocInfo']['DataFileInfo']:
-            if file['Filename'] == file_name:
-                info = file
-                break
+        # Get the file from the response info object
+        info = next(iter([f for f in response['SignedDocInfo']['DataFileInfo'] if f['Filename'] == file_name]))
 
         self.data_files.append(DataFile(file_name, mimetype, content_type, size, content, info))
 

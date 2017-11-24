@@ -15,7 +15,7 @@ from mock import patch
 from esteid import config
 
 from esteid.digidocservice.containers import BdocContainer
-from esteid.digidocservice.service import DigiDocService, DataFile, DigiDocError
+from esteid.digidocservice.service import DigiDocService, DataFile, DigiDocError, DigiDocException
 from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
 
 
@@ -166,6 +166,12 @@ class TestSigningWithMobile(TestCase):
         # attempt to sign again
         service2 = get_digidoc_service()
         service2.start_session(True, sig_doc_xml=force_text(base64.b64encode(own_hash_file_data)))
+
+        with pytest.raises(DigiDocException) as exc_info:
+            service2.add_datafile('x', 'text/plain', '', 0, b'')
+
+        assert 'Cannot add files to PreviouslyCreatedContainer' in str(exc_info.value)
+
         service2.mobile_sign(id_code='11412090004', country='EE', phone_nr='+37200000766')
         status_info = service2.get_status_info(wait=True)
         self.assertEqual(status_info['StatusCode'], 'SIGNATURE')
