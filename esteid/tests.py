@@ -32,7 +32,7 @@ class TestParseCommonName(TestCase):
 
 class TestSigningWithMobile(TestCase):
     def get_example_file(self):
-        return urlopen('http://lorempixel.com/1920/1920/').read()
+        return os.urandom(4096)
 
     def get_service(self):
         return DigiDocService('Testimine', debug=False)
