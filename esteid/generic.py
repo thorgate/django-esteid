@@ -6,6 +6,8 @@ from .response import JSONResponse
 
 
 class GenericDigitalSignViewMixin(object):
+    autostart_digidoc_session = True
+
     def get_files(self):
         """ This should be implemented on view level, and should return a list
             of files that should be digitally signed
@@ -76,8 +78,9 @@ class GenericDigitalSignViewMixin(object):
             service.session_code = session
 
         else:
-            if service.start_session(**self.start_session_kwargs()):
-                self.start_digidoc_session(service.session_code)
+            if self.autostart_digidoc_session:
+                if service.start_session(**self.start_session_kwargs()):
+                    self.start_digidoc_session(service.session_code)
 
         setattr(self, 'stored_service', service)
         return service
@@ -127,7 +130,12 @@ class MobileIdStatusViewMixin(BaseDigitalSignViewMixin):
     ACTION_CLASS = MobileIdStatusAction
 
 
-class MobileIdAuthenticateViewMixin(BaseDigitalSignViewMixin):
+class BaseMobileIdAuthenticateViewMixin(GenericDigitalSignViewMixin):
+    # MobileAuthenticate starts session automatically and does not accept Sesscode
+    autostart_digidoc_session = False
+
+
+class MobileIdAuthenticateViewMixin(BaseDigitalSignViewMixin, BaseMobileIdAuthenticateViewMixin):
     ACTION_CLASS = MobileIdAuthenticateAction
 
 
