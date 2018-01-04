@@ -7,6 +7,9 @@ from tempfile import NamedTemporaryFile
 from django.utils.encoding import force_bytes, force_text
 
 
+logger = logging.getLogger(__name__)
+
+
 class OCSPVerifier(object):
     CERT_PATH = os.path.join(os.path.dirname(__file__), 'certs')
 
@@ -79,10 +82,11 @@ class OCSPVerifier(object):
                 result = 6
 
             else:
+                logger.info('openssl ocsp: unknown output: %s', output)
                 result = 7
 
         except subprocess.CalledProcessError as e:
-            logging.error('Output was: %s', e.output)
+            logger.error('openssl ocsp: failed with output: %s', e.output)
             result = 5
 
         # delete temporary file
