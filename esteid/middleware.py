@@ -43,12 +43,32 @@ class MultiHostMiddleware(MiddlewareMixin):
 
 
 class BaseIdCardMiddleware(MiddlewareMixin):
-    # This allows one to easily change the DN format used (legacy, rfc)
+    """ Base class for receiving authentication info from ID card.
+
+    Note that this requires cooperation from the web server (eg Apache / Nginx) - the server must request client
+    certificate and pass it on in specific HTTP headers.
+    You should use one of the subclasses that's preconfigured for a specific server.
+
+    The middleware also performs certificate validation check via OCSP if certificate and issuer headers are known and
+    specified.
+
+    If authentication information is present and valid, it's added to the request's `id_auth` attribute as dict
+    containing at least the following items:
+
+    - `serialNumber` - personal identification code, e.g. `37504170511`
+    - `C` - country code, e.g. `EE`
+    - `CN` - full name and personal id code, e.g. `SMITH,JOHN,37504170511`
+    - `GN` - first name (given name), e.g. 'JOHN'
+    - `SN` - last name (surname), e.g. 'SMITH'
+
+    If authentication fails, the request will have `id_err` attribute with value of the error code.
+    """
 
     DN_HEADER_NAME = None
     CERTIFICATE_HEADER_NAME = None
     ISSUER_HEADER_NAME = None
 
+    # If any of these is not present in client DN, the authentication fails
     REQUIRED_DN_FIELDS = {
         'serialNumber',
         'C',
@@ -147,10 +167,12 @@ class ApacheIdCardMiddleware(BaseIdCardMiddleware):
 
 
 class NginxIdCardMiddleware(BaseIdCardMiddleware):
-    DN_HEADER_NAME = 'HTTP_X_CLIENT'
+    """ ID card middleware configured for Nginx server
 
-    # TODO: Set to a valid value once we add certificates support
-    CERTIFICATE_HEADER_NAME = None
+    Note that Nginx middleware does NOT perform validation (OCSP) checks for the received certificate.
+    """
+
+    DN_HEADER_NAME = 'HTTP_X_CLIENT'
 
 
 class IdCardMiddleware(NginxIdCardMiddleware):
