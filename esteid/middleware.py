@@ -1,4 +1,5 @@
 import logging
+import warnings
 
 from django.utils.cache import patch_vary_headers
 
@@ -154,3 +155,10 @@ class NginxIdCardMiddleware(BaseIdCardMiddleware):
 
 class IdCardMiddleware(NginxIdCardMiddleware):
     """ Deprecated - use ApacheIdCardMiddleware or NginxIdCardMiddleware """
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "IdCardMiddleware is deprecated - use ApacheIdCardMiddleware or NginxIdCardMiddleware", 
+            DeprecationWarning, stacklevel=2
+        )
+        super().__init__(*args, **kwargs)
