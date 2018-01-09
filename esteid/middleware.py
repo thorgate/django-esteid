@@ -109,7 +109,8 @@ class BaseIdCardMiddleware(MiddlewareMixin):
                 if response != 0:
                     logger.info("BaseIdCardMiddleware: OCSP verification returned %s", response)
                     delattr(request, 'id_auth')
-                    setattr(request, 'id_err', response)
+                    # Pad OCSP error codes with 4000
+                    setattr(request, 'id_err', 4000 + response)
 
     def prepare_certificate(self, certificate):
         """ Use this in case the certificate value in HTTP header needs formatting. """
