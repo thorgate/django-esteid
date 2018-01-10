@@ -28,7 +28,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'django>=1.5.1,<1.9',
+        'django>=1.8,<2.1',
         'attrs>=17.2.0',
         'lxml>=3.4,<4',
         'zeep>=2.4.0',
@@ -46,5 +46,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 )

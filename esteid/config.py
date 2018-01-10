@@ -40,16 +40,16 @@ def ocsp_url():
 def ocsp_responder_certificate_path():
     """Get ocsp responder certificate path
 
-    Test: TEST_OCSP_2011.pem
+    Test: TEST_of_SK_OCSP_RESPONDER_2011.pem
     Live: sk-ocsp-responder-certificates.pem
 
     Note: These files are distributed under esteid/certs
 
     :return:
     """
-    certificate_path = getattr(settings, 'ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH', 'TEST_OCSP_2011.pem')
+    certificate_path = getattr(settings, 'ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH', 'TEST_of_SK_OCSP_RESPONDER_2011.pem')
 
-    if certificate_path in ['TEST_OCSP_2011.pem', 'sk-ocsp-responder-certificates.pem']:
+    if certificate_path in ['TEST_of_SK_OCSP_RESPONDER_2011.pem', 'sk-ocsp-responder-certificates.pem']:
         return os.path.join(os.path.dirname(__file__), 'certs', certificate_path)
 
     return certificate_path
