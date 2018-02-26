@@ -59,9 +59,9 @@ class BaseDigidocServiceObject(object):
         return new_dict
 
     @classmethod
-    def ensure_instance(cls, model, the_data, allow_list=False, allow_none=False):
+    def ensure_instance(cls, model, the_data, allow_list=False, allow_none=False, default=None):
         if the_data is None and allow_none:
-            return None
+            return default
 
         if not isinstance(the_data, model):
             if isinstance(the_data, SudsObject):
@@ -125,14 +125,18 @@ class CertificatePolicy(BaseDigidocServiceObject):
 
 
 class Certificate(BaseDigidocServiceObject):
-    def __init__(self, valid_from, issuer_serial, issuer, valid_to, subject, policies):
+    def __init__(self, valid_from, issuer_serial, issuer, valid_to, subject, policies=None):
         self.valid_from = valid_from
         self.issuer_serial = issuer_serial
         self.issuer = issuer
         self.valid_to = valid_to
         self.subject = subject
 
-        self.policies = BaseDigidocServiceObject.ensure_instance(CertificatePolicy, policies, allow_list=True)
+        self.policies = BaseDigidocServiceObject.ensure_instance(CertificatePolicy,
+                                                                 policies,
+                                                                 allow_list=True,
+                                                                 allow_none=True,
+                                                                 default=list())
 
 
 class Signer(BaseDigidocServiceObject):
