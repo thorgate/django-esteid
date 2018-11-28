@@ -1,4 +1,4 @@
-from .digidocservice.service import DigiDocError
+from .digidocservice.service import DigiDocError, DigiDocNotOk
 
 
 class BaseAction(object):
@@ -31,11 +31,18 @@ class IdCardPrepareAction(BaseAction):
         for file in view.get_files():
             service.add_datafile(file.file_name, file.mimetype, service.HASHCODE, file.size, file.content)
 
-        # Call sign
+        # Call prepare_signature
         try:
             response = service.prepare_signature(**action_kwargs)
             response['success'] = True
             return response
+
+        except DigiDocNotOk as e:
+            return {
+                'success': False,
+                'error_code': e.code,
+                'message': str(e),
+            }
 
         except DigiDocError as e:
             return {
@@ -51,8 +58,18 @@ class IdCardFinishAction(BaseAction):
         service = view.get_service()
 
         try:
+            # Should we also pass back the signed_doc_info (?)
+            service.finalize_signature(**action_kwargs)
+
             return {
-                'success': service.finalize_signature(**action_kwargs),
+                'success': True,
+            }
+
+        except DigiDocNotOk as e:
+            return {
+                'success': False,
+                'error_code': e.code,
+                'message': str(e),
             }
 
         except DigiDocError as e:

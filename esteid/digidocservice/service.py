@@ -12,6 +12,13 @@ from zeep.exceptions import Fault
 from zeep.helpers import serialize_object
 from zeep.xsd import SkipValue
 
+try:
+    from zeep.settings import Settings as ZeepSettings
+
+except ImportError:  # pragma: no cover
+    # only occurs on zeep before 3.0
+    ZeepSettings = None
+
 from .containers import BdocContainer
 from .types import SignedDocInfo
 from .util import get_bool, get_optional_bool
@@ -39,6 +46,18 @@ class DigiDocError(Exception):
         super(DigiDocError, self).__init__(*args)
 
 
+class DigiDocNotOk(Exception):
+    """ Used when an api is supposed to return status OK but does not
+    """
+
+    code = -1
+
+    def __init__(self, response, message):
+        self.response = response
+
+        super(Exception, self).__init__(message)
+
+
 class PreviouslyCreatedContainer(object):
     pass
 
@@ -59,6 +78,7 @@ class DigiDocService(object):
 
     # FIXME: error i18n (allow to set language in init, can be overwritten in mobile_authenticate/mobile_sign)
     ERROR_CODES = {
+        -1: 'Päring ebaõnnestus, staatus: %s',
         100: 'Üldine viga.',
         101: 'Vigased sissetulevad parameetrid.',
         102: 'Mõned sissetulevad parameetrid on puudu.',
@@ -115,7 +135,13 @@ class DigiDocService(object):
         if wsdl_url == 'https://tsp.demo.sk.ee/dds.wsdl':  # pragma: no branch
             assert service_name == 'Testimine', 'When using Test DigidocService the service name must be `Testimine`'
 
-        self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), strict=False)
+        if ZeepSettings is not None:  # pragma: no branch
+            settings = ZeepSettings(strict=False)
+
+            self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), settings=settings)
+
+        else:
+            self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), strict=False)
 
     def start_session(self, b_hold_session, sig_doc_xml=None, datafile=None):
         """Start a DigidocService session
@@ -299,7 +325,7 @@ class DigiDocService(object):
 
         return response
 
-    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country=''):
+    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country='', signing_profile='LT'):
         if not (self.container and isinstance(self.container, PreviouslyCreatedContainer)):
             assert self.data_files, 'To use PrepareSignature endpoint the application must ' \
                                     'add at least one data file to users session'
@@ -312,6 +338,8 @@ class DigiDocService(object):
             'State': state,
             'PostalCode': postal_code,
             'Country': country,
+            # Either LT or LT_TM, see: http://sk-eid.github.io/dds-documentation/api/api_docs/#preparesignature
+            'SigningProfile': signing_profile,
         })
 
         if response['Status'] == self.RESPONSE_STATUS_OK:
@@ -320,15 +348,17 @@ class DigiDocService(object):
                 'digest': response['SignedInfoDigest'],
             }
 
-        return None
+        raise DigiDocNotOk(response, self.ERROR_CODES[-1] % response['Status'])
 
     def finalize_signature(self, signature_id, signature_value):
-        response = self.__invoke('FinalizeSignature', {
-            'SignatureId': signature_id,
-            'SignatureValue': signature_value,
-        })
+        response = self._finalize_signature(signature_id, signature_value)
 
-        return response['Status'] == self.RESPONSE_STATUS_OK
+        if response['Status'] == self.RESPONSE_STATUS_OK:
+            response_dict = serialize_object(response['SignedDocInfo'])
+
+            return SignedDocInfo.from_dict(response_dict)
+
+        raise DigiDocNotOk(response, self.ERROR_CODES[-1] % response['Status'])
 
     def close_session(self):
         response = self.__invoke('CloseSession')
@@ -344,8 +374,7 @@ class DigiDocService(object):
         if response['Status'] == self.RESPONSE_STATUS_OK:
             return base64.b64decode(force_bytes(response['SignedDocData']))
 
-        else:
-            return None
+        raise DigiDocNotOk(response, self.ERROR_CODES[-1] % response['Status'])
 
     def get_signed_doc_info(self):
         response = self.__invoke('GetSignedDocInfo')
@@ -441,3 +470,9 @@ class DigiDocService(object):
         assert language in [self.LANGUAGE_ET, self.LANGUAGE_EN, self.LANGUAGE_RU, self.LANGUAGE_LT]
 
         return language
+
+    def _finalize_signature(self, signature_id, signature_value):
+        return self.__invoke('FinalizeSignature', {
+            'SignatureId': signature_id,
+            'SignatureValue': signature_value,
+        })
