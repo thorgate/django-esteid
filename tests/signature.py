@@ -15,7 +15,7 @@ from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
 
 @pytest.fixture
 def dummy_p12():
-    p12 = crypto.load_pkcs12(open("./tests/signer1.p12", 'rb').read(), 'signer1')
+    p12 = crypto.load_pkcs12(open("./tests/signer1.p12", 'rb').read(), b'signer1')
 
     return p12
 
