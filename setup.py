@@ -32,6 +32,7 @@ setup(
         'attrs>=17.2.0',
         'lxml>=3.4',
         'zeep>=2.4.0',
+        'pycryptodome>=3.7.2',
     ],
     license="BSD",
     zip_safe=False,

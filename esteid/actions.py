@@ -1,3 +1,5 @@
+import binascii
+
 from .digidocservice.service import DigiDocError, DigiDocNotOk
 
 
@@ -157,20 +159,26 @@ class MobileIdAuthenticateAction(BaseAction):
 
         try:
             # Call mobile_authenticate
-            resp, _ = service.mobile_authenticate(**action_kwargs)
+            resp, challenge = service.mobile_authenticate(**action_kwargs)
+
+            resp_challenge = binascii.unhexlify(resp['Challenge'])
 
             # Modify stored digidoc session
             view.set_digidoc_session(service.session_code)
 
             full_name = ' '.join([resp['UserGivenname'], resp['UserSurname']]).title()
 
-            # Store CertificateData in session (so we can verify later based on it)
+            # Store Certificate owner information in session
             view.set_digidoc_session_data('mid_id_code', resp['UserIDCode'])
             view.set_digidoc_session_data('mid_firstname', resp['UserGivenname'])
             view.set_digidoc_session_data('mid_lastname', resp['UserSurname'])
             view.set_digidoc_session_data('mid_full_name', full_name)
             view.set_digidoc_session_data('mid_country', resp['UserCountry'])
             view.set_digidoc_session_data('mid_common_name', resp['UserCN'])
+
+            # Store CertificateData in session (so we can verify later based on it)
+            view.set_digidoc_session_data('mid_sp_challenge', challenge)
+            view.set_digidoc_session_data('mid_resp_challenge', resp_challenge)
             view.set_digidoc_session_data('mid_certificate_data', resp['CertificateData'])
 
         except DigiDocError as e:
@@ -220,6 +228,20 @@ class MobileIdAuthenticateStatusAction(BaseAction):
                 'pending': True,
                 'code': status_code,
                 'message': None,
+            }
+
+        # signature
+
+        sp_challenge = view.get_digidoc_session_data('mid_sp_challenge')
+        resp_challenge = view.get_digidoc_session_data('mid_resp_challenge')
+        certificate_data = view.get_digidoc_session_data('mid_certificate_data')
+
+        if not service.verify_mid_signature(certificate_data, sp_challenge, resp_challenge, signature):
+            return {
+                'success': False,
+                'pending': False,
+                'code': 'BAD_SIGNATURE',
+                'message': service.MID_STATUS_ERROR_CODES['BAD_SIGNATURE'],
             }
 
         # USER_AUTHENTICATED
