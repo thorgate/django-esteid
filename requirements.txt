@@ -3,4 +3,4 @@ attrs>=17.2.0
 lxml>=3.4
 zeep>=2.4.0
 
-wheel==0.30.0
+wheel==0.32.3
