@@ -35,8 +35,8 @@ class TestMobileAuthenticate(TestCase):
         self.assertGreater(len(response['UserCN']), 0)
         self.assertIsNotNone(response['CertificateData'])
 
-        parsed_response = binascii.unhexlify(response['Challenge'])
-        self.assertTrue(parsed_response.startswith(sp_challenge))
+        parsed_response_challenge = binascii.unhexlify(response['Challenge'])
+        self.assertTrue(parsed_response_challenge.startswith(sp_challenge))
 
         # session should be set now
         self.assertIsNotNone(service.session_code)
@@ -53,10 +53,11 @@ class TestMobileAuthenticate(TestCase):
         self.assertIsNotNone(signature)
         self.assertGreater(len(signature), 0)
 
-        # Verify signature is correct
-        with pytest.raises(NotImplementedError):
-            # FIXME: test signature verification
-            self.assertTrue(service.verify_mid_signature(response['CertificateData'], signature, sp_challenge))
+        self.assertTrue(service.verify_mid_signature(response['CertificateData'], sp_challenge, parsed_response_challenge, signature))
+
+        self.assertFalse(service.verify_mid_signature(response['CertificateData'], b'XXXX', parsed_response_challenge, signature))
+        self.assertFalse(service.verify_mid_signature(response['CertificateData'], sp_challenge,
+                                                      parsed_response_challenge, signature + b'1'))
 
     def test_mobileauthenticate_return_cert_data(self):
         service = get_digidoc_service()

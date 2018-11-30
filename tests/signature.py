@@ -3,14 +3,13 @@ import pytest
 
 from mock import patch
 
-from platform import python_version_tuple
-
 from cryptography.hazmat.primitives.serialization import Encoding
 
 from OpenSSL import crypto
 
 from esteid.digidocservice.service import DigiDocError, DigiDocService, DigiDocNotOk
 from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
+from esteid.helpers import get_hex_from_bytes
 
 
 @pytest.fixture
@@ -18,25 +17,6 @@ def dummy_p12():
     p12 = crypto.load_pkcs12(open("./tests/signer1.p12", 'rb').read(), b'signer1')
 
     return p12
-
-
-major, minor, _ = python_version_tuple()
-
-#  py 2.x: where pubkey_bytes is a wrapped str
-if major == '2':  # pragma: no cover
-    def get_hex_from_bytes(buf):
-        return buf.encode('hex')
-
-#  py 3.4: since bytes.hex was added in 3.5
-elif major == '3' and int(minor) <= 4:  # pragma: no cover
-    import codecs
-
-    def get_hex_from_bytes(buf):
-        return codecs.encode(buf, 'hex_codec')
-
-else:
-    def get_hex_from_bytes(buf):
-        return buf.hex()
 
 
 @pytest.fixture

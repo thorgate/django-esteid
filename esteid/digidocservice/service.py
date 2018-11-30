@@ -19,6 +19,8 @@ except ImportError:  # pragma: no cover
     # only occurs on zeep before 3.0
     ZeepSettings = None
 
+from ..signature import verify_mid_signature
+
 from .containers import BdocContainer
 from .types import SignedDocInfo
 from .util import get_bool, get_optional_bool
@@ -107,7 +109,8 @@ class DigiDocService(object):
         'SIM_ERROR': 'Telefoni SIM-kaardiga tekkis probleem.',
         'OCSP_UNAUTHORIZED': 'Mobiil-ID kasutajal ei ole lubatud teha OSCP päringuid.',
         'INTERNAL_ERROR': 'Serveri viga Mobiil-ID allkirjastamisel.',
-        'REVOKED_CERTIFICATE': 'Allkirjastaja sertifikaat ei kehti.'
+        'REVOKED_CERTIFICATE': 'Allkirjastaja sertifikaat ei kehti.',
+        'BAD_SIGNATURE': 'Signatuuri valideerimine ebaõnnestus.',
     }
 
     LANGUAGE_ET = 'EST'
@@ -173,9 +176,8 @@ class DigiDocService(object):
         # in case of errors, exceptions are raised from __invoke anyway
         return False
 
-    # FIXME: Default return_cert_data to True once signature verification is implemented
     def mobile_authenticate(self, id_code, country, phone_nr, message=None, language=None,
-                            return_cert_data=False, return_revocation_data=False):
+                            return_cert_data=True, return_revocation_data=False):
         challenge = self.get_sp_challenge()
 
         response = self.__invoke('MobileAuthenticate', {
@@ -453,11 +455,8 @@ class DigiDocService(object):
     def to_bdoc(self, file_data):
         return BdocContainer(file_data, self.data_files)
 
-    def verify_mid_signature(self, certificate_data, signature, sp_challenge):
-        # FIXME: verification of the signature based on certificate_data and signature
-        # see: https://github.com/vvk-ehk/ivxv/blob/003282512343a08ec88ab547d4b1a8e83ac9369d/
-        #  common/collector/src/ivxv.ee/dds/authenticate.go
-        raise NotImplementedError('Verification does not work at this moment')
+    def verify_mid_signature(self, certificate_data, sp_challenge, response_challenge, signature):
+        return verify_mid_signature(certificate_data, sp_challenge, response_challenge, signature)
 
     def get_signingprofile(self):
         return SkipValue

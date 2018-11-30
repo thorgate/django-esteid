@@ -1,6 +1,8 @@
 import re
 import sys
 
+from platform import python_version_tuple
+
 from six import unichr
 
 
@@ -60,3 +62,22 @@ def parse_rfc_dn(dn):
             res[c_key] = u'{0},{1}'.format(res[c_key], part)
 
     return res
+
+
+major, minor, _ = python_version_tuple()
+
+#  py 2.x: where pubkey_bytes is a wrapped str
+if major == '2':  # pragma: no cover
+    def get_hex_from_bytes(buf):
+        return buf.encode('hex')
+
+#  py 3.4: since bytes.hex was added in 3.5
+elif major == '3' and int(minor) <= 4:  # pragma: no cover
+    import codecs
+
+    def get_hex_from_bytes(buf):
+        return codecs.encode(buf, 'hex_codec')
+
+else:
+    def get_hex_from_bytes(buf):
+        return buf.hex()
