@@ -45,7 +45,7 @@ def parse_legacy_dn(dn):
 
 
 def parse_rfc_dn(dn):
-    dn = ucs_to_utf8(dn).replace('\,', ',')
+    dn = ucs_to_utf8(dn).replace('\\,', ',')
     res = {}
     c_key = None
 
