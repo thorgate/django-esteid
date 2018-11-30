@@ -135,13 +135,15 @@ class DigiDocService(object):
         if wsdl_url == 'https://tsp.demo.sk.ee/dds.wsdl':  # pragma: no branch
             assert service_name == 'Testimine', 'When using Test DigidocService the service name must be `Testimine`'
 
+        the_transport = transport or Transport(cache=SqliteCache())
+
         if ZeepSettings is not None:  # pragma: no branch
             settings = ZeepSettings(strict=False)
 
-            self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), settings=settings)
+            self.client = Client(wsdl_url, transport=the_transport, settings=settings)
 
         else:
-            self.client = Client(wsdl_url, transport=transport or Transport(cache=SqliteCache()), strict=False)
+            self.client = Client(wsdl_url, transport=the_transport, strict=False)
 
     def start_session(self, b_hold_session, sig_doc_xml=None, datafile=None):
         """Start a DigidocService session
