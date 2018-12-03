@@ -85,8 +85,8 @@ class DigiDocService(object):
         101: 'Vigased sissetulevad parameetrid.',
         102: 'Mõned sissetulevad parameetrid on puudu.',
         103: 'Teenuse omanikul puudub õigus teha päringuid allkirja-kontrolli teenusesse (OCSP: AUTORISEERIMATA)',
-        104: '[DDS-1993]',
-        105: '[DDS-2437]',
+        104: 'Teenusele juurdepääs pole lubatud.',
+        105: 'Kasutajal puuduvad küsitud tüüpi sertifikaadid.',
         200: 'Üldine teenuse viga.',
         201: 'Kasutaja sertifikaat on puudu.',
         202: 'Sertifikaadi korrektsust polnud võimalik valideerida.',
@@ -267,10 +267,6 @@ class DigiDocService(object):
 
         assert self.container, 'Must create a signed document before adding files'
         assert content_type in [self.HASHCODE, self.EMBEDDED_BASE64], 'Invalid content_type'
-        assert content_type == self.HASHCODE, 'Only HASHCODE mode is supported'
-
-        digest_type = self.container.DEFAULT_HASH_ALGORITHM
-        digest_value = force_text(self.container.hash_code(content))
 
         args = {
             'FileName': file_name,
@@ -279,13 +275,17 @@ class DigiDocService(object):
             'Content': SkipValue,
             'Size': size,
 
-            'DigestType': digest_type,
-            'DigestValue': digest_value,
+            'DigestType': SkipValue,
+            'DigestValue': SkipValue,
         }
 
         # We only support HASHCODE format, see above
-        # if content_type == self.EMBEDDED_BASE64:
-        #     args['Content'] = base64.b64encode(content)
+        if content_type == self.EMBEDDED_BASE64:
+            args['Content'] = base64.b64encode(content)
+
+        elif content_type == self.HASHCODE:
+            args['DigestType'] = self.container.DEFAULT_HASH_ALGORITHM
+            args['DigestValue'] = force_text(self.container.hash_code(content))
 
         response = self.__invoke('AddDataFile', args)
 

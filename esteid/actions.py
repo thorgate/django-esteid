@@ -31,7 +31,7 @@ class IdCardPrepareAction(BaseAction):
 
         # add all files
         for file in view.get_files():
-            service.add_datafile(file.file_name, file.mimetype, service.HASHCODE, file.size, file.content)
+            service.add_datafile(file.file_name, file.mimetype, service.EMBEDDED_BASE64, file.size, file.content)
 
         # Call prepare_signature
         try:
@@ -106,7 +106,7 @@ class MobileIdSignAction(BaseAction):
 
         # add all files
         for file in view.get_files():
-            service.add_datafile(file.file_name, file.mimetype, service.HASHCODE, file.size, file.content)
+            service.add_datafile(file.file_name, file.mimetype, service.EMBEDDED_BASE64, file.size, file.content)
 
         try:
             # Call sign
