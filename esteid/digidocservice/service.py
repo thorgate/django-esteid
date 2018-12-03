@@ -235,7 +235,7 @@ class DigiDocService(object):
 
         return status_code, signature
 
-    def create_signed_document(self, file_format='BDOC', signing_profile='LT'):
+    def create_signed_document(self, file_format='BDOC', signing_profile='LT_TM'):
         if self.container and isinstance(self.container, PreviouslyCreatedContainer):
             raise DigiDocException('CreateSignedDoc', {}, 'PreviouslyCreatedContainer already in session')
 
@@ -296,7 +296,7 @@ class DigiDocService(object):
 
         return self.data_files
 
-    def mobile_sign(self, id_code, country, phone_nr, language=None, signing_profile='LT'):
+    def mobile_sign(self, id_code, country, phone_nr, language=None, signing_profile='LT_TM'):
         """ This can be used to add a signature to existing data files
 
             WARNING: Must have at least one datafile in the session
@@ -333,7 +333,7 @@ class DigiDocService(object):
 
         return response
 
-    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country='', signing_profile='LT'):
+    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country='', signing_profile='LT_TM'):
         if not (self.container and isinstance(self.container, PreviouslyCreatedContainer)):
             assert self.data_files, 'To use PrepareSignature endpoint the application must ' \
                                     'add at least one data file to users session'

@@ -121,8 +121,8 @@ class TestDownloadContainerView(TestFilesMixin, DigidocCompleteViewMixin, View):
             pass
 
         # Download the file
-        response = HttpResponse(the_file, content_type='application/vnd.etsi.asic-e+zip')
-        response['Content-Disposition'] = 'attachment; filename=' + 'signed.asice'
+        response = HttpResponse(the_file, content_type='application/vnd.bdoc-1.0')
+        response['Content-Disposition'] = 'attachment; filename=' + 'signed.bdoc'
         return response
 
 
