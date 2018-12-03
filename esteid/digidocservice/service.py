@@ -85,6 +85,8 @@ class DigiDocService(object):
         101: 'Vigased sissetulevad parameetrid.',
         102: 'Mõned sissetulevad parameetrid on puudu.',
         103: 'Teenuse omanikul puudub õigus teha päringuid allkirja-kontrolli teenusesse (OCSP: AUTORISEERIMATA)',
+        104: 'Teenusele juurdepääs pole lubatud.',
+        105: 'Kasutajal puuduvad küsitud tüüpi sertifikaadid.',
         200: 'Üldine teenuse viga.',
         201: 'Kasutaja sertifikaat on puudu.',
         202: 'Sertifikaadi korrektsust polnud võimalik valideerida.',
@@ -233,13 +235,12 @@ class DigiDocService(object):
 
         return status_code, signature
 
-    def create_signed_document(self, file_format='BDOC'):
+    def create_signed_document(self, file_format='BDOC', signing_profile='LT_TM'):
         if self.container and isinstance(self.container, PreviouslyCreatedContainer):
             raise DigiDocException('CreateSignedDoc', {}, 'PreviouslyCreatedContainer already in session')
 
         versions = {
             'BDOC': '2.1',
-            # FIXME: Add Asic support
         }
         containers = {
             'BDOC': BdocContainer,
@@ -251,7 +252,9 @@ class DigiDocService(object):
         self.__invoke('CreateSignedDoc', {
             'Format': file_format,
             'Version': versions[file_format],
-            'SigningProfile': self.get_signingprofile(),
+
+            # Either LT or LT_TM, see: http://sk-eid.github.io/dds-documentation/api/api_docs/#mobilesign
+            'SigningProfile': signing_profile,
         })
 
         self.container = containers[file_format]
@@ -264,10 +267,6 @@ class DigiDocService(object):
 
         assert self.container, 'Must create a signed document before adding files'
         assert content_type in [self.HASHCODE, self.EMBEDDED_BASE64], 'Invalid content_type'
-        assert content_type == self.HASHCODE, 'Only HASHCODE mode is supported'
-
-        digest_type = self.container.DEFAULT_HASH_ALGORITHM
-        digest_value = force_text(self.container.hash_code(content))
 
         args = {
             'FileName': file_name,
@@ -276,13 +275,17 @@ class DigiDocService(object):
             'Content': SkipValue,
             'Size': size,
 
-            'DigestType': digest_type,
-            'DigestValue': digest_value,
+            'DigestType': SkipValue,
+            'DigestValue': SkipValue,
         }
 
         # We only support HASHCODE format, see above
-        # if content_type == self.EMBEDDED_BASE64:
-        #     args['Content'] = base64.b64encode(content)
+        if content_type == self.EMBEDDED_BASE64:
+            args['Content'] = base64.b64encode(content)
+
+        elif content_type == self.HASHCODE:
+            args['DigestType'] = self.container.DEFAULT_HASH_ALGORITHM
+            args['DigestValue'] = force_text(self.container.hash_code(content))
 
         response = self.__invoke('AddDataFile', args)
 
@@ -293,7 +296,7 @@ class DigiDocService(object):
 
         return self.data_files
 
-    def mobile_sign(self, id_code, country, phone_nr, language=None):
+    def mobile_sign(self, id_code, country, phone_nr, language=None, signing_profile='LT_TM'):
         """ This can be used to add a signature to existing data files
 
             WARNING: Must have at least one datafile in the session
@@ -318,7 +321,8 @@ class DigiDocService(object):
             'ServiceName': self.service_name,
             'AdditionalDataToBeDisplayed': self.mobile_message,
 
-            'SigningProfile': self.get_signingprofile(),
+            # Either LT or LT_TM, see: http://sk-eid.github.io/dds-documentation/api/api_docs/#mobilesign
+            'SigningProfile': signing_profile,
 
             'MessagingMode': 'asynchClientServer',
             'AsyncConfiguration': SkipValue,
@@ -329,7 +333,7 @@ class DigiDocService(object):
 
         return response
 
-    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country='', signing_profile='LT'):
+    def prepare_signature(self, certificate, token_id, role='', city='', state='', postal_code='', country='', signing_profile='LT_TM'):
         if not (self.container and isinstance(self.container, PreviouslyCreatedContainer)):
             assert self.data_files, 'To use PrepareSignature endpoint the application must ' \
                                     'add at least one data file to users session'
@@ -457,9 +461,6 @@ class DigiDocService(object):
 
     def verify_mid_signature(self, certificate_data, sp_challenge, response_challenge, signature):
         return verify_mid_signature(certificate_data, sp_challenge, response_challenge, signature)
-
-    def get_signingprofile(self):
-        return SkipValue
 
     def get_sp_challenge(self):
         return os.urandom(10)

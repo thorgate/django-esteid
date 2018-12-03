@@ -10,6 +10,8 @@ from lxml import etree
 
 from django.utils.encoding import force_bytes, force_text
 
+from .. import __version__
+
 
 class BDOCException(Exception):
     pass
@@ -134,6 +136,10 @@ class BdocContainer(object):
 
         # Write datafiles
         for datafile in self.data_files:
+            # Don't overwrite files
+            if datafile.file_name in archive.namelist():
+                continue
+
             archive.writestr(datafile.file_name, datafile.content)
 
         # Commit changes
@@ -182,4 +188,4 @@ class BdocContainer(object):
 
     @classmethod
     def __get_container_comment(cls):
-        return 'digidoc %s - python %s, %s' % ('0.0.1', sys.version_info, sys.platform)
+        return 'digidoc %s - python %s, %s' % (__version__, sys.version_info, sys.platform)
