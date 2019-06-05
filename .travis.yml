@@ -36,6 +36,7 @@ matrix:
         - DJANGO=2.0
 
     - python: 3.5
+      dist: xenial
       env:
         - DJANGO=2.1
 
@@ -52,6 +53,7 @@ matrix:
         - DJANGO=2.0
 
     - python: 3.6
+      dist: xenial
       env:
         - DJANGO=2.1
 
