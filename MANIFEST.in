@@ -1,4 +1,5 @@
 include AUTHORS.rst
 include LICENSE
 include README.md
-recursive-include esteid *.html *.png *.gif *js *.css *jpg *jpeg *svg *py *pem
+include requirements.txt
+recursive-include esteid *.html *.xml *.png *.gif *js *.css *jpg *jpeg *svg *py *pem
