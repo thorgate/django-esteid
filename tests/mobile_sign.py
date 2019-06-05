@@ -8,6 +8,8 @@ from esteid.digidocservice.containers import BdocContainer
 from esteid.digidocservice.service import DigiDocService, DataFile
 from esteid.digidocservice.types import SignedDocInfo, SignatureInfo, Signer
 
+from .conftest import TEST_ID_CODE, TEST_PHONE_NUMBER
+
 
 def test_bdoc_container(digidoc_service):
     """ This should succeed at writing a hashcode format version of input file
@@ -47,7 +49,7 @@ def test_hashcodes_format(digidoc_service, digidoc_service2, lazy_random_file):
     assert 'Picture 2.jpg' in data_file_names
 
     # Sign with mid
-    digidoc_service.mobile_sign(id_code='11412090004', country='EE', phone_nr='+37200000766')
+    digidoc_service.mobile_sign(id_code=TEST_ID_CODE, country='EE', phone_nr=TEST_PHONE_NUMBER)
 
     # Wait for response
     status_info = digidoc_service.get_status_info(wait=True)
@@ -71,13 +73,13 @@ def test_hashcodes_format(digidoc_service, digidoc_service2, lazy_random_file):
     assert isinstance(doc_info.signature_info[0], SignatureInfo)
     assert doc_info.signature_info[0].id == 'S0'
     assert isinstance(doc_info.signature_info[0].signer, Signer)
-    assert doc_info.signature_info[0].signer.id_code == '11412090004'
-    assert doc_info.signature_info[0].signer.full_name == u'Mary Änn O’Connež-Šuslik'
+    assert doc_info.signature_info[0].signer.id_code == TEST_ID_CODE
+    assert doc_info.signature_info[0].signer.full_name == u'Mary Änn O’Connež-Šuslik Testnumber'
 
     # attempt to sign again
     digidoc_service2.start_session(True, sig_doc_xml=force_text(base64.b64encode(own_hash_file_data)))
 
-    digidoc_service2.mobile_sign(id_code='11412090004', country='EE', phone_nr='+37200000766')
+    digidoc_service2.mobile_sign(id_code=TEST_ID_CODE, country='EE', phone_nr=TEST_PHONE_NUMBER)
     status_info = digidoc_service2.get_status_info(wait=True)
 
     assert status_info['StatusCode'] == 'SIGNATURE'

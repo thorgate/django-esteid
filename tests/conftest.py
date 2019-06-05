@@ -13,6 +13,9 @@ BASE_DIR = os.path.dirname(__file__)
 
 sys.path.append(os.path.join(BASE_DIR, '..'))
 
+TEST_ID_CODE = '60001019906'
+TEST_PHONE_NUMBER = '+37200000766'
+
 
 def get_random_file():
     return os.urandom(4096)

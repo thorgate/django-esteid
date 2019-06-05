@@ -9,7 +9,7 @@ from mock import patch
 
 from esteid.digidocservice.service import DigiDocError
 
-from .conftest import get_digidoc_service
+from .conftest import TEST_ID_CODE, TEST_PHONE_NUMBER, get_digidoc_service
 
 
 class TestMobileAuthenticate(TestCase):
@@ -21,15 +21,15 @@ class TestMobileAuthenticate(TestCase):
         sp_challenge = os.urandom(10)
 
         with patch.object(service, 'get_sp_challenge', return_value=sp_challenge):
-            response, _ = service.mobile_authenticate(id_code='11412090004', country='EE',
-                                                      phone_nr='+37200000766', return_cert_data=True)
+            response, _ = service.mobile_authenticate(id_code=TEST_ID_CODE, country='EE',
+                                                      phone_nr=TEST_PHONE_NUMBER, return_cert_data=True)
 
         self.assertEqual(response['Status'], 'OK')
-        self.assertEqual(response['UserIDCode'], '11412090004')
+        self.assertEqual(response['UserIDCode'], TEST_ID_CODE)
 
         self.assertEqual(response['UserCountry'], 'EE')
         self.assertEqual(response['UserGivenname'], u'MARY ÄNN')
-        self.assertEqual(response['UserSurname'], u'O’CONNEŽ-ŠUSLIK')
+        self.assertEqual(response['UserSurname'], u'O’CONNEŽ-ŠUSLIK TESTNUMBER')
 
         self.assertEqual(len(response['ChallengeID']), 4)
         self.assertGreater(len(response['UserCN']), 0)
@@ -61,13 +61,13 @@ class TestMobileAuthenticate(TestCase):
 
     def test_mobileauthenticate_return_cert_data(self):
         service = get_digidoc_service()
-        response, _ = service.mobile_authenticate(id_code='11412090004', country='EE', phone_nr='+37200000766',
+        response, _ = service.mobile_authenticate(id_code=TEST_ID_CODE, country='EE', phone_nr=TEST_PHONE_NUMBER,
                                                   return_cert_data=True)
         self.assertIsNotNone(response['CertificateData'])
 
     def test_mobileauthenticate_return_revocation_data(self):
         service = get_digidoc_service()
-        response, _ = service.mobile_authenticate(id_code='11412090004', country='EE', phone_nr='+37200000766',
+        response, _ = service.mobile_authenticate(id_code=TEST_ID_CODE, country='EE', phone_nr=TEST_PHONE_NUMBER,
                                                   return_revocation_data=True, language=service.LANGUAGE_ET)
         self.assertIsNotNone(response['RevocationData'])
 
