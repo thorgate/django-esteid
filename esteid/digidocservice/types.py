@@ -31,7 +31,7 @@ class Certificate(FromDictMixin):
     policies = attr.ib(default=attr.Factory(list), validator=[
         attr.validators.instance_of(list),
         get_typed_list_validator(CertificatePolicy),
-    ], convert=get_typed_list_converter(CertificatePolicy))
+    ], converter=get_typed_list_converter(CertificatePolicy))
 
 
 @attr.s
@@ -47,7 +47,7 @@ class Signer(FromDictMixin):
     full_name = attr.ib()
 
     certificate = attr.ib(validator=attr.validators.instance_of(Certificate),
-                          convert=get_instance_converter(Certificate))
+                          converter=get_instance_converter(Certificate))
 
     @staticmethod
     def prepare_kwargs(kwargs):
@@ -69,7 +69,7 @@ class Confirmation(FromDictMixin):
     responder_id = attr.ib()
 
     responder_certificate = attr.ib(validator=attr.validators.instance_of(ResponderCertificate),
-                                    convert=get_instance_converter(ResponderCertificate))
+                                    converter=get_instance_converter(ResponderCertificate))
 
 
 @attr.s
@@ -88,21 +88,21 @@ class SignerRole(FromDictMixin):
 
 @attr.s
 class SignatureInfo(FromDictMixin):
-    signing_time = attr.ib(validator=attr.validators.instance_of(datetime), convert=convert_time)
-    status = attr.ib(convert=convert_status)
+    signing_time = attr.ib(validator=attr.validators.instance_of(datetime), converter=convert_time)
+    status = attr.ib(converter=convert_status)
     id = attr.ib()
 
     signer = attr.ib(validator=attr.validators.instance_of(Signer),
-                     convert=get_instance_converter(Signer, prepare_kwargs=Signer.prepare_kwargs))
-    confirmation = attr.ib(validator=attr.validators.instance_of(Confirmation), convert=get_instance_converter(Confirmation))
+                     converter=get_instance_converter(Signer, prepare_kwargs=Signer.prepare_kwargs))
+    confirmation = attr.ib(validator=attr.validators.instance_of(Confirmation), converter=get_instance_converter(Confirmation))
 
     signature_production_place = attr.ib(validator=attr.validators.optional(attr.validators.instance_of(SignatureProductionPlace)),
-                                         convert=attr.converters.optional(get_instance_converter(SignatureProductionPlace)), default=None)
+                                         converter=attr.converters.optional(get_instance_converter(SignatureProductionPlace)), default=None)
 
     signer_role = attr.ib(default=attr.Factory(list), validator=[
         attr.validators.instance_of(list),
         get_typed_list_validator(SignerRole),
-    ], convert=get_typed_list_converter(SignerRole))
+    ], converter=get_typed_list_converter(SignerRole))
 
     error = attr.ib(default=None)
     crl_info = attr.ib(default=None)
@@ -134,9 +134,9 @@ class SignedDocInfo(FromDictMixin):
     data_file_info = attr.ib(default=attr.Factory(list), validator=[
         attr.validators.instance_of(list),
         get_typed_list_validator(DataFileInfo),
-    ], convert=get_typed_list_converter(DataFileInfo))
+    ], converter=get_typed_list_converter(DataFileInfo))
 
     signature_info = attr.ib(default=attr.Factory(list), validator=[
         attr.validators.instance_of(list),
         get_typed_list_validator(SignatureInfo),
-    ], convert=get_typed_list_converter(SignatureInfo))
+    ], converter=get_typed_list_converter(SignatureInfo))
