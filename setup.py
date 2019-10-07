@@ -20,6 +20,7 @@ setup(
     version=version,
     description="""Django-esteid is a package that provides Esteid based authentication for your Django applications.""",
     long_description=readme,
+    long_description_content_type='text/markdown',
     author='Thorgate',
     author_email='jyrno@thorgate.eu',
     url='https://github.com/thorgate/django-esteid',
