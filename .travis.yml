@@ -89,13 +89,13 @@ deploy:
   user: thorgate
   password:
     secure: >
-      Xsl/Oyo2zsQu5TEfiUZLFLFyRCq+XuLpWhfrp8UYiaNeVeolpEfe145VRBe0wNhbNqiDCm/jRkJeKzUfoNxWz4skVzAymQBk0k1ubalJXfjza
-      DQS2KvqoGMWWedRWrhHKkagv/wUWn6rLt61FwbWl2rLTRYZl6/i0wGsuKys+wRoLvHo0ZVH3VXyTxaO1jd4EaUwA8gcTYLoEBWJ/O9352OdSh
-      83yvcHiqnbJWRVSvdjD+fK3Z5ZtG9mtgf0IEjVur/W7sHdZ060hanQEMnndnmbVNZ1/AyOD7LNtJCGsDDHqbxg2APBqF39sfFGrn0+U7y5WWV
-      d4/BwQnhowzH/T9EgZFtPCp1E4XLY0ECVph5mzfJdNkxStX4w2crMYxUAmu7k1JA+l8nymcYDRGrvJRSoRwRPVp0Ec/uB89n0K4VzsJnZZG64
-      GYTZZ77Fg8hWL6Xi+/9B3Nb9ZUHuAK1126Xa2OKrfJzKv1vB3FZI40VUPgGo7Sh/ir4DjFYzDg4T5t5vjXOopJ4wzx7cOArRzfk1Ddp9dhxn6
-      EXY+J6Z9pJ8NV2rQVonnd8kWNKb+2mlXc2blO6ibHsoJ5DEnD6t9BttR3tbr0vRi0nua6OyHReDKnbfMKiEGgDhX85i/YvQKgrtzrFIFrhhsK
-      6AjbaQ1eyIMAY3iOeTkvNNGzDolgY=
+      Ps6m8+VxrsYnNTKUdzeCihZWLzjfFYLj/OJsn6msfQKdZfWx1LAOOXBf2iv+xEz3yxrd7uCfrPhUHHSHYXWt653njEmQMX6cUGYD9/6DiCKLn
+      C27tCL9QDtibXq2kn3KgLL7qWAtiJprAJr5SSuQrV3BUKpoN8CWLwyAsNDDCddKU9Y72AUH1usXVnnwweFbNDznCHcHcT2LTIR7BPWDZHElau
+      EFqIZvZkblOjTC0TtS/jtnRFiEtDCdvzKSYuzehqTuoimhZq5sA4WmqbyaH7dI5G3ljXYDDFcV6trzL0e1eH3T+bX1XavE8GiuD0DSB8gpuWM
+      ZecWJLNTp33BHxRj4KqRHiEWXTUmheJUuckjrxDZkuLOYp+3lNOo+CA/KWEB7yg4aEYAEgd1IWagJZSD01U5hLfjqv/VbazuG4iEIuKtKiKdf
+      irugiTDkG2i906yorL7rJ3y2r1ubfvmWaQAkXmnnZbrh1mY/9vn83I/MWM0NrMUHUG3dBCujrPjR9xQQzocxbTbut9qFR2Xqk3okfgYV1sxVl
+      FKrrV9jdGMz6xD5ZfK5eaRr4ml4UhRNDwcpcaEF6Lbbow59ThDZsgNvM63i8yawgO+iTj462V+BSX3dY0K5TRZhQCQCyAJXNEELzAVBM3w7xJ
+      LSa40O7fWG3eOUzxYzS1VxzSWQykw=
   distributions: sdist bdist_wheel
   on:
     repo: thorgate/django-esteid
