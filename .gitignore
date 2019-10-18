@@ -1,6 +1,7 @@
 *.py[cod]
 __pycache__
 Solution.md
+venv*/
 
 # C extensions
 *.so

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<asic:XAdESSignatures xmlns:asic="http://uri.etsi.org/02918/v1.2.1#" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+                      xmlns:xades="http://uri.etsi.org/01903/v1.3.2#">
+    <ds:Signature Id="{SIGNATURE_ID}">
+        <ds:SignedInfo>
+            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+            <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+            <ds:Reference Id="r-id-{DOCUMENT_NUMBER}" Type="" URI="{DOCUMENT_FILE_NAME}">
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue>{DOCUMENT_HASH}</ds:DigestValue>
+            </ds:Reference>
+            <ds:Reference Id="r-xades-sp" Type="http://uri.etsi.org/01903#SignedProperties" URI="#xades-SignedProperties">
+                <ds:Transforms>
+                    <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                </ds:Transforms>
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue><!--Base64-encoded SIGNED_PROPERTIES_HASH, calculated over c14n-ized SignedSignatureProperties --></ds:DigestValue>
+            </ds:Reference>
+        </ds:SignedInfo>
+        <ds:SignatureValue Id="SIG-{SIGNATURE_ID}"><!-- Base64-encoded SIGNATURE_VALUE, gotten from SmartID service --></ds:SignatureValue>
+        <ds:KeyInfo>
+            <ds:X509Data>
+                <ds:X509Certificate><!-- Base64-encoded Cert --></ds:X509Certificate>
+            </ds:X509Data>
+        </ds:KeyInfo>
+        <ds:Object>
+            <xades:QualifyingProperties Target="#{SIGNATURE_ID}">
+                <xades:SignedProperties Id="xades-SignedProperties">
+                    <xades:SignedSignatureProperties>
+                        <xades:SigningTime>{SIGNATURE_TIMESTAMP}</xades:SigningTime>
+                        <xades:SigningCertificate>
+                            <xades:Cert>
+                                <xades:CertDigest>
+                                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                                    <ds:DigestValue>{CERT_DIGEST}</ds:DigestValue>
+                                </xades:CertDigest>
+                                <xades:IssuerSerial>
+                                    <ds:X509IssuerName>{CERT_ISSUER_NAME}</ds:X509IssuerName>
+                                    <ds:X509SerialNumber>{CERT_SERIAL_NUMBER}</ds:X509SerialNumber>
+                                </xades:IssuerSerial>
+                            </xades:Cert>
+                        </xades:SigningCertificate>
+                        <xades:SignaturePolicyIdentifier>
+                            <xades:SignaturePolicyId>
+                                <xades:SigPolicyId>
+                                    <xades:Identifier Qualifier="OIDAsURN">urn:oid:1.3.6.1.4.1.10015.1000.3.2.1</xades:Identifier>
+                                </xades:SigPolicyId>
+                                <xades:SigPolicyHash>
+                                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                                    <ds:DigestValue>3Tl1oILSvOAWomdI9VeWV6IA/32eSXRUri9kPEz1IVs=</ds:DigestValue>
+                                </xades:SigPolicyHash>
+                                <xades:SigPolicyQualifiers>
+                                    <xades:SigPolicyQualifier>
+                                        <xades:SPURI>https://www.sk.ee/repository/bdoc-spec21.pdf</xades:SPURI>
+                                    </xades:SigPolicyQualifier>
+                                </xades:SigPolicyQualifiers>
+                            </xades:SignaturePolicyId>
+                        </xades:SignaturePolicyIdentifier>
+                    </xades:SignedSignatureProperties>
+                    <xades:SignedDataObjectProperties>
+                        <xades:DataObjectFormat ObjectReference="#r-id-{DOCUMENT_NUMBER}">
+                            <xades:MimeType>{DOCUMENT_MIME_TYPE}</xades:MimeType>
+                        </xades:DataObjectFormat>
+                    </xades:SignedDataObjectProperties>
+                </xades:SignedProperties>
+                <xades:UnsignedProperties>
+                    <xades:UnsignedSignatureProperties>
+                        <xades:SignatureTimeStamp>
+                            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                            <xades:EncapsulatedTimeStamp>
+                                <!-- response from the timestamping service -->
+                            </xades:EncapsulatedTimeStamp>
+                        </xades:SignatureTimeStamp>
+                        <xades:CertificateValues>
+                            <!--
+                            <xades:EncapsulatedX509Certificate>
+                                * Root CA certificate
+                                * OCSP responder certificate [optional], maybe more than one
+                                * TSA certificate [optional], maybe more than one
+                            </xades:EncapsulatedX509Certificate>
+                            -->
+                        </xades:CertificateValues>
+                        <xades:RevocationValues>
+                            <xades:OCSPValues>
+                                <xades:EncapsulatedOCSPValue><!-- OCSP response --></xades:EncapsulatedOCSPValue>
+                            </xades:OCSPValues>
+                        </xades:RevocationValues>
+                    </xades:UnsignedSignatureProperties>
+                </xades:UnsignedProperties>
+            </xades:QualifyingProperties>
+        </ds:Object>
+    </ds:Signature>
+</asic:XAdESSignatures>
