@@ -5,9 +5,8 @@ AuthenticateResult = namedtuple(
     "AuthenticateResult",
     [
         "session_id",
-        "hash_raw",
         "hash_type",
-        "hash_value",
+        "digest",
         "verification_code",
     ],
 )
@@ -15,9 +14,9 @@ AuthenticateResult = namedtuple(
 AuthenticateStatusResult = namedtuple(
     "AuthenticateStatusResult",
     [
-        "document_number",
+        "signature",
+        "signature_algorithm",
         "certificate",  # DER-encoded certificate
-        "certificate_level",
     ],
 )
 
@@ -25,18 +24,17 @@ SignResult = namedtuple(
     "SignResult",
     [
         "session_id",
-        "signed_data",
+        "digest",
         "verification_code",
     ],
 )
 
+# Note: MobileID doesn't return a certificate for SignStatus. It is set from a previous call to `/certificate`
 SignStatusResult = namedtuple(
     "SignStatusResult",
     [
-        "document_number",
         "signature",
         "signature_algorithm",
-        "certificate",  # DER-encoded certificate
-        "certificate_level",
+        "certificate",
     ],
 )

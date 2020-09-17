@@ -2,18 +2,20 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
-from .base import SmartIDService
-from .constants import END_RESULT_DOCUMENT_UNUSABLE, END_RESULT_OK, END_RESULT_TIMEOUT, END_RESULT_USER_REFUSED
+from esteid.constants import MOBILE_ID_DEMO_URL, MOBILE_ID_LIVE_URL
+
+from .base import MobileIDService
+from .constants import EndResults
 
 
-class TranslatedSmartIDService(SmartIDService):
-    """SmartIDService w/ translatable error messages"""
+class TranslatedMobileIDService(MobileIDService):
+    """MobileIDService w/ translatable error messages"""
 
     MESSAGES = {
-        "display_text": _("Log in with Smart-ID"),
+        "display_text": _("Mobile-ID login"),  # NOTE:!!!! 20-char limit !!!!!!
         "permission_denied": _("No permission to issue the request"),
         "permission_denied_advanced": _("No permission to issue the request (set certificate_level to {})"),
-        "no_identity_code": _("Identity {} was not found in Smart-ID system"),
+        "no_identity_code": _("Identity {} was not found in Mobile-ID system"),
         "no_session_code": _("Session {} does not exist"),
         "action_not_completed": _("Action for session {} has not completed yet"),
         "unexpected_state": _("Unexpected state {}"),
@@ -32,46 +34,40 @@ class TranslatedSmartIDService(SmartIDService):
     }
 
     END_RESULT_MESSAGES = {
-        END_RESULT_OK: _("Successfully authenticated with Smart-ID"),
-        END_RESULT_USER_REFUSED: _("User refused the Smart-ID request"),
-        END_RESULT_TIMEOUT: _("Smart-ID request timed out"),
-        END_RESULT_DOCUMENT_UNUSABLE: _(
-            "Smart-ID document is not usable. Please check your Smart-ID application " "or contact Smart-ID support"
-        ),
+        EndResults.OK: _("Successfully authenticated with Mobile-ID"),
+        EndResults.USER_CANCELLED: _("User canceled the Mobile-ID request"),
+        EndResults.TIMEOUT: _("Mobile-ID request timed out"),
+        EndResults.NOT_MID_CLIENT: _("User is not a Mobile-ID client."),
     }
 
     def msg(self, code):
         # Cast to string so translations are resolved
-        return str(super(TranslatedSmartIDService, self).msg(code))
+        return str(super().msg(code))
 
     def end_result_msg(self, end_result):
         # Cast to string so translations are resolved
-        return str(super(TranslatedSmartIDService, self).end_result_msg(end_result))
+        return str(super().end_result_msg(end_result))
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> "TranslatedMobileIDService":
         cls.configuration_valid()
 
         # NOTE: Test mode ON by default. To prevent accidental billing
-        test_mode = getattr(settings, "SMART_ID_TEST_MODE", True)
-        api_root = getattr(
-            settings,
-            "SMART_ID_API_ROOT",
-            TranslatedSmartIDService.TEST_API_ROOT if test_mode else TranslatedSmartIDService.API_ROOT,
-        )
+        test_mode = getattr(settings, "MOBILE_ID_TEST_MODE", True)
+        api_root = getattr(settings, "MOBILE_ID_API_ROOT", MOBILE_ID_DEMO_URL if test_mode else MOBILE_ID_LIVE_URL)
 
-        return TranslatedSmartIDService(
-            rp_uuid=settings.SMART_ID_SERVICE_UUID,
-            rp_name=settings.SMART_ID_SERVICE_NAME,
+        return cls(
+            rp_uuid=settings.MOBILE_ID_SERVICE_UUID,
+            rp_name=settings.MOBILE_ID_SERVICE_NAME,
             api_root=api_root,
         )
 
     @staticmethod
     def configuration_valid():
-        """Check if the required Smart-ID configuration parameters are set"""
+        """Check if the required Mobile-ID configuration parameters are set"""
         keys = [
-            "SMART_ID_SERVICE_NAME",
-            "SMART_ID_SERVICE_UUID",
+            "MOBILE_ID_SERVICE_NAME",
+            "MOBILE_ID_SERVICE_UUID",
         ]
 
         if not all(getattr(settings, k, False) for k in keys):

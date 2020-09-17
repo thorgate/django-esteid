@@ -1,23 +1,32 @@
-import os
-from tempfile import NamedTemporaryFile
-
 import binascii
 import logging
 import typing
+from tempfile import NamedTemporaryFile
 
-from .bdoc2.container import BDoc2File
-from .bdoc2.exceptions import BDoc2Error
-from .bdoc2.signature_verifier import verify_cryptography
-from .bdoc2.utils import prepare_signature, finalize_signature
-from .bdoc2.xmlsig import XmlSignature
-from .digidocservice.service import DigiDocError
-from .session import open_container, get_esteid_session, update_esteid_session, delete_esteid_session
+from django.conf import settings
+from esteid_certificates import get_certificate
+
+import pyasice
+from esteid import constants
+from esteid.mobileid.exceptions import ActionNotCompleted, MobileIDError, UserNotRegistered
+from esteid.mobileid.i18n import TranslatedMobileIDService
+from pyasice import Container, finalize_signature, verify, XmlSignature
+
+from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
+
 
 if typing.TYPE_CHECKING:
     from .generic import GenericDigitalSignViewMixin
 
 
 logger = logging.getLogger(__name__)
+
+
+ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
+ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
+
+OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
+TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_DEMO else constants.TSA_LIVE_URL)
 
 
 class BaseAction(object):
@@ -29,13 +38,12 @@ class BaseAction(object):
 class NoAction(object):
     @classmethod
     def do_action(cls, view, params):
-        return {'success': True}
+        return {"success": True}
 
 
 class IdCardPrepareAction(BaseAction):
     @classmethod
-    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, certificate: str = None,
-                  container_path: str = None):
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, certificate: str = None):
         """
         The old API is to pass a dict of params (previously confusingly named `action_kwargs`),
         the keyword args are added here for clarity as to what the method accepts
@@ -46,66 +54,60 @@ class IdCardPrepareAction(BaseAction):
         :return:
         """
         request = view.request
-
-        if not certificate:
-            certificate = params['certificate']
-
-        if container_path is None:
-            container_path = params.get("container_path", "")
-
         delete_esteid_session(request)
 
         if not certificate:
+            certificate = params["certificate"]
+
+        if not certificate:
             return {
-                'success': False,
-                'code': 'BAD_CERTIFICATE',
+                "success": False,
+                "code": "BAD_CERTIFICATE",
             }
 
         certificate = binascii.a2b_hex(certificate)
 
         files = view.get_files()
+        container_path = view.get_bdoc_container_file()
 
-        if not files:
+        if not (files or container_path):
             return {
-                'success': False,
-                'code': 'MIN_1_FILE',
+                "success": False,
+                "code": "MIN_1_FILE",
             }
 
         container = open_container(container_path, files)
-        xml_sig = prepare_signature(certificate, container)
+        xml_sig = container.prepare_signature(certificate)
 
         # save intermediate signature XML to temp file
-        with NamedTemporaryFile(delete=False) as f:
-            f.write(xml_sig.dump())
+        with NamedTemporaryFile(delete=False) as temp_signature_file:
+            temp_signature_file.write(xml_sig.dump())
 
-        if not container.name:
-            with NamedTemporaryFile(delete=False) as temp_container_file:
-                container.save(temp_container_file.name)
-        else:
-            temp_container_file = None
+        # always save container to a temp file
+        with NamedTemporaryFile(mode="wb", delete=False) as temp_container_file:
+            temp_container_file.write(container.finalize().getbuffer())
 
         signed_digest = xml_sig.digest()
         digest_hash_b64 = binascii.b2a_base64(signed_digest).decode()
 
         update_esteid_session(
             request,
-            signed_hash=digest_hash_b64,  # probably not needed, as we can take the hash from the signature XML
-            temp_signature_file=f.name,
-            temp_container_file=temp_container_file.name if temp_container_file else None,
+            signed_hash=digest_hash_b64,  # we can take the hash from the signature XML, but it'd take time to compute
+            temp_signature_file=temp_signature_file.name,
+            temp_container_file=temp_container_file.name,
         )
 
         logger.debug("Signature hash base64: %s", digest_hash_b64)
 
         return {
-            'success': True,
-            'digest': binascii.b2a_hex(signed_digest).decode(),
+            "success": True,
+            "digest": binascii.b2a_hex(signed_digest).decode(),
         }
 
 
 class IdCardFinishAction(BaseAction):
     @classmethod
-    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, signature_value: str = None,
-                  container_path: str = None):
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, signature_value: str = None):
         """
         The old API is to pass a dict of params (previously confusingly named `action_kwargs`),
         the keyword args are added here for clarity as to what the method accepts
@@ -119,227 +121,217 @@ class IdCardFinishAction(BaseAction):
         session_data = get_esteid_session(request)
         if not session_data:
             return {
-                'success': False,
-                'code': 'NO_SESSION',
+                "success": False,
+                "code": "NO_SESSION",
             }
 
         if signature_value is None:
-            signature_value = params['signature_value']
+            signature_value = params["signature_value"]
             if not signature_value:
                 return {
-                    'success': False,
-                    'code': 'BAD_SIGNATURE',
+                    "success": False,
+                    "code": "BAD_SIGNATURE",
                 }
-
-        if container_path is None:
-            container_path = params.get("container_path", "")
 
         logger.debug("Signature HEX: %s", signature_value)
 
-        signed_hash_b64 = session_data['signed_hash']
+        signed_hash_b64 = session_data["signed_hash"]
         signature_value = binascii.a2b_hex(signature_value)
 
-        temp_signature_file = session_data['temp_signature_file']
-        temp_container_file = session_data['temp_container_file']
+        temp_signature_file = session_data["temp_signature_file"]
+        temp_container_file = session_data["temp_container_file"]
 
-        with open(temp_signature_file, 'rb') as f:
+        with open(temp_signature_file, "rb") as f:
             xml_sig = XmlSignature(f.read())
-        os.remove(temp_signature_file)
 
-        verify_cryptography(xml_sig.get_certificate_value(), signature_value, binascii.a2b_base64(signed_hash_b64), prehashed=True)
+        # Load a partially prepared BDoc from a tempfile and clean it up
+        container = Container.open(temp_container_file)
 
-        if temp_container_file:
-            # Load a partially prepared BDoc from a tempfile and clean it up
-            container = BDoc2File(temp_container_file)
-            os.remove(temp_container_file)
-        else:
-            container = BDoc2File(container_path)
+        # now we don't need the session anymore
+        delete_esteid_session(request)
 
-        xml_sig.add_signature_value(signature_value)
+        verify(xml_sig.get_certificate_value(), signature_value, binascii.a2b_base64(signed_hash_b64), prehashed=True)
+
+        xml_sig.set_signature_value(signature_value)
+        issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
 
         try:
-            finalize_signature(xml_sig)
-        except BDoc2Error:
+            finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+        except pyasice.Error:
             logger.exception("Signature confirmation service error")
             return {
-                'success': False,
-                'code': 'SERVICE_ERROR',
+                "success": False,
+                "code": "SERVICE_ERROR",
             }
 
         container.add_signature(xml_sig)
 
         return {
-            'success': True,
-            'container': container,
+            "success": True,
+            "container": container,
         }
 
 
 class SignCompleteAction(BaseAction):
     @classmethod
     def do_action(cls, view, action_kwargs):
-        service = view.get_service()
-
-        return service.get_file_data(view.get_files())
+        """Return the signed container"""
+        raise NotImplementedError
 
 
 class MobileIdSignAction(BaseAction):
     @classmethod
-    def do_action(cls, view, action_kwargs):
-        service = view.get_service()
+    def do_action(
+        cls,
+        view: "GenericDigitalSignViewMixin",
+        params: dict = None,
+        *,
+        phone_number: str = None,
+        id_code: str = None,
+        language: str = None,
+    ):
+        """
+        The old API is to pass a dict of params (previously confusingly named `action_kwargs`),
+        the keyword args are added here for clarity as to what the method accepts
 
-        if not view.get_files():
+        :param view:
+        :param params:
+        :param phone_number:
+        :param id_code:
+        :param language:
+        :return:
+        """
+        request = view.request
+        delete_esteid_session(request)
+
+        if not phone_number:
+            phone_number = params["phone_number"]
+        if not id_code:
+            id_code = params["id_code"]
+
+        if not (phone_number and id_code):
             return {
-                'success': False,
-                'code': 'MIN_1_FILE',
+                "success": False,
+                "code": "BAD_PARAMS",
             }
 
-        # Create signed document
-        service.create_signed_document()
+        files = view.get_files()
+        container_path = view.get_bdoc_container_file()
 
-        # add all files
-        for file in view.get_files():
-            service.add_datafile(file.file_name, file.mimetype, service.HASHCODE, file.size, file.content)
+        if not (files or container_path):
+            return {
+                "success": False,
+                "code": "MIN_1_FILE",
+            }
+
+        service = TranslatedMobileIDService.get_instance()
 
         try:
-            # Call sign
-            resp = service.mobile_sign(**action_kwargs)
-
-        except DigiDocError as e:
+            certificate = service.get_certificate(id_code, phone_number)
+        except UserNotRegistered:
             return {
-                'success': False,
-                'error_code': e.error_code,
-                'message': service.ERROR_CODES.get(int(e.error_code), service.ERROR_CODES[100])
+                "success": False,
+                "code": "NOT_A_MOBILEID_USER",
             }
 
+        container = open_container(container_path, files)
+        xml_sig = container.prepare_signature(certificate)
+
+        # save intermediate signature XML to temp file
+        with NamedTemporaryFile(delete=False) as temp_signature_file:
+            temp_signature_file.write(xml_sig.dump())
+
+        # always save container to a temp file
+        with NamedTemporaryFile(mode="wb", delete=False) as temp_container_file:
+            temp_container_file.write(container.finalize().getbuffer())
+
+        try:
+            sign_session = service.sign(id_code, phone_number, xml_sig.signed_data(), language=language)
+        except MobileIDError:
+            return {
+                "success": False,
+                "code": "SIGN_SESSION_FAILED",
+            }
+
+        signed_digest = sign_session.digest
+        digest_hash_b64 = binascii.b2a_base64(signed_digest).decode()
+
+        update_esteid_session(
+            request,
+            session_id=sign_session.session_id,
+            digest_b64=digest_hash_b64,
+            temp_signature_file=temp_signature_file.name,
+            temp_container_file=temp_container_file.name,
+        )
+
+        logger.debug("Signature hash base64: %s", digest_hash_b64)
+
         return {
-            'success': True,
-            'challenge': resp['ChallengeID'],
+            "success": True,
+            "challenge": sign_session.verification_code,
+            "verification_code": sign_session.verification_code,
         }
 
 
 class MobileIdStatusAction(BaseAction):
     @classmethod
-    def do_action(cls, view, action_kwargs):
-        service = view.get_service()
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None):
 
-        status_info = service.get_status_info()
-
-        # If error occured
-        if status_info['StatusCode'] not in ['OUTSTANDING_TRANSACTION', 'SIGNATURE', 'REQUEST_OK']:
+        request = view.request
+        session_data = get_esteid_session(request)
+        if not session_data:
             return {
-                'success': False,
-                'code': status_info['StatusCode'],
-                'message': service.MID_STATUS_ERROR_CODES[status_info['StatusCode']],
+                "success": False,
+                "code": "NO_SESSION",
             }
 
-        elif status_info['StatusCode'] == 'OUTSTANDING_TRANSACTION':
+        session_id = session_data["session_id"]
+        signed_digest = session_data["digest_b64"]
+        temp_signature_file = session_data["temp_signature_file"]
+        temp_container_file = session_data["temp_container_file"]
+
+        with open(temp_signature_file, "rb") as f:
+            xml_sig = XmlSignature(f.read())
+
+        # Load a partially prepared BDoc from a tempfile and clean it up
+        container = Container.open(temp_container_file)
+
+        service = TranslatedMobileIDService.get_instance()
+        try:
+            status = service.sign_status(
+                session_id, xml_sig.get_certificate_value(), binascii.a2b_base64(signed_digest)
+            )
+        except ActionNotCompleted:
             return {
-                'success': False,
-                'pending': True,
+                "success": False,
+                "pending": True,
             }
+        except Exception:
+            # NOTE: we could pick some exceptions that don't require cleanup,
+            # but this also requires support from the party that polls this action.
+            # Most likely the whole process would need to be restarted anyway
+            delete_esteid_session(request)
+            raise
 
-        else:
-            return {
-                'success': True,
-            }
+        # now we don't need the session anymore
+        delete_esteid_session(request)
 
+        xml_sig.set_signature_value(status.signature)
 
-class MobileIdAuthenticateAction(BaseAction):
-    @classmethod
-    def do_action(cls, view, action_kwargs):
-        service = view.get_service()
+        issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
 
         try:
-            # Call mobile_authenticate
-            resp, challenge = service.mobile_authenticate(**action_kwargs)
-
-            resp_challenge = binascii.unhexlify(resp['Challenge'])
-
-            # Modify stored digidoc session
-            view.set_digidoc_session(service.session_code)
-
-            full_name = ' '.join([resp['UserGivenname'], resp['UserSurname']]).title()
-
-            # Store Certificate owner information in session
-            view.set_digidoc_session_data('mid_id_code', resp['UserIDCode'])
-            view.set_digidoc_session_data('mid_firstname', resp['UserGivenname'])
-            view.set_digidoc_session_data('mid_lastname', resp['UserSurname'])
-            view.set_digidoc_session_data('mid_full_name', full_name)
-            view.set_digidoc_session_data('mid_country', resp['UserCountry'])
-            view.set_digidoc_session_data('mid_common_name', resp['UserCN'])
-
-            # Store CertificateData in session (so we can verify later based on it)
-            view.set_digidoc_session_data('mid_sp_challenge', challenge)
-            view.set_digidoc_session_data('mid_resp_challenge', resp_challenge)
-            view.set_digidoc_session_data('mid_certificate_data', resp['CertificateData'])
-
-        except DigiDocError as e:
+            finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+        except pyasice.Error:
+            logger.exception("Signature confirmation service error")
             return {
-                'success': False,
-                'error_code': e.error_code,
-                'message': service.ERROR_CODES.get(int(e.error_code), service.ERROR_CODES[100])
+                "success": False,
+                "code": "SERVICE_ERROR",
             }
+
+        container.add_signature(xml_sig)
 
         return {
-            'success': True,
-            'challenge': resp['ChallengeID'],
-            'challenge_raw': resp['Challenge'],
-        }
-
-
-class MobileIdAuthenticateStatusAction(BaseAction):
-    @classmethod
-    def do_action(cls, view, action_kwargs):
-        service = view.get_service()
-
-        try:
-            status_code, signature = service.get_mobile_authenticate_status(**action_kwargs)
-
-        except DigiDocError as e:
-            return {
-                'success': False,
-                'pending': False,
-                'code': e.error_code,
-                'message': e.known_fault,
-            }
-
-        # FIXME: After signature verification is added, make sure to verify the signature here
-
-        # If an error occurred
-        if status_code not in ['OUTSTANDING_TRANSACTION', 'USER_AUTHENTICATED']:
-            return {
-                'success': False,
-                'pending': False,
-                'code': status_code,
-                'message': service.MID_STATUS_ERROR_CODES[status_code],
-            }
-
-        if status_code == 'OUTSTANDING_TRANSACTION':
-            return {
-                'success': False,
-                'pending': True,
-                'code': status_code,
-                'message': None,
-            }
-
-        # signature
-
-        sp_challenge = view.get_digidoc_session_data('mid_sp_challenge')
-        resp_challenge = view.get_digidoc_session_data('mid_resp_challenge')
-        certificate_data = view.get_digidoc_session_data('mid_certificate_data')
-
-        if not service.verify_mid_signature(certificate_data, sp_challenge, resp_challenge, signature):
-            return {
-                'success': False,
-                'pending': False,
-                'code': 'BAD_SIGNATURE',
-                'message': service.MID_STATUS_ERROR_CODES['BAD_SIGNATURE'],
-            }
-
-        # USER_AUTHENTICATED
-        return {
-            'success': True,
-            'pending': False,
-            'code': status_code,
-            'message': None,
+            "success": True,
+            "container": container,
         }

@@ -2,6 +2,7 @@
 __pycache__
 Solution.md
 venv*/
+.venv*/
 
 # C extensions
 *.so
@@ -39,8 +40,9 @@ nosetests.xml
 .project
 .pydevproject
 
-# Pycharm
+# IDEs
 .idea
+.vscode
 
 # Complexity
 output/*.html
@@ -48,3 +50,7 @@ output/*/index.html
 
 # Sphinx
 docs/_build
+
+.python-version
+
+db.sqlite

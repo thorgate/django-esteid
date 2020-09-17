@@ -7,11 +7,11 @@ Django-esteid is a package that provides Esteid based authentication for your Dj
 
 ## Quickstart
 
-Install Django esteid:
+Install `django-esteid`:
 
     pip install django-esteid
 
-Add django-esteid to installed apps:
+Add `esteid` to installed apps:
 
     INSTALLED_APPS = [
         # ...
@@ -23,20 +23,75 @@ Then use it in a project:
 
     import esteid
 
-## SmartID
+### SmartID
 
 Detailed docs are [here](esteid/smartid/README.md).
 
-**Note:***
+### MobileID
 
-Currently containers with a SmartID-generated signature are not compatible with MobiilID/ID-Card.
-This means, such a signature is valid, but adding another signature to the same container
-by means of MobiilID/ID-Card DigiDoc Service API will fail. 
+Detailed docs are [here](esteid/mobileid/README.md).
 
-This is the limitation of DigiDoc Service (which uses old versions of 
-respective libraries) and can not be resolved except by moving to the new REST API for MobiilID. 
+### Id Card
 
-Adding a SmartID signature to a container with a previously generated SmartID signature, 
-as well as a MobiilID/ID-Card generated one, works without restrictions.
+Detailed docs are [here](esteid/idcard/README.md).
 
-(Same note is included in the [SmartID readme](esteid/smartid/README.md).)
+
+## Testing
+
+There is a possibility to test the signing flow with ID card 
+and Mobile ID (the demo service) with the test views coming with the library.
+
+To run the django-esteid test server with the test views, 
+* install the virtual environment if not installed yet,
+* run `./manage.py migrate` to create the SQLite DB for sessions,
+* run `./manage.py runserver 8765`, where 8765 is a port of your liking
+
+then visit the URL http://localhost:8765/ and follow the instructions on that page.
+
+### Mobile ID
+
+To test Mobile ID signing, some test phone numbers and ID codes might come in handy, 
+find those at https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO .
+
+You can not use real phone numbers or ID codes with the demo service, and you can not use the live service
+unless you have an active contract (your IP address must be added to the live service's IP address whitelist)
+
+### ID card
+
+ID card signing requires SSL to work, even in a testing enviorment.  
+Note that the signature will not be valid neither with the real certificates, nor with the test ones. 
+
+To perform signing with ID card, you would need the `chrome-token-signing` package installed.
+`apt-get install chrome-token-signing`
+
+#### Testing with ssl
+ 
+You can make your webserver https enabled by first creating the cert using openssl.
+```
+openssl req -x509 -out localhost.crt -keyout localhost.key \
+  -newkey rsa:2048 -nodes -sha256 \
+  -subj '/CN=localhost' -extensions EXT -config <( \
+   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+```
+Then start the webserver with runsslserver, then you can connect to `https://127.0.0.1:8000`
+
+`python manage.py runsslserver 127.0.0.1:8000 --certificate localhost.crt --key localhost.key`
+
+Note that the cert is self-signed, so you will need to create a security exception.
+
+#### ngrok
+If you don't want to use a self-signed cert you can route the test site through HTTPS with [ngrok](https://ngrok.com/). 
+
+With `ngrok` installed, and the `./manage.py runserver 8765` started, run
+`ngrok http http://127.0.0.1:8765` and it will create a tunnel with an HTTPS URL for your local site.
+
+### Verify demo containers with digidoc-tool
+
+It's possible to use the command line utility `digidoc-tool` 
+from the [libdigidocpp library](https://github.com/open-eid/libdigidocpp/)
+to verify containers with signatures created by demo services:
+```
+digidoc-tool open --tslurl=https://open-eid.github.io/test-TL/tl-mp-test-EE.xml --tslcert=trusted-test-tsl.crt <file>
+```
+Instructions on setting up the environment 
+[can be found here](https://github.com/open-eid/libdigidocpp/wiki/Using-test-TSL-lists#digidoc-toolexe-utility-program).

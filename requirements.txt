@@ -1,10 +1,2 @@
+-r requirements-base.txt
 django>=1.11,!=2.1.0,!=2.1.1
-attrs>=19.2.0
-lxml>=4
-zeep>=3
-pycryptodome>=3.9
-oscrypto
-asn1crypto
-cryptography>=3
-
-requests>=2.20

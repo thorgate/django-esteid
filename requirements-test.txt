@@ -1,9 +1,12 @@
-pytest>=4.6.5
+black==20.8b1
 coverage>=4.5.4
 coveralls>=1.8.2
+django-sslserver
+flake8
+isort==5.6.*
+pyopenssl>=18.0.0
 pytest-cov>=2.8.1
 pytest-django>=3.5.1
-flake8
-tox>=1.7.0
+pytest>=4.6.5
 requests-mock
-pyopenssl>=18.0.0
+tox>=1.7.0

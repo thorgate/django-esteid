@@ -1,4 +1,4 @@
-{% load staticfiles %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,39 +7,32 @@
 
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-
-    {# TypedArray for ie <= 9 #}
-    <!--[if lte IE 9]>
-    <script src="{% static 'esteid-test/typedarray.js' %}"></script>
-    <![endif]-->
-
-    {# Promises for ie <= 10 #}
-    <!--[if lte IE 10]>
-    <script src="{% static 'esteid-test/npo.js' %}"></script>
-    <![endif]-->
 </head>
 
 <body>
     <div class="container">
         <h1>Esteid Test page</h1>
         <p>
-            This is a test page for digital signing of files via python. The calls are
-            made against <a href="http://www.id.ee/?id=30340" target="_blank">Test-DigiDocService</a>.
+            This is a test page for digital signing of files via python.
+        </p>
+        <p>
         </p>
 
         <ul>
             <li>
-                For mobile-id <a href="http://www.id.ee/?id=36373" target="_blank">test-numbers</a> can be used
+                Mobile ID signing is done with Demo Mobile ID service,
+                <a href="https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO" target="_blank">these test numbers</a> can be used.
+                The signatures will not be valid unless the test certificates are used to validate them.
             </li>
             <li>
-                To use with a real mobile-id, one must upload the proper certificates to the
-                Test-DigiDocService
-                <a href="https://www.openxades.org/MIDCertsReg/" target="_blank">database</a>
+                ID Card signing is done with real ID cards and as such, creates real signatures that can be validated
+                with digidoc-tool.
             </li>
             <li>
-                To use a real ID card please make
-                sure you upload the ID-card certificate to Test-DigiDocService
-                <a href="https://www.openxades.org/upload_cert.php" target="_blank">database</a>
+                ID Card signing requires the chrome-token-signing for chrome or firefox.
+            </li>
+            <li>
+                ID Card signing requires HTTPS which can be done with ngrok.
             </li>
         </ul>
 
@@ -70,8 +63,8 @@
 
             <h3>Sign the files</h3>
 
-            <a href="#" id="sign-id"><img src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
-            <a href="#" id="sign-mid"><img src="{% static 'images/esteid/mid-logo.gif' %}"></a>
+            <a href="#" id="sign-id"><img alt="ID Card" src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
+            <a href="#" id="sign-mid"><img alt="Mobile ID" src="{% static 'images/esteid/mid-logo.gif' %}"></a>
 
         {% else %}
             <p>No files uploaded, to begin the signing process, please upload some files</p>
@@ -102,10 +95,16 @@
                 </div>
 
                 <div class="modal-body">
-                    <form>
+                    <form name="mobileId">
                         <div class="form-group">
                             <label for="phoneNrInput">Phone nr:</label>
-                            <input type="text" name="phone_nr" id="phoneNrInput" class="form-control" />
+                            <input type="text" name="phone_nr" id="phoneNrInput" class="form-control"
+                                   value="{{ request.session.ddoc_test_phone_number | default:'+37200000766' }}" />
+                        </div>
+                        <div class="form-group">
+                            <label for="idCodeInput">ID code:</label>
+                            <input type="text" name="id_code" id="idCodeInput" class="form-control"
+                                   value="{{ request.session.ddoc_test_id_code | default:'60001019906' }}" />
                         </div>
                     </form>
                 </div>
@@ -210,26 +209,33 @@
 
             $('#signMobile').on('click', function (e) {
                 e.preventDefault();
-                var phoneNr = $(this).parents('.modal').find('#phoneNrInput').val();
+                var mobileIdForm = document.forms.mobileId;
+                var phoneNr = mobileIdForm.phone_nr.value;
+                var idCode = mobileIdForm.id_code.value;
 
                 if (!phoneNr) {
                     alert('Please enter a phone number');
                     return;
                 }
+                if (!idCode) {
+                    alert('Please enter an ID code');
+                    return;
+                }
 
-                console.log('MID: signing with phoneNr', phoneNr);
+                console.log('MID: signing with phoneNr', phoneNr, 'and id code', idCode);
 
                 // Call IdentificationManager.sign which calls the backend endpoint to start mobileId signing process
-                manager.sign(Esteid.IdentificationManager.SIGN_MOBILE, {
+                manager.signWithMobileId({
                     phone_nr: phoneNr,
+                    id_code: idCode,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 })
 
                 .then(function (response) {
-                    console.log('MID: got challenge', response.challenge);
+                    console.log('MID: got verification code', response.verification_code);
 
                     // Got response, show challenge modal
-                    $('#challenge-code').text(response.challenge);
+                    $('#challenge-code').text(response.verification_code);
                     $('#challenge-modal').modal({
                         backdrop: 'static',
                         keyboard: false
@@ -237,7 +243,7 @@
 
                     $('#mid-modal').modal('hide');
 
-                    manager.midStatus(response.challenge, {csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
+                    manager.midStatus({csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
                         function () {
                             $('#challenge-modal').modal('hide');
                             onSigned(manager.midEndpoints.finalize);
@@ -273,7 +279,7 @@
                     keyboard: false
                 });
 
-                manager.sign(Esteid.IdentificationManager.SIGN_ID, {csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
+                manager.signWithIdCard({csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
                     function () {
                         $('#id-modal').modal('hide');
                         onSigned(manager.idEndpoints.finalize);
