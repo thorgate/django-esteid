@@ -1,5 +1,5 @@
 from time import time, sleep
-from mock import patch
+from unittest.mock import patch
 
 from django.utils.functional import Promise
 

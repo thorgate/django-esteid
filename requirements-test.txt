@@ -4,7 +4,6 @@ coveralls>=1.8.2
 pytest-cov>=2.8.1
 pytest-django>=3.5.1
 flake8
-mock>=1.0.1
 tox>=1.7.0
 requests-mock
 pyopenssl>=18.0.0
