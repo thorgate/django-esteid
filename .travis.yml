@@ -1,7 +1,9 @@
 language: python
 
+os: linux
+dist: xenial
 
-matrix:
+jobs:
   include:
     # also check tox.ini
     - python: 3.6
@@ -20,42 +22,29 @@ matrix:
       env:
         - DJANGO=3.0
 
-    # dist + sudo, see https://github.com/travis-ci/travis-ci/issues/9815 and
-    #  https://github.com/travis-ci/travis-ci/issues/9069#issuecomment-425720905
-
     - python: 3.7
-      dist: xenial
-      sudo: true
       env:
         - DJANGO=2.0
 
     - python: 3.7
-      dist: xenial
-      sudo: true
       env:
         - DJANGO=2.1
 
     - python: 3.7
-      dist: xenial
-      sudo: true
       env:
         - DJANGO=3.0
 
     - python: 3.8
-      dist: xenial
-      sudo: true
       env:
         - DJANGO=2.0
 
     - python: 3.8
-      dist: xenial
-      sudo: true
       env:
         - DJANGO=2.1
 
     - python: 3.8
-      dist: xenial
-      sudo: true
+      # ensure bionic also passes checks
+      dist: bionic
       env:
         - DJANGO=3.0
 
@@ -67,7 +56,7 @@ script:
 
 deploy:
   provider: pypi
-  user: thorgate
+  username: thorgate
   password:
     secure: >
       Ps6m8+VxrsYnNTKUdzeCihZWLzjfFYLj/OJsn6msfQKdZfWx1LAOOXBf2iv+xEz3yxrd7uCfrPhUHHSHYXWt653njEmQMX6cUGYD9/6DiCKLn
