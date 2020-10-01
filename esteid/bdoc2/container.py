@@ -79,6 +79,9 @@ class BDoc2File(object):
 
         self._zip_buffer = buffer
 
+    def __str__(self):
+        return self.name or repr(self)
+
     def save(self, name=None):
         """Create the actual BDoc file in FS, with current content
         """
