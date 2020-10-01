@@ -3,6 +3,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, padding
+from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 from cryptography.x509 import Certificate, load_der_x509_certificate
 
 from Crypto import Hash
@@ -77,13 +78,14 @@ def verify_cryptodome(certificate, signature, data, hash_algo='SHA256'):
             raise SignatureVerificationError()
 
 
-def verify_cryptography(certificate, signature, data, hash_algo='SHA256'):
+def verify_cryptography(certificate, signature, data, hash_algo='SHA256', prehashed=False):
     """Verify RSA and EC signatures with the cryptography library
 
     :param Union[bytes, Certificate] certificate:
     :param bytes signature:
-    :param bytes data: the original signed data
+    :param bytes data: the original signed data, or its hash
     :param hash_algo:
+    :param prehashed: True if `data` is a hash of original signed data instead
     :return:
     """
     if not isinstance(certificate, Certificate):
@@ -94,6 +96,10 @@ def verify_cryptography(certificate, signature, data, hash_algo='SHA256'):
         raise InvalidSignatureAlgorithm(hash_algo)
 
     hasher = getattr(hashes, hash_algo)
+    chosen_hash = hasher()
+    if prehashed:
+        chosen_hash = Prehashed(chosen_hash)
+
     public_key = certificate.public_key()
 
     try:
@@ -101,14 +107,14 @@ def verify_cryptography(certificate, signature, data, hash_algo='SHA256'):
             public_key.verify(
                 x962_to_der(signature),
                 data,
-                ec.ECDSA(hasher())
+                ec.ECDSA(chosen_hash)
             )
         else:
             public_key.verify(
                 signature,
                 data,
                 padding.PKCS1v15(),
-                hasher()
+                chosen_hash
             )
     except InvalidSignature:
         raise SignatureVerificationError()
