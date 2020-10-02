@@ -1,11 +1,10 @@
-django>=1.8,!=2.1.0,!=2.1.1
+django>=1.11,!=2.1.0,!=2.1.1
 attrs>=19.2.0
-lxml>=3.4,<4.4 ; python_version < '3.5'
-lxml>=3.4; python_version >= '3.5'
-zeep>=2.4.0
-pycryptodome>=3.7.2
+lxml>=4
+zeep>=3
+pycryptodome>=3.9
 oscrypto
 asn1crypto
-cryptography>=2.3.1
+cryptography>=3
 
-requests>=2
+requests>=2.20

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-from mock import patch
+from unittest.mock import patch
 
 from cryptography.hazmat.primitives.serialization import Encoding
 

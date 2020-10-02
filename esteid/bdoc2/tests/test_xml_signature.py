@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 
 from lxml import etree
-from mock import patch
+from unittest.mock import patch
 from oscrypto.asymmetric import Certificate, load_certificate
 
 from ... import certs

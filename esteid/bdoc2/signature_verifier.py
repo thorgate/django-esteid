@@ -22,8 +22,21 @@ class InvalidSignatureAlgorithm(SignatureVerificationError):
     pass
 
 
+def x962_to_der(signature):
+    """
+    Convert binary signature (X9.62 format) into a DER encoded one
+    """
+    num_length = len(signature) // 2
+    r_prime, s_prime = [
+        Integer.from_bytes(x)
+        for x in (signature[:num_length], signature[num_length:])
+    ]
+
+    return DerSequence([r_prime, s_prime]).encode()
+
+
 def verify_cryptodome(certificate, signature, data, hash_algo='SHA256'):
-    """Verify RSA and EC signatures with the pycryptodome library
+    """Verify RSA and EC signatures with the pycryptodome library (DEPRECATED)
 
     :param bytes certificate: DER-encoded certificate
     :param bytes signature:
@@ -35,7 +48,14 @@ def verify_cryptodome(certificate, signature, data, hash_algo='SHA256'):
     if hash_algo not in ('SHA256', 'SHA384', 'SHA512'):
         raise InvalidSignatureAlgorithm(hash_algo)
 
-    hasher = getattr(Hash, hash_algo)
+    try:
+        # old versions of pycryptodome (~ 3.7)
+        hasher = getattr(Hash, hash_algo)
+    except AttributeError:
+        # Newer versions of pycryptodome (3.9) implement algorithms as modules
+        m = __import__('Crypto.Hash', None, None, fromlist=[hash_algo])
+        hasher = getattr(m, hash_algo)
+
     digest = hasher.new(data)
 
     try:
@@ -78,16 +98,8 @@ def verify_cryptography(certificate, signature, data, hash_algo='SHA256'):
 
     try:
         if isinstance(public_key, ec.EllipticCurvePublicKey):
-            # TODO This looks like hackery - might want to find a more usable way to convert binary signature into
-            # a DER encoded one
-            num_length = len(signature) // 2
-            r_prime, s_prime = [
-                Integer.from_bytes(x)
-                for x in (signature[:num_length], signature[num_length:])
-            ]
-
             public_key.verify(
-                DerSequence([r_prime, s_prime]).encode(),
+                x962_to_der(signature),
                 data,
                 ec.ECDSA(hasher())
             )
@@ -102,4 +114,4 @@ def verify_cryptography(certificate, signature, data, hash_algo='SHA256'):
         raise SignatureVerificationError()
 
 
-verify = verify_cryptodome
+verify = verify_cryptography

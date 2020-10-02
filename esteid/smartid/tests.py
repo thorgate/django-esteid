@@ -1,5 +1,5 @@
 from time import time, sleep
-from mock import patch
+from unittest.mock import patch
 
 from django.utils.functional import Promise
 
@@ -220,7 +220,7 @@ def test_status_404(demo_api):
             demo_api.status(session_id='FAKE', hash_raw=b'')
 
 
-def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512):
+def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512, timeout=30):
     """ Run full authentication flow w/ a hash algorithm
 
     id_number from https://github.com/SK-EID/smart-id-documentation/wiki/Environment-technical-parameters
@@ -229,6 +229,7 @@ def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512)
     :param str id_number:
     :param str country:
     :param str hash_type:
+    :param int timeout:
     :rtype: AuthenticateStatusResult
     """
     res = demo_api.authenticate(id_number, country, hash_type=hash_type)
@@ -245,14 +246,18 @@ def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512)
     status_res = None  # type: AuthenticateStatusResult
 
     # Pull status (using a loop here since the remote might be slow)
-    # We timeout in 15s compared to Smart ID ~5m.
+    # Default timeout is 30s compared to Smart ID ~5m.
     # There is really no reason that it should take longer IF it is working
-    end_time = time() + 15
-    while status_res is None and time() < end_time:
+    end_time = time() + timeout
+    while time() < end_time:
         try:
             status_res = demo_api.status(res.session_id, res.hash_raw)
+            break
         except ActionNotCompleted:
             sleep(1.0)
+
+    if status_res is None:
+        raise TimeoutError(f"Failed to get status in {timeout}s")
 
     assert isinstance(status_res, AuthenticateStatusResult)
     return status_res
