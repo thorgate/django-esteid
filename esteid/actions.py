@@ -22,35 +22,36 @@ logger = logging.getLogger(__name__)
 
 class BaseAction(object):
     @classmethod
-    def do_action(cls, view: "GenericDigitalSignViewMixin", action_kwargs):
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params):
         raise NotImplementedError
 
 
 class NoAction(object):
     @classmethod
-    def do_action(cls, view, action_kwargs):
+    def do_action(cls, view, params):
         return {'success': True}
 
 
 class IdCardPrepareAction(BaseAction):
     @classmethod
-    def do_action(cls, view: "GenericDigitalSignViewMixin", action_kwargs: dict = None, *, certificate: str = None,
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, certificate: str = None,
                   container_path: str = None):
         """
-        The old API is to pass a dict, the keyword args are added here for clarity as to what the method accepts
+        The old API is to pass a dict of params (previously confusingly named `action_kwargs`),
+        the keyword args are added here for clarity as to what the method accepts
 
         :param view:
-        :param action_kwargs:
+        :param params:
         :param certificate: HEX-encoded certificate from the ID card
         :return:
         """
         request = view.request
 
         if not certificate:
-            certificate = action_kwargs['certificate']
+            certificate = params['certificate']
 
         if container_path is None:
-            container_path = action_kwargs.get("container_path", "")
+            container_path = params.get("container_path", "")
 
         delete_esteid_session(request)
 
@@ -103,13 +104,14 @@ class IdCardPrepareAction(BaseAction):
 
 class IdCardFinishAction(BaseAction):
     @classmethod
-    def do_action(cls, view: "GenericDigitalSignViewMixin", action_kwargs: dict = None, *, signature_value: str = None,
+    def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None, *, signature_value: str = None,
                   container_path: str = None):
         """
-        The old API is to pass a dict, the keyword args are added here for clarity as to what the method accepts
+        The old API is to pass a dict of params (previously confusingly named `action_kwargs`),
+        the keyword args are added here for clarity as to what the method accepts
 
         :param view:
-        :param action_kwargs:
+        :param params:
         :param signature_value: a HEX encoded signature, as received from `hwcrypto.js`
         :return:
         """
@@ -122,7 +124,7 @@ class IdCardFinishAction(BaseAction):
             }
 
         if signature_value is None:
-            signature_value = action_kwargs['signature_value']
+            signature_value = params['signature_value']
             if not signature_value:
                 return {
                     'success': False,
@@ -130,7 +132,7 @@ class IdCardFinishAction(BaseAction):
                 }
 
         if container_path is None:
-            container_path = action_kwargs.get("container_path", "")
+            container_path = params.get("container_path", "")
 
         logger.debug("Signature HEX: %s", signature_value)
 
