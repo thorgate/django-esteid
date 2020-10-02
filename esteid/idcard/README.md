@@ -27,7 +27,7 @@
    from the temporary files created on step 2, 
    inserts the received signature into the XAdEs structure and packs it into the container.
   
-   The container should be saved to a desired location, and the temporary files cleaned up.
+   The container is saved to a desired location, and the temporary files are cleaned up.
    
 
 ## Potential issues
