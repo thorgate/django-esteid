@@ -10,8 +10,8 @@
 1. Initialization request to the backend 
 
    The backend creates a BDoc (Asic-E) container with files to be signed (or takes an existing container). 
-   Employing the user certificate received from the ID card on step 1, it creates a XAdEs structure 
-   containing the necessary data which constitute the value that is to be signed.
+   The files' digests, together with the user certificate received from the ID card on step 1,
+   are embedded into a XAdEs structure which constitutes the value that is to be signed.
    This value is returned to the frontend.
    
    The container (if it is newly created), and the XAdEs structure, are stored in temporary files.
