@@ -35,6 +35,10 @@ def signature_info(xml_signature):
             # if ever needed
             'produced_at': xml_signature._get_node('xades:SigningTime').text,
             'responder_id': 'OCSP',
+            # TODO: create an API to extract the data from xml_signature and cover by tests.
+            # Currently it is accessible as a wrapped asn1crypto.x509.Certificate by smth like:
+            # xml_signature.get_responder_certs()[0].native['tbs_certificate']
+            # individual fields: ocsp_cert['issuer'] etc
             'responder_certificate': ResponderCertificate(issuer='', valid_from='', valid_to='', issuer_serial='', subject=''),
         },
         'signer_role': [{
