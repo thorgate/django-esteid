@@ -3,6 +3,7 @@ import copy
 import hashlib
 import logging
 import os
+from typing import Union
 
 from oscrypto.asymmetric import load_certificate, Certificate
 from cryptography import x509
@@ -91,7 +92,7 @@ class XmlSignature(object):
         doc_entries = data_objects_props_node.findall('ds:Reference[@Type=""]', namespaces=self.NAMESPACES)
         self.doc_ids = [doc_entry.attrib['Id'] for doc_entry in doc_entries]
 
-        self._certificate = None  # type: Certificate
+        self._certificate: Certificate = None
 
     @classmethod
     def create(cls):
@@ -117,7 +118,7 @@ class XmlSignature(object):
             return None
         return base64.b64decode(cert_node.text)
 
-    def set_certificate(self, subject_cert):
+    def set_certificate(self, subject_cert: Union[bytes, Certificate]):
         """Set the certificate that would be used for signing
 
         :param subject_cert: bytes, file name (Python 3.4+), asn1crypto.x509.Certificate objects

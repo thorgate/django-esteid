@@ -41,10 +41,17 @@ class BDoc2File(object):
     # > The names of these files shall contain the string "signatures" [1], ch.8
     SIGNATURE_FILES_REGEX = r'^%s/signatures(\d+)\.xml$' % META_DIR
     SIGNATURE_FILES_TEMPLATE = '%s/signatures{}.xml' % META_DIR
+
+    # Manifest structure constants
     MANIFEST_FILE = 'manifest.xml'
+    MANIFEST_NS = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
     MANIFEST_NAMESPACES = {
-        'manifest': "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
+        'manifest': MANIFEST_NS,
     }
+    MANIFEST_TAG_FILE_ENTRY = '{%s}file-entry' % MANIFEST_NS
+    MANIFEST_ATTR_MEDIA_TYPE = '{%s}media-type' % MANIFEST_NS
+    MANIFEST_ATTR_FULL_PATH = '{%s}full-path' % MANIFEST_NS
+
     MANIFEST_TEMPLATE_FILE = os.path.join(os.path.dirname(__file__), 'templates', 'manifest.xml')
     MIME_TYPE = b'application/vnd.etsi.asic-e+zip'
     MIME_TYPE_FILE = 'mimetype'
@@ -72,6 +79,9 @@ class BDoc2File(object):
 
         self._zip_buffer = buffer
 
+    def __str__(self):
+        return self.name or repr(self)
+
     def save(self, name=None):
         """Create the actual BDoc file in FS, with current content
         """
@@ -93,10 +103,9 @@ class BDoc2File(object):
     def add_file(self, file_name, binary_data, mime_type='application/octet-stream', compress=True):
         """Add a data file"""
         manifest_xml = self._get_manifest_xml()
-        manifest_ns = self.MANIFEST_NAMESPACES['manifest']
-        new_manifest_entry = etree.Element('{%s}file-entry' % manifest_ns)
-        new_manifest_entry.attrib['{%s}media-type' % manifest_ns] = mime_type
-        new_manifest_entry.attrib['{%s}full-path' % manifest_ns] = file_name
+        new_manifest_entry = etree.Element(self.MANIFEST_TAG_FILE_ENTRY)
+        new_manifest_entry.attrib[self.MANIFEST_ATTR_MEDIA_TYPE] = mime_type
+        new_manifest_entry.attrib[self.MANIFEST_ATTR_FULL_PATH] = file_name
         manifest_xml.append(new_manifest_entry)
         compress_type = ZIP_DEFLATED if compress else ZIP_STORED
         self._zip_file.writestr(file_name, binary_data, compress_type)
@@ -116,6 +125,9 @@ class BDoc2File(object):
         value = self._zip_buffer.getvalue()
         self._zip_file = ZipFile(self._zip_buffer, 'a')
         return value
+
+    def has_data_files(self):
+        return any(self._enumerate_data_files())  # False if no elements
 
     def iter_data_files(self):
         """
@@ -237,12 +249,11 @@ class BDoc2File(object):
         Yields 2-tuples of file name and mime_type
         """
         manifest_xml = self._get_manifest_xml()
-        manifest_ns = self.MANIFEST_NAMESPACES['manifest']
-        media_type_attr = '{%s}media-type' % manifest_ns
-        full_path_attr = '{%s}full-path' % manifest_ns
+        media_type_attr = self.MANIFEST_ATTR_MEDIA_TYPE
+        full_path_attr = self.MANIFEST_ATTR_FULL_PATH
 
         for file_entry in manifest_xml.iterchildren():
-            assert file_entry.tag == '{%s}file-entry' % manifest_ns
+            assert file_entry.tag == self.MANIFEST_TAG_FILE_ENTRY
             file_name = file_entry.attrib[full_path_attr]
             if file_name != '/':  # skip the 'root' entry
                 yield file_name, file_entry.attrib[media_type_attr]

@@ -1,3 +1,5 @@
+from django.http import HttpRequest
+
 from . import config
 from .actions import (IdCardPrepareAction, IdCardFinishAction, SignCompleteAction, MobileIdSignAction,
                       MobileIdStatusAction, BaseAction, MobileIdAuthenticateAction,
@@ -7,6 +9,8 @@ from .response import JSONResponse
 
 
 class GenericDigitalSignViewMixin(object):
+    request: HttpRequest
+
     autostart_digidoc_session = True
 
     DIGIDOC_SESSION_KEY = '__ddoc_session'
