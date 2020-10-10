@@ -1,2 +1,4 @@
 -r requirements.txt
 -r requirements-test.txt
+djangorestframework>=3.9
+django-sslserver
