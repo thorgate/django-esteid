@@ -6,6 +6,17 @@ import requests
 import pyasice
 
 from ..constants import HASH_ALGORITHMS, HASH_SHA256
+from ..exceptions import ActionFailed, ActionNotCompleted
+from ..exceptions import EsteidError as SmartIDError
+from ..exceptions import (
+    IdentityCodeDoesNotExist,
+    InvalidCredentials,
+    OfflineError,
+    PermissionDenied,
+    SessionDoesNotExist,
+    SignatureVerificationError,
+    UnsupportedClientImplementation,
+)
 from ..util import generate_hash, secure_random
 from .constants import (
     CERTIFICATE_LEVEL_ADVANCED,
@@ -19,18 +30,6 @@ from .constants import (
     END_RESULT_USER_REFUSED,
     STATE_RUNNING,
     STATES,
-)
-from .exceptions import (
-    ActionFailed,
-    ActionNotCompleted,
-    IdentityCodeDoesNotExist,
-    InvalidCredentials,
-    OfflineError,
-    PermissionDenied,
-    SessionDoesNotExist,
-    SignatureVerificationError,
-    SmartIDError,
-    UnsupportedClientImplementation,
 )
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
@@ -110,14 +109,13 @@ class SmartIDService(object):
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)
-        hash_value_b64 = base64.b64encode(hash_value)
 
         endpoint = "/authentication/pno/{country}/{id_code}".format(country=country, id_code=id_code)
 
         data = {
             "certificateLevel": certificate_level,
             "hashType": hash_type,
-            "hash": hash_value_b64.decode("utf-8"),
+            "hash": base64.b64encode(hash_value).decode(),
             # Casting to str to ensure translations are resolved
             "displayText": str(message or self.msg("display_text")),
             # Don't use nonce to so we can rely on idempotent behaviour
@@ -164,19 +162,18 @@ class SmartIDService(object):
 
         return AuthenticateResult(
             session_id=result["sessionID"],
-            hash_raw=random_bytes,
             hash_type=hash_type,
             hash_value=hash_value,
             verification_code=get_verification_code(hash_value),
         )
 
-    def status(self, session_id, hash_raw, timeout=10000):
+    def status(self, session_id, hash_value, timeout=10000):
         """Retrieve session result from Smart-ID backend
 
         see https://github.com/SK-EID/smart-id-documentation#46-session-status
 
         :param session_id: session ID, from I{authenticate} Result
-        :param hash_raw: hash_raw that was sent to I{authenticate}
+        :param hash_value: hash value that was sent to I{authenticate}
         :param int timeout: Request long poll timeout value in milliseconds (Note: server uses a default
                          if client does not send it)
         :rtype: AuthenticateStatusResult
@@ -205,7 +202,7 @@ class SmartIDService(object):
         certificate_level = data["cert"]["certificateLevel"]
 
         try:
-            pyasice.verify(cert_value, signature_value, hash_raw, signature_algorithm[:6])
+            pyasice.verify(cert_value, signature_value, hash_value, signature_algorithm[:6], prehashed=True)
         except pyasice.SignatureVerificationError:
             raise SignatureVerificationError(self.msg("signature_mismatch"))
 
@@ -260,7 +257,7 @@ class SmartIDService(object):
         certificate_level=CERTIFICATE_LEVEL_QUALIFIED,
         message=None,
         hash_type=HASH_SHA256,
-    ):
+    ) -> SignResult:
         """Initiate a signature session by document number.
 
         This method is preferred over signing by id_code/country, and requires a prior authentication to get the
@@ -280,7 +277,7 @@ class SmartIDService(object):
         endpoint = "/signature/document/{document}".format(document=document_number)
         return self._sign(endpoint, signed_data, certificate_level, message, hash_type)
 
-    def _sign(self, endpoint, signed_data, certificate_level, message, hash_type):
+    def _sign(self, endpoint, signed_data, certificate_level, message, hash_type) -> SignResult:
         """Initiate a signing session
 
         see https://github.com/SK-EID/smart-id-documentation#45-signing-session
@@ -326,17 +323,17 @@ class SmartIDService(object):
 
         return SignResult(
             session_id=result["sessionID"],
-            signed_data=signed_data,
+            digest=content_hash,
             verification_code=get_verification_code(content_hash),  # YES we hash the hash.
         )
 
-    def sign_status(self, session_id, signed_data, timeout=10000):
+    def sign_status(self, session_id, digest: bytes, timeout: int = 10000):
         """Retrieve signing session result from Smart-ID backend
 
         see https://github.com/SK-EID/smart-id-documentation#46-session-status
 
         :param session_id: session ID from I{sign} Result
-        :param signed_data: the data to sign
+        :param digest: the hash of the signed data
         :param int timeout: Request long poll timeout value in milliseconds (Note: server uses a default
                          if client does not send it)
         :rtype: SignStatusResult
@@ -348,7 +345,7 @@ class SmartIDService(object):
         signature_algorithm = data["signature"]["algorithm"]
         assert signature_algorithm[:6].upper() in HASH_ALGORITHMS
 
-        pyasice.verify(cert_value, signature, signed_data, signature_algorithm[:6])
+        pyasice.verify(cert_value, signature, digest, signature_algorithm[:6], prehashed=True)
 
         return SignStatusResult(
             document_number=data["result"]["documentNumber"],

@@ -5,7 +5,6 @@ AuthenticateResult = namedtuple(
     "AuthenticateResult",
     [
         "session_id",
-        "hash_raw",
         "hash_type",
         "hash_value",
         "verification_code",
@@ -25,7 +24,7 @@ SignResult = namedtuple(
     "SignResult",
     [
         "session_id",
-        "signed_data",
+        "digest",
         "verification_code",
     ],
 )

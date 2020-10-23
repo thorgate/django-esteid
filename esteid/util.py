@@ -14,7 +14,7 @@ def secure_random(n):
 
 
 def generate_hash(algorithm, data):
-    """Generate hash the data with the supplied algorithm
+    """Hash the data with the supplied algorithm
 
     https://github.com/SK-EID/smart-id-documentation#33-hash-algorithms
     https://github.com/SK-EID/MID#231-supported-hashing-algorithms

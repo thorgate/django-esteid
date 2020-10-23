@@ -7,9 +7,19 @@ from django.views.generic import TemplateView, View
 
 from pyasice import Container
 
-from .actions import IdCardFinishAction, IdCardPrepareAction, MobileIdSignAction, MobileIdStatusAction
+from .actions import (
+    IdCardFinishAction,
+    IdCardPrepareAction,
+    MobileIdSignAction,
+    MobileIdStatusAction,
+    SmartIdSignAction,
+    SmartIdStatusAction,
+)
 from .generic import ApiView, GenericDigitalSignViewMixin, SignStatusViewMixin
 from .types import DataFile
+
+
+logger = logging.getLogger(__name__)
 
 
 class SKTestView(TemplateView):
@@ -104,13 +114,14 @@ class TestSignStatusViewMixin(SignStatusViewMixin):
         result = super().post(request, *args, **kwargs)
 
         if result["success"]:
-            container: Container = result.pop("container")
+            container: Container = result.pop("container", None)
 
-            with NamedTemporaryFile("wb", delete=False) as f:
-                f.write(container.finalize().getbuffer())
+            if container:
+                with NamedTemporaryFile("wb", delete=False) as f:
+                    f.write(container.finalize().getbuffer())
 
-            request.session["__ddoc_container_file"] = f.name
-            logging.info("Saved container to temp file %s", f.name)
+                request.session["__ddoc_container_file"] = f.name
+                logger.debug("Saved container to temp file %s", f.name)
 
         return result
 
@@ -127,6 +138,19 @@ class TestMobileIdSignView(TestFilesMixin, ApiView):
 
 class TestMobileIdStatusView(TestSignStatusViewMixin, ApiView):
     ACTION_CLASS = MobileIdStatusAction
+
+
+class TestSmartIdSignView(TestFilesMixin, ApiView):
+    def post(self, request, *args, **kwargs):
+        return SmartIdSignAction.do_action(
+            self,
+            id_code=request.POST.get("id_code", ""),
+            language=request.POST.get("language", None),
+        )
+
+
+class TestSmartIdStatusView(TestSignStatusViewMixin, ApiView):
+    ACTION_CLASS = SmartIdStatusAction
 
 
 class TestDownloadContainerView(View):

@@ -12,6 +12,8 @@ from .views import (
     TestIdCardSignView,
     TestMobileIdSignView,
     TestMobileIdStatusView,
+    TestSmartIdSignView,
+    TestSmartIdStatusView,
 )
 
 
@@ -26,6 +28,9 @@ if settings.DEBUG:
         url(r"^mid/start/", TestMobileIdSignView.as_view(), name="test_mid_start"),
         url(r"^mid/status/", TestMobileIdStatusView.as_view(), name="test_mid_status"),
         url(r"^mid/done/", TestDownloadContainerView.as_view(), name="test_mid_finalize"),
+        url(r"^smartid/start/", TestSmartIdSignView.as_view(), name="test_smartid_start"),
+        url(r"^smartid/status/", TestSmartIdStatusView.as_view(), name="test_smartid_status"),
+        url(r"^smartid/done/", TestDownloadContainerView.as_view(), name="test_smartid_finalize"),
     ]
 
     urlpatterns += static(settings.STATIC_URL, document_root=os.path.dirname(__file__) + "/static/")

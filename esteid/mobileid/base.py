@@ -6,18 +6,17 @@ import requests
 import pyasice
 
 from ..constants import HASH_ALGORITHMS, HASH_SHA256
-from ..util import generate_hash, secure_random
-from .constants import EndResults, Languages, STATE_RUNNING, STATES
-from .exceptions import (
-    ActionFailed,
-    ActionNotCompleted,
+from ..exceptions import ActionFailed, ActionNotCompleted
+from ..exceptions import EsteidError as MobileIDError
+from ..exceptions import (
     InvalidCredentials,
-    MobileIDError,
     OfflineError,
     SessionDoesNotExist,
     SignatureVerificationError,
     UserNotRegistered,
 )
+from ..util import generate_hash, secure_random
+from .constants import EndResults, Languages, STATE_RUNNING, STATES
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
 

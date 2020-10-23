@@ -28,7 +28,6 @@ def i18n_demo_api():
 def static_auth_result(static_random_text):
     return AuthenticateResult(
         session_id="FAKE",
-        hash_raw=static_random_text,
         hash_value=generate_hash(HASH_SHA512, static_random_text),
         hash_type=HASH_SHA512,
         verification_code=get_verification_code(static_random_text),

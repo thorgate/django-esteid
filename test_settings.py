@@ -46,12 +46,11 @@ TEMPLATES = [
     },
 ]
 
-
 LOGGING = {
     'version': 1,
     'formatters': {
         'verbose': {
-            'format': '%(name)s: %(message)s'
+            'format': '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d %(funcName)s - %(message)s'
         }
     },
     'handlers': {
@@ -66,6 +65,7 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
+        'esteid': {'handlers': [], 'propagate': True},
         'django': {'handlers': [], 'propagate': True},
         'django.request': {'handlers': [], 'propagate': True},
         'django.security': {'handlers': [], 'propagate': True},
@@ -75,3 +75,7 @@ LOGGING = {
 MOBILE_ID_SERVICE_NAME = 'DEMO'
 MOBILE_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
 MOBILE_ID_TEST_MODE = True
+
+SMART_ID_SERVICE_NAME = 'DEMO'
+SMART_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
+SMART_ID_TEST_MODE = True

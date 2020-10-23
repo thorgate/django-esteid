@@ -38,8 +38,12 @@ Detailed docs are [here](esteid/idcard/README.md).
 
 ## Testing
 
-There is a possibility to test the signing flow with ID card 
-and Mobile ID (the demo service) with the test views coming with the library.
+There is a possibility to test the signing flow with ID card, SmartID 
+and Mobile ID (the demo services) with the test views coming with the library.
+
+**NOTE:** you may not be able to use the live Esteid services even with live credentials.
+The live services keep an IP address whitelist 
+which only contains IP addresses as specified in customer's contract.
 
 To run the django-esteid test server with the test views, 
 * install the virtual environment if not installed yet,
@@ -50,11 +54,9 @@ then visit the URL http://localhost:8765/ and follow the instructions on that pa
 
 ### Mobile ID
 
-To test Mobile ID signing, some test phone numbers and ID codes might come in handy, 
-find those at https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO .
+To test Mobile ID signing, you will need [test phone numbers and ID codes](https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO).
 
-You can not use real phone numbers or ID codes with the demo service, and you can not use the live service
-unless you have an active contract (your IP address must be added to the live service's IP address whitelist)
+You can not use real phone numbers or ID codes with the demo service.
 
 ### ID card
 
@@ -95,3 +97,8 @@ digidoc-tool open --tslurl=https://open-eid.github.io/test-TL/tl-mp-test-EE.xml 
 ```
 Instructions on setting up the environment 
 [can be found here](https://github.com/open-eid/libdigidocpp/wiki/Using-test-TSL-lists#digidoc-toolexe-utility-program).
+
+### SmartID
+
+To test signing with SmartID, you will need a demo SmartID account and a demo SmartID app; please visit the
+[demo SmartID portal](https://sid.demo.sk.ee/portal/login) for the details. 

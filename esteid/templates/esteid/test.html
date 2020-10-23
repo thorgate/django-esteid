@@ -10,316 +10,447 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Esteid Test page</h1>
-        <p>
-            This is a test page for digital signing of files via python.
-        </p>
-        <p>
-        </p>
+<div class="container">
+    <h1>Esteid Test page</h1>
+    <p>
+        This is a test page for digital signing of files via python.
+    </p>
 
-        <ul>
-            <li>
-                Mobile ID signing is done with Demo Mobile ID service,
-                <a href="https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO" target="_blank">these test numbers</a> can be used.
-                The signatures will not be valid unless the test certificates are used to validate them.
-            </li>
-            <li>
-                ID Card signing is done with real ID cards and as such, creates real signatures that can be validated
-                with digidoc-tool.
-            </li>
-            <li>
-                ID Card signing requires the chrome-token-signing for chrome or firefox.
-            </li>
-            <li>
-                ID Card signing requires HTTPS which can be done with ngrok.
-            </li>
+    <ul>
+        <li>
+            Mobile ID signing is done with Demo Mobile ID service, you can only use the
+            <a href="https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO" target="_blank">demo
+                test numbers</a>.
+            The signatures will not be valid unless the test certificates are used to validate them.
+        </li>
+        <li>
+            ID Card signing can be done with real ID cards, but such a signature can not be validated.
+        </li>
+        <li>
+            ID Card signing requires the chrome-token-signing for chrome or firefox.
+        </li>
+        <li>
+            ID Card signing requires HTTPS. Please refer to the README.
+        </li>
+        <li>
+            Signing with SmartID requires setting up a demo SmartID account. Please refer to the README.
+        </li>
+    </ul>
+
+    <hr />
+
+    <h3>Uploaded files</h3>
+
+    {% if files %}
+        <ul class="list-group">
+            {% for file_name, file in files.items %}
+                <li class="list-group-item">
+                    <form method="post" class="pull-right">
+                        {% csrf_token %}
+
+                        <input name="action" type="hidden" value="remove_file" />
+                        <input name="file_name" type="hidden" value="{{ file_name }}" />
+
+                        <input type="submit" class="btn btn-xs btn-danger" value="X" />
+                    </form>
+                    <span class="badge">{{ file.size }} bytes</span>
+
+                    {{ file_name }}
+                </li>
+            {% endfor %}
         </ul>
 
-        <hr/>
+        <hr />
 
-        <h3>Uploaded files</h3>
+        <h3>Sign the files</h3>
 
-        {% if files %}
-            <ul class="list-group">
-                {% for file_name, file in files.items %}
-                    <li class="list-group-item">
-                        <form method="post" class="pull-right">
-                            {% csrf_token %}
+        <a href="#" id="sign-id"><img alt="ID Card" src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
+        <a href="#" id="sign-mid"><img alt="Mobile ID" src="{% static 'images/esteid/mid-logo.gif' %}"></a>
+        <a href="#" id="sign-smartid"><img alt="Smart ID" src="{% static 'images/esteid/smartID-logo-btn.png' %}"></a>
 
-                            <input name="action" type="hidden" value="remove_file" />
-                            <input name="file_name" type="hidden" value="{{ file_name }}" />
+    {% else %}
+        <p>No files uploaded, to begin the signing process, please upload some files</p>
+    {% endif %}
 
-                            <input type="submit" class="btn btn-xs btn-danger" value="X" />
-                        </form>
-                        <span class="badge">{{ file.size }} bytes</span>
+    <hr />
 
-                        {{ file_name }}
-                    </li>
-                {% endfor %}
-            </ul>
+    <h2>Upload files</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
 
-            <hr/>
+        <div class="form-group">
+            <label for="exampleInputFile">Select file</label>
+            <input type="file" id="exampleInputFile" name="the_file">
+        </div>
 
-            <h3>Sign the files</h3>
+        <button type="submit" class="btn btn-default">Submit</button>
 
-            <a href="#" id="sign-id"><img alt="ID Card" src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
-            <a href="#" id="sign-mid"><img alt="Mobile ID" src="{% static 'images/esteid/mid-logo.gif' %}"></a>
+    </form>
+</div>
 
-        {% else %}
-            <p>No files uploaded, to begin the signing process, please upload some files</p>
-        {% endif %}
-
-        <hr/>
-
-        <h2>Upload files</h2>
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <div class="form-group">
-                <label for="exampleInputFile">Select file</label>
-                <input type="file" id="exampleInputFile" name="the_file">
+<div class="modal fade" id="mid-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Sign the files with MobileID</h4>
             </div>
 
-            <button type="submit" class="btn btn-default">Submit</button>
+            <div class="modal-body">
+                <form name="mobileId">
+                    <div class="form-group">
+                        <label for="phoneNrInput">Demo Phone nr:</label>
+                        <input type="text" name="phone_nr" id="phoneNrInput" class="form-control"
+                               value="{{ request.session.ddoc_test_phone_number | default:'+37200000766' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="idCodeInput">Demo ID code:</label>
+                        <input type="text" name="id_code" id="idCodeInput" class="form-control"
+                               value="{{ request.session.ddoc_test_id_code | default:'60001019906' }}" />
+                    </div>
+                </form>
+            </div>
 
-        </form>
-    </div>
-
-    <div class="modal fade" id="mid-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">Sign the files</h4>
-                </div>
-
-                <div class="modal-body">
-                    <form name="mobileId">
-                        <div class="form-group">
-                            <label for="phoneNrInput">Phone nr:</label>
-                            <input type="text" name="phone_nr" id="phoneNrInput" class="form-control"
-                                   value="{{ request.session.ddoc_test_phone_number | default:'+37200000766' }}" />
-                        </div>
-                        <div class="form-group">
-                            <label for="idCodeInput">ID code:</label>
-                            <input type="text" name="id_code" id="idCodeInput" class="form-control"
-                                   value="{{ request.session.ddoc_test_id_code | default:'60001019906' }}" />
-                        </div>
-                    </form>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="signMobile">Sign</button>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="signMobile">Sign</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="challenge-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">MID Step 2</h4>
-                </div>
+<div class="modal fade" id="challenge-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">MID Step 2</h4>
+            </div>
 
-                <div class="modal-body">
-                    <p>
-                        Please enter the following code into your mobile to proceed with
-                        the signing process: <b id="challenge-code">KOOD</b>
-                    </p>
-                </div>
+            <div class="modal-body">
+                <p>
+                    Please enter the following code into your mobile to proceed with
+                    the signing process: <b id="challenge-code">KOOD</b>
+                </p>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="id-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Signing with digital ID</h4>
-                </div>
+<div class="modal fade" id="id-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Signing with digital ID</h4>
+            </div>
 
-                <div class="modal-body">
-                    <p>
-                        Please follow the instructions to complete the signing process.
-                    </p>
-                </div>
+            <div class="modal-body">
+                <p>
+                    Please follow the instructions to complete the signing process.
+                </p>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="success-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Signing complete</h4>
-                </div>
+<div class="modal fade" id="smartid-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Sign the files with SmartID</h4>
+            </div>
 
-                <div class="modal-body">
-                    <p>
-                        The uploaded files were successfully digitally signed, please click the following link
-                        to download the container and finish the signing process.
-                    </p>
+            <div class="modal-body">
+                <form name="smartId">
+                    <div class="form-group">
+                        <label for="idCodeInput">Your ID code:</label>
+                        <input type="text" name="id_code" id="idCodeInput" class="form-control"
+                               value="{{ request.session.smartid_test_id_code }}" />
+                    </div>
+                </form>
+            </div>
 
-                    <a href="#" id="get-document" target="_blank">Download file</a>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="sign-smartid-button">Sign</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<div class="modal fade" id="verification-code-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="smartid-step">Verification code</h4>
+            </div>
 
-    <script type="text/javascript" src="{% static 'esteid-test/hwcrypto.js' %}"></script>
-    <script type="text/javascript" src="{% static 'esteid-test/Esteid.main.js' %}"></script>
+            <div class="modal-body">
+                <p>
+                    Make sure you are seeing this verification code on your device:
+                    <b id="smartid-verification-code">KOOD</b>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script type="text/javascript">
-        $(function () {
-            var manager = new Esteid.IdentificationManager({
-                language: Esteid.Languages.ET,
+<div class="modal fade" id="success-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Signing complete</h4>
+            </div>
 
-                idEndpoints: {
-                    start: '{% url 'test_id_start' %}',
-                    finish: '{% url 'test_id_finish' %}',
-                    finalize: '{% url 'test_id_finalize' %}'
-                },
+            <div class="modal-body">
+                <p>
+                    The uploaded files were successfully digitally signed, please click the following link
+                    to download the container and finish the signing process.
+                </p>
 
-                midEndpoints: {
-                    start: '{% url 'test_mid_start' %}',
-                    status: '{% url 'test_mid_status' %}',
-                    finalize: '{% url 'test_mid_finalize' %}'
-                }
-            });
+                <a href="#" id="get-document" target="_blank">Download file</a>
+            </div>
+        </div>
+    </div>
+</div>
 
-            function onSigned(url) {
-                $('#get-document').attr('href', url);
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 
-                $('#success-modal').modal({
-                    backdrop: 'static',
-                    keyboard: false
-                });
+<script type="text/javascript" src="{% static 'esteid-test/hwcrypto.js' %}"></script>
+<script type="text/javascript" src="{% static 'esteid-test/Esteid.main.js' %}"></script>
+
+<script type="text/javascript">
+    $(function () {
+        var csrf_token = '{{ csrf_token }}'
+        var manager = new Esteid.IdentificationManager({
+            language: Esteid.Languages.ET,
+
+            idEndpoints: {
+                start: '{% url 'test_id_start' %}',
+                finish: '{% url 'test_id_finish' %}',
+                finalize: '{% url 'test_id_finalize' %}'
+            },
+
+            midEndpoints: {
+                start: '{% url 'test_mid_start' %}',
+                status: '{% url 'test_mid_status' %}',
+                finalize: '{% url 'test_mid_finalize' %}'
+            },
+
+            smartidEndpoints: {
+                start: '{% url 'test_smartid_start' %}',
+                status: '{% url 'test_smartid_status' %}',
+                finalize: '{% url 'test_smartid_finalize' %}'
+            }
+        })
+
+        function onSigned(url) {
+            $('#get-document').attr('href', url)
+
+            $('#success-modal').modal({
+                backdrop: 'static',
+                keyboard: false
+            })
+        }
+
+        $('#sign-mid').on('click', function (e) {
+            e.preventDefault()
+
+            $('#mid-modal').modal()
+        })
+
+        $('#signMobile').on('click', function (e) {
+            e.preventDefault()
+            var mobileIdForm = document.forms.mobileId
+            var phoneNr = mobileIdForm.phone_nr.value
+            var idCode = mobileIdForm.id_code.value
+
+            if (!phoneNr) {
+                alert('Please enter a phone number')
+                return
+            }
+            if (!idCode) {
+                alert('Please enter an ID code')
+                return
             }
 
-            $('#sign-mid').on('click', function (e) {
-                e.preventDefault();
+            console.log('MID: signing with phoneNr', phoneNr, 'and id code', idCode)
 
-                $('#mid-modal').modal();
-            });
-
-            $('#signMobile').on('click', function (e) {
-                e.preventDefault();
-                var mobileIdForm = document.forms.mobileId;
-                var phoneNr = mobileIdForm.phone_nr.value;
-                var idCode = mobileIdForm.id_code.value;
-
-                if (!phoneNr) {
-                    alert('Please enter a phone number');
-                    return;
-                }
-                if (!idCode) {
-                    alert('Please enter an ID code');
-                    return;
-                }
-
-                console.log('MID: signing with phoneNr', phoneNr, 'and id code', idCode);
-
-                // Call IdentificationManager.sign which calls the backend endpoint to start mobileId signing process
-                manager.signWithMobileId({
-                    phone_nr: phoneNr,
-                    id_code: idCode,
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                })
+            // Call IdentificationManager.sign which calls the backend endpoint to start mobileId signing process
+            manager.signWithMobileId({
+                phone_nr: phoneNr,
+                id_code: idCode,
+                csrfmiddlewaretoken: csrf_token
+            })
 
                 .then(function (response) {
-                    console.log('MID: got verification code', response.verification_code);
+                    console.log('MID: got verification code', response.verification_code)
 
                     // Got response, show challenge modal
-                    $('#challenge-code').text(response.verification_code);
+                    $('#challenge-code').text(response.verification_code)
                     $('#challenge-modal').modal({
                         backdrop: 'static',
                         keyboard: false
-                    });
+                    })
 
-                    $('#mid-modal').modal('hide');
+                    $('#mid-modal').modal('hide')
 
-                    manager.midStatus({csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
+                    manager.midStatus({csrfmiddlewaretoken: csrf_token}).then(
                         function () {
-                            $('#challenge-modal').modal('hide');
-                            onSigned(manager.midEndpoints.finalize);
+                            $('#challenge-modal').modal('hide')
+                            onSigned(manager.midEndpoints.finalize)
                         },
 
                         function (res) {
                             if (res.message) {
-                                alert(res.message + ' Please try again');
+                                alert(res.message + ' Please try again')
                             } else {
-                                alert('Something went wrong, please try again');
+                                alert('Something went wrong, please try again')
                             }
 
-                            $('#challenge-modal').modal('hide');
+                            $('#challenge-modal').modal('hide')
                         }
-                    );
+                    )
 
                 }, function (res) {
                     if (res.message) {
-                        alert('MID Response[' + res.error_code + ']: ' + res.message);
+                        alert('MID Response[' + res.error_code + ']: ' + res.message)
+                    } else {
+                        alert('Something went wrong, please try again')
                     }
+                })
+        })
 
-                    else {
-                        alert('Something went wrong, please try again');
-                    }
-                });
-            });
+        $('#sign-smartid').on('click', function (e) {
+            e.preventDefault()
 
-            $('#sign-id').on('click', function (e) {
-                e.preventDefault();
+            $('#smartid-modal').modal()
+        })
 
-                $('#id-modal').modal({
+        function onError(res) {
+            if (res && res.message) {
+                alert('SmartID Response[' + (res.error_code || 'unknown') + ']: ' + res.message)
+            } else {
+                console.log("Error:", res)
+                alert('Something went wrong, please try again')
+            }
+        }
+
+        $('#sign-smartid-button').on('click', function (e) {
+            console.log("Signing with Smart ID")
+            var timeoutForVerificationCode = 2000  // delay polling to let user to enter verification code
+
+            function onSuccessAuth(response) {
+                // Got a successful auth-start request...
+                console.log('SmartID: auth verification code', response.verification_code)
+                $('#verification-code-modal').modal({
                     backdrop: 'static',
                     keyboard: false
-                });
+                })
 
-                manager.signWithIdCard({csrfmiddlewaretoken: '{{ csrf_token }}'}).then(
-                    function () {
-                        $('#id-modal').modal('hide');
-                        onSigned(manager.idEndpoints.finalize);
-                    },
+                $('#smartid-step').text('Authentication')
+                $('#smartid-verification-code').text(response.verification_code)
 
-                    function (res) {
-                        if (res instanceof Error) {
-                            console.log(res.message, res);
-                            res = manager.getError(res.message);
-
-                            alert(res.message);
-
-                            console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']');
-                            $('#id-modal').modal('hide');
-                        }
-
-                        else {
-                            if (typeof res === 'string' || res.error_code) {
-                                var msg = res.message !== undefined ? res.message : res;
-
-                                alert(msg + ', please try again');
-                                $('#id-modal').modal('hide');
-                            }
-
-                            else {
-                                console.error(res.message !== undefined ? res.message : res);
-                                alert('Something went wrong, please refresh the page and try again');
-                            }
-                        }
-                    }
-                );
-            });
-
-            $('#get-document').on('click', function () {
+                // ...next phase: start signing
+                // we don't want to start polling immediately because user will need to enter verification code
                 setTimeout(function () {
-                    window.location.reload();
-                }, 2000);
-            });
-        });
-    </script>
+                    manager.smartidStatus({csrfmiddlewaretoken: csrf_token}).then(
+                        onStartSign,
+                        onError
+                    )
+                }, timeoutForVerificationCode)
+            }
 
-  </body>
+            function onStartSign(response) {
+                // Got a successful sign-start request...
+                console.log('SmartID: Auth OK, Signing verification code', response.verification_code)
+
+                $('#smartid-step').text('Signing')
+                $('#smartid-verification-code').text(response.verification_code)
+
+                // ...next phase: poll for status of signing
+                setTimeout(function () {
+                    manager.smartidStatus({csrfmiddlewaretoken: csrf_token}).then(
+                        onFinishSign,
+                        onError
+                    )
+                }, timeoutForVerificationCode)
+            }
+
+            function onFinishSign() {
+                $('#smartid-modal').modal("hide")
+                onSigned(manager.smartidEndpoints.finalize)
+            }
+
+
+            e.preventDefault()
+            var form = document.forms.smartId
+            var idCode = form.id_code.value
+
+            if (!idCode) {
+                alert('Please enter an ID code')
+                return
+            }
+
+            console.log('SmartID: signing with id code', idCode)
+
+            manager.signWithSmartId({
+                id_code: idCode,
+                csrfmiddlewaretoken: csrf_token
+            }).then(
+                // Start callback hell
+                onSuccessAuth,
+                onError
+            )
+        })
+    })
+
+    $('#sign-id').on('click', function (e) {
+        e.preventDefault()
+
+        $('#id-modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        manager.signWithIdCard({csrfmiddlewaretoken: csrf_token}).then(
+            function () {
+                $('#id-modal').modal('hide')
+                onSigned(manager.idEndpoints.finalize)
+            },
+
+            function (res) {
+                if (res instanceof Error) {
+                    console.log(res.message, res)
+                    res = manager.getError(res.message)
+
+                    alert(res.message)
+
+                    console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']')
+                    $('#id-modal').modal('hide')
+                } else {
+                    if (typeof res === 'string' || res.error_code) {
+                        var msg = res.message !== undefined ? res.message : res
+
+                        alert(msg + ', please try again')
+                        $('#id-modal').modal('hide')
+                    } else {
+                        console.error(res.message !== undefined ? res.message : res)
+                        alert('Something went wrong, please refresh the page and try again')
+                    }
+                }
+            }
+        )
+    })
+
+    $('#get-document').on('click', function () {
+        setTimeout(function () {
+            window.location.reload()
+        }, 2000)
+    })
+
+</script>
+
+</body>
 </html>

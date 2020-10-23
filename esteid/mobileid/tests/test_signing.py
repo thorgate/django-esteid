@@ -10,7 +10,7 @@ from pyasice.ocsp import OCSP
 from pyasice.tsa import TSA
 
 from ...constants import OCSP_DEMO_URL, TSA_DEMO_URL
-from ..exceptions import ActionNotCompleted
+from ...exceptions import ActionNotCompleted
 from ..types import SignResult, SignStatusResult
 
 

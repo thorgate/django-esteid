@@ -16,7 +16,19 @@ from pyasice import Container, XmlSignature
 from pyasice.ocsp import OCSP
 from pyasice.tsa import TSA
 
+from ...exceptions import (
+    ActionFailed,
+    ActionNotCompleted,
+    IdentityCodeDoesNotExist,
+    InvalidCredentials,
+    OfflineError,
+    PermissionDenied,
+    SessionDoesNotExist,
+    SignatureVerificationError,
+    UnsupportedClientImplementation,
+)
 from ...util import generate_hash
+from .. import SmartIDError
 from ..base import SmartIDService
 from ..constants import (
     CERTIFICATE_LEVEL_ADVANCED,
@@ -29,18 +41,6 @@ from ..constants import (
     END_RESULT_USER_REFUSED,
     STATE_COMPLETE,
     STATE_RUNNING,
-)
-from ..exceptions import (
-    ActionFailed,
-    ActionNotCompleted,
-    IdentityCodeDoesNotExist,
-    InvalidCredentials,
-    OfflineError,
-    PermissionDenied,
-    SessionDoesNotExist,
-    SignatureVerificationError,
-    SmartIDError,
-    UnsupportedClientImplementation,
 )
 from ..i18n import TranslatedSmartIDService
 from ..types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
@@ -103,9 +103,8 @@ def test_authentication(demo_api, hash_type):
 
                 assert isinstance(res, AuthenticateResult)
                 assert res.session_id == "FAKE"
-                assert res.hash_raw == raw_data
                 assert res.hash_type == hash_type
-                assert res.hash_value == generate_hash(hash_type, res.hash_raw)
+                assert res.hash_value == generate_hash(hash_type, raw_data)
                 assert res.verification_code == verification_codes[hash_type]
 
 
@@ -136,7 +135,7 @@ def test_authentication_404(demo_api):
 
 def test_status(demo_api, static_certificate, static_auth_result, static_status_response):
     with patch.object(demo_api, "invoke", return_value=static_status_response):
-        res = demo_api.status(static_auth_result.session_id, static_auth_result.hash_raw)
+        res = demo_api.status(static_auth_result.session_id, static_auth_result.hash_value)
 
         assert isinstance(res, AuthenticateStatusResult)
 
@@ -149,7 +148,7 @@ def test_status_signature_verification(demo_api, static_auth_result, static_stat
     with patch.object(demo_api, "invoke", return_value=static_status_response):
         with patch.object(pyasice, "verify", raises_exception(SignatureVerificationError)):
             with pytest.raises(SignatureVerificationError):
-                demo_api.status(static_auth_result.session_id, static_auth_result.hash_raw)
+                demo_api.status(static_auth_result.session_id, static_auth_result.hash_value)
 
 
 def test_status_state_running(demo_api):
@@ -159,7 +158,7 @@ def test_status_state_running(demo_api):
 
     with patch.object(demo_api, "invoke", return_value=response_data):
         with pytest.raises(ActionNotCompleted) as exc_info:
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
         # session_id should be in the message
         assert "FAKE" in str(exc_info.value)
@@ -172,7 +171,7 @@ def test_status_unexpected_state(demo_api):
 
     with patch.object(demo_api, "invoke", return_value=response_data):
         with pytest.raises(SmartIDError) as exc_info:
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
         assert "Unexpected state" in str(exc_info.value)
 
@@ -195,7 +194,7 @@ def test_status_end_result(demo_api, end_result_code):
 
     with patch.object(demo_api, "invoke", return_value=response_data):
         with pytest.raises(ActionFailed) as exc_info:
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
         assert exc_info.value.result_code == end_result_code
 
@@ -210,7 +209,7 @@ def test_status_unexpected_end_result(demo_api):
 
     with patch.object(demo_api, "invoke", return_value=response_data):
         with pytest.raises(SmartIDError) as exc_info:
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
         assert "$RESULT$" in str(exc_info.value)
 
@@ -218,13 +217,13 @@ def test_status_unexpected_end_result(demo_api):
 def test_status_400(demo_api):
     with patch.object(demo_api, "invoke", new=raise_http_error(400)):
         with pytest.raises(HTTPError):
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
 
 def test_status_404(demo_api):
     with patch.object(demo_api, "invoke", new=raise_http_error(404)):
         with pytest.raises(SessionDoesNotExist):
-            demo_api.status(session_id="FAKE", hash_raw=b"")
+            demo_api.status(session_id="FAKE", hash_value=b"")
 
 
 def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512, timeout=30):
@@ -244,10 +243,8 @@ def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512,
 
     # All fields must be set
     assert res.session_id
-    assert res.hash_raw
     assert res.hash_type == hash_type
     assert res.hash_value
-    assert res.hash_value == generate_hash(hash_type, res.hash_raw)
     assert res.verification_code
 
     status_res = None  # type: AuthenticateStatusResult
@@ -258,7 +255,7 @@ def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512,
     end_time = time() + timeout
     while time() < end_time:
         try:
-            status_res = demo_api.status(res.session_id, res.hash_raw)
+            status_res = demo_api.status(res.session_id, res.hash_value)
             break
         except ActionNotCompleted:
             sleep(1.0)
@@ -407,7 +404,7 @@ def run_sign_flow(demo_api, id_number=None, country=None, doc_num=None, signed_d
     end_time = time() + timeout
     while status_res is None and time() < end_time:
         try:
-            status_res = demo_api.sign_status(res.session_id, signed_data)
+            status_res = demo_api.sign_status(res.session_id, generate_hash(HASH_SHA256, signed_data))
         except ActionNotCompleted:
             sleep(1.0)
 
