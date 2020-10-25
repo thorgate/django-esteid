@@ -223,30 +223,28 @@
 <script type="text/javascript">
     $(function () {
         var csrf_token = '{{ csrf_token }}'
+        var downloadUrl = '{% url 'download_signed_container' %}'
         var manager = new Esteid.IdentificationManager({
             language: Esteid.Languages.ET,
 
             idEndpoints: {
                 start: '{% url 'test_id_start' %}',
                 finish: '{% url 'test_id_finish' %}',
-                finalize: '{% url 'test_id_finalize' %}'
             },
 
             midEndpoints: {
                 start: '{% url 'test_mid_start' %}',
                 status: '{% url 'test_mid_status' %}',
-                finalize: '{% url 'test_mid_finalize' %}'
             },
 
             smartidEndpoints: {
                 start: '{% url 'test_smartid_start' %}',
                 status: '{% url 'test_smartid_status' %}',
-                finalize: '{% url 'test_smartid_finalize' %}'
             }
         })
 
-        function onSigned(url) {
-            $('#get-document').attr('href', url)
+        function onSigned() {
+            $('#get-document').attr('href', downloadUrl)
 
             $('#success-modal').modal({
                 backdrop: 'static',
@@ -299,7 +297,7 @@
                     manager.midStatus({csrfmiddlewaretoken: csrf_token}).then(
                         function () {
                             $('#challenge-modal').modal('hide')
-                            onSigned(manager.midEndpoints.finalize)
+                            onSigned()
                         },
 
                         function (res) {
@@ -380,7 +378,7 @@
 
             function onFinishSign() {
                 $('#smartid-modal').modal("hide")
-                onSigned(manager.smartidEndpoints.finalize)
+                onSigned()
             }
 
 
@@ -417,7 +415,7 @@
         manager.signWithIdCard({csrfmiddlewaretoken: csrf_token}).then(
             function () {
                 $('#id-modal').modal('hide')
-                onSigned(manager.idEndpoints.finalize)
+                onSigned()
             },
 
             function (res) {
