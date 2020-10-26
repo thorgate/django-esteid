@@ -23,7 +23,6 @@ if settings.DEBUG:
     urlpatterns += [
         path("", SKTestView.as_view(), name="sk_test"),
         path("download/", TestDownloadContainerView.as_view(), name="download_signed_container"),
-
         url(r"^id/start/", TestIdCardSignView.as_view(), name="test_id_start"),
         url(r"^id/finish/", TestIdCardFinishView.as_view(), name="test_id_finish"),
         url(r"^mid/start/", TestMobileIdSignView.as_view(), name="test_mid_start"),
