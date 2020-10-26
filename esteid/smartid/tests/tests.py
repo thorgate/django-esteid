@@ -7,14 +7,14 @@ import esteid_certificates
 import requests_mock
 from django.utils.functional import Promise
 from oscrypto import asymmetric
+from pyasice.ocsp import OCSP
+from pyasice.tsa import TSA
 from requests import Response
 from requests.exceptions import ConnectionError, ConnectTimeout, HTTPError
 
 import pyasice
 from esteid.constants import HASH_ALGORITHMS, HASH_SHA256, HASH_SHA384, HASH_SHA512, OCSP_DEMO_URL, TSA_DEMO_URL
 from pyasice import Container, XmlSignature
-from pyasice.ocsp import OCSP
-from pyasice.tsa import TSA
 
 from ...exceptions import (
     ActionFailed,
