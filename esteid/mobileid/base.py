@@ -21,7 +21,7 @@ from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, Sig
 from .utils import get_verification_code
 
 
-class MobileIDService(object):
+class MobileIDService:
     """Mobile-ID Authentication and signing
 
     Based on https://github.com/SK-EID/MID
@@ -65,22 +65,23 @@ class MobileIDService(object):
         SIGN = "/signature"
         SESSION_STATUS = "{action_type}/session/{session_id}"
 
-    def __init__(self, rp_uuid, rp_name, api_root):
-        self.rp_uuid = rp_uuid  # type: UUID
-        self.rp_name = rp_name  # type: str
+    def __init__(self, rp_uuid: UUID, rp_name: str, api_root: str):
+        self.rp_uuid = rp_uuid
+        self.rp_name = rp_name
         self.api_root = api_root
 
         self.session = requests.Session()
 
-    def get_certificate(self, id_code, phone_number) -> bytes:
+    def get_certificate(self, id_code: str, phone_number: str) -> bytes:
         """
+        Gets a user certificate that would be used for signing.
 
-        :param id_code:
-        :param phone_number:
-        :return: certificate
+        Also checks if the user with these
         """
-        assert id_code
-        assert phone_number
+        if not (id_code and phone_number):
+            # TODO proper validation
+            raise ValueError("Both id_code and phone_number are required")
+
         endpoint = "/certificate"
 
         result = self.invoke(
@@ -100,7 +101,9 @@ class MobileIDService(object):
             )
         raise MobileIDError("Unknown response format")
 
-    def authenticate(self, id_code, phone_number, message=None, language=None, hash_type=HASH_SHA256):
+    def authenticate(
+        self, id_code: str, phone_number: str, message: str = None, language: str = None, hash_type: str = HASH_SHA256
+    ):
         """Initiate an authentication session
 
         https://github.com/SK-EID/MID#32-initiating-signing-and-authentication
@@ -112,15 +115,16 @@ class MobileIDService(object):
 
         :param str id_code: National identity number
         :param str phone_number: User's phone number
-        :param str message: Text to display for authentication consent dialog on the mobile device
+        :param str message: Text to display for authentication consent dialog on the mobile device, NOTE: max 20 chars!
         :param str language: choices: ENG, EST, LIT, RUS. Defaults to ENG
         :param str hash_type: Hash algorithm to use when generating a random hash value (choices: HASH_ALGORITHMS)
         :return: session ID
         :rtype: AuthenticateResult
         """
         # Ensure required values are set
-        assert id_code
-        assert phone_number
+        if not (id_code and phone_number):
+            # TODO proper validation
+            raise ValueError("Both id_code and phone_number are required")
         assert hash_type in HASH_ALGORITHMS
 
         message = str(message or self.msg("display_text"))
@@ -160,7 +164,7 @@ class MobileIDService(object):
             verification_code=get_verification_code(hash_value),
         )
 
-    def status(self, session_id, digest, timeout=10000):
+    def status(self, session_id: str, digest: bytes, timeout: int = 10000):
         """
         Retrieve auth session result from Mobile-ID backend
 
@@ -186,8 +190,8 @@ class MobileIDService(object):
 
         try:
             pyasice.verify(cert_value, signature_value, digest, signature_algorithm[:6], prehashed=True)
-        except pyasice.SignatureVerificationError:
-            raise SignatureVerificationError(self.msg("signature_mismatch"))
+        except pyasice.SignatureVerificationError as e:
+            raise SignatureVerificationError(self.msg("signature_mismatch")) from e
 
         return AuthenticateStatusResult(
             certificate=cert_value,
@@ -197,12 +201,12 @@ class MobileIDService(object):
 
     def sign(
         self,
-        id_code,
-        phone_number,
-        signed_data,
-        message=None,
-        language=None,
-        hash_type=HASH_SHA256,
+        id_code: str,
+        phone_number: str,
+        signed_data: bytes,
+        message: str = None,
+        language: str = None,
+        hash_type: str = HASH_SHA256,
     ):
         """Initiate a signature session.
 
@@ -215,13 +219,14 @@ class MobileIDService(object):
         :param str id_code: National identity number
         :param str phone_number: Client's phone number
         :param bytes signed_data: Binary data to sign
-        :param str message: Text to display for authentication consent dialog on the mobile device
+        :param str message: Text to display on the mobile device, NOTE: max 20 chars!
         :param str language: choices: ENG, EST, LIT, RUS. Defaults to ENG
         :param str hash_type: Hash algorithm used to sign data
         :return SignResult: Result of the request
         """
-        assert id_code
-        assert phone_number
+        if not (id_code and phone_number):
+            # TODO proper validation
+            raise ValueError("Both id_code and phone_number are required")
 
         hash_type = hash_type.upper()
         assert hash_type in HASH_ALGORITHMS
@@ -235,26 +240,22 @@ class MobileIDService(object):
         content_hash = generate_hash(hash_type, signed_data)
         hash_value_b64 = base64.b64encode(content_hash)
 
-        try:
-            result = self.invoke(
-                self.Actions.SIGN,
-                method="POST",
-                data=self.rp_params(
-                    {
-                        "nationalIdentityNumber": id_code,
-                        "phoneNumber": phone_number,
-                        "hashType": hash_type,
-                        "hash": hash_value_b64.decode("utf-8"),
-                        "language": language,
-                        # Casting to str to ensure translations are resolved
-                        "displayText": str(message or self.msg("display_text")),  # NOTE: 20-char limit
-                        "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
-                    }
-                ),
-            )
-
-        except requests.HTTPError:
-            raise
+        result = self.invoke(
+            self.Actions.SIGN,
+            method="POST",
+            data=self.rp_params(
+                {
+                    "nationalIdentityNumber": id_code,
+                    "phoneNumber": phone_number,
+                    "hashType": hash_type,
+                    "hash": hash_value_b64.decode("utf-8"),
+                    "language": language,
+                    # Casting to str to ensure translations are resolved
+                    "displayText": str(message or self.msg("display_text")),  # NOTE: 20-char limit
+                    "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
+                }
+            ),
+        )
 
         return SignResult(
             session_id=result["sessionID"],
@@ -262,7 +263,7 @@ class MobileIDService(object):
             verification_code=get_verification_code(content_hash),
         )
 
-    def sign_status(self, session_id, certificate: bytes, signed_digest, timeout=10000):
+    def sign_status(self, session_id: str, certificate: bytes, signed_digest: bytes, timeout=10000):
         """Retrieve signing session result from Mobile-ID backend
 
         The certificate is missing in the response, so
@@ -285,8 +286,8 @@ class MobileIDService(object):
 
         try:
             pyasice.verify(certificate, signature, signed_digest, signature_algorithm[:6], prehashed=True)
-        except pyasice.SignatureVerificationError:
-            raise SignatureVerificationError(self.msg("signature_mismatch"))
+        except pyasice.SignatureVerificationError as e:
+            raise SignatureVerificationError(self.msg("signature_mismatch")) from e
 
         return SignStatusResult(
             signature=signature,
@@ -346,20 +347,20 @@ class MobileIDService(object):
         except requests.HTTPError as e:
             status_code = e.response.status_code
             if status_code == 401:
-                raise InvalidCredentials(self.msg("invalid_credentials"))
+                raise InvalidCredentials(self.msg("invalid_credentials")) from e
 
             elif status_code == 400:
-                raise MobileIDError(f"Bad Request. Response:\n{e.response.text}")
+                raise MobileIDError(f"Bad Request. Response:\n{e.response.text}") from e
 
             # 580 System is under maintenance, retry later.
             # see https://github.com/SK-EID/smart-id-documentation#413-http-status-code-usage
             # (Note: Though not documented, Mobile ID also returns this occasionally.)
             elif status_code == 580:
-                raise OfflineError(self.msg("maintenance"))
+                raise OfflineError(self.msg("maintenance")) from e
 
             # Raise proxy errors as OfflineError
             elif status_code in [502, 503, 504]:
-                raise OfflineError(self.msg("proxy_error").format(status_code))
+                raise OfflineError(self.msg("proxy_error").format(status_code)) from e
 
             # HTTPErrors for everything else
             raise requests.HTTPError(
@@ -397,7 +398,7 @@ class MobileIDService(object):
 
         except requests.HTTPError as e:
             if e.response.status_code == 404:
-                raise SessionDoesNotExist(self.msg("no_session_code").format(session_id))
+                raise SessionDoesNotExist(self.msg("no_session_code").format(session_id)) from e
 
             raise
 
