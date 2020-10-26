@@ -402,50 +402,50 @@
                 onError
             )
         })
-    })
 
-    $('#sign-id').on('click', function (e) {
-        e.preventDefault()
+        $('#sign-id').on('click', function (e) {
+            e.preventDefault()
 
-        $('#id-modal').modal({
-            backdrop: 'static',
-            keyboard: false
-        })
+            $('#id-modal').modal({
+                backdrop: 'static',
+                keyboard: false
+            })
 
-        manager.signWithIdCard({csrfmiddlewaretoken: csrf_token}).then(
-            function () {
-                $('#id-modal').modal('hide')
-                onSigned()
-            },
-
-            function (res) {
-                if (res instanceof Error) {
-                    console.log(res.message, res)
-                    res = manager.getError(res.message)
-
-                    alert(res.message)
-
-                    console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']')
+            manager.signWithIdCard({csrfmiddlewaretoken: csrf_token}).then(
+                function () {
                     $('#id-modal').modal('hide')
-                } else {
-                    if (typeof res === 'string' || res.error_code) {
-                        var msg = res.message !== undefined ? res.message : res
+                    onSigned()
+                },
 
-                        alert(msg + ', please try again')
+                function (res) {
+                    if (res instanceof Error) {
+                        console.log(res.message, res)
+                        res = manager.getError(res.message)
+
+                        alert(res.message)
+
+                        console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']')
                         $('#id-modal').modal('hide')
                     } else {
-                        console.error(res.message !== undefined ? res.message : res)
-                        alert('Something went wrong, please refresh the page and try again')
+                        if (typeof res === 'string' || res.error_code) {
+                            var msg = res.message !== undefined ? res.message : res
+
+                            alert(msg + ', please try again')
+                            $('#id-modal').modal('hide')
+                        } else {
+                            console.error(res.message !== undefined ? res.message : res)
+                            alert('Something went wrong, please refresh the page and try again')
+                        }
                     }
                 }
-            }
-        )
-    })
+            )
+        })
 
-    $('#get-document').on('click', function () {
-        setTimeout(function () {
-            window.location.reload()
-        }, 2000)
+        $('#get-document').on('click', function () {
+            setTimeout(function () {
+                window.location.reload()
+            }, 2000)
+        })
     })
 
 </script>
