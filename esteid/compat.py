@@ -5,8 +5,9 @@ in the same format as the DDS service did.
 import base64
 import hashlib
 
-from esteid.types import ResponderCertificate, SignedDocInfo
 from pyasice import Container, XmlSignature
+
+from esteid.types import ResponderCertificate, SignedDocInfo
 
 
 def signature_info(xml_signature: XmlSignature):

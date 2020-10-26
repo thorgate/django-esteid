@@ -4,10 +4,10 @@ import pytest
 
 from esteid_certificates import get_certificate
 from oscrypto import asymmetric
-from pyasice.ocsp import OCSP
-from pyasice.tsa import TSA
 
 from pyasice import Container, XmlSignature
+from pyasice.ocsp import OCSP
+from pyasice.tsa import TSA
 
 from ...constants import OCSP_DEMO_URL, TSA_DEMO_URL
 from ...exceptions import ActionNotCompleted

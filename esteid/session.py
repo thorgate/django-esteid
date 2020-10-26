@@ -1,8 +1,9 @@
 import os
 from typing import List
 
-from esteid.types import DataFile
 from pyasice import Container
+
+from esteid.types import DataFile
 
 
 SESSION_KEY = "__esteid_session"

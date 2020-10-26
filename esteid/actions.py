@@ -8,11 +8,12 @@ from django.conf import settings
 from esteid_certificates import get_certificate
 
 import pyasice
+from pyasice import Container, finalize_signature, verify, XmlSignature
+
 from esteid import constants
 from esteid.exceptions import ActionNotCompleted, EsteidError, IdentityCodeDoesNotExist, UserNotRegistered
 from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.smartid.i18n import TranslatedSmartIDService
-from pyasice import Container, finalize_signature, verify, XmlSignature
 
 from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
 from .smartid.constants import COUNTRY_ESTONIA
@@ -308,6 +309,7 @@ class MobileIdStatusAction(BaseAction):
                 session_id, xml_sig.get_certificate_value(), binascii.a2b_base64(signed_digest)
             )
         except ActionNotCompleted:
+            #  when there is an `ActionNotCompleted` exception, we shouldn't delete the session.
             return {
                 "success": False,
                 "pending": True,

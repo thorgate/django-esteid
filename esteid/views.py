@@ -48,8 +48,8 @@ class SKTestView(TemplateView):
 
         actions:
 
-            - add_file: Add another file
-            - remove_file: Add another file
+            - add_file
+            - remove_file
         """
         try:
             files = request.session["__ddoc_files"]

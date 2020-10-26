@@ -174,7 +174,7 @@ class SignedDocInfo(FromDictMixin):
     )
 
 
-class DataFile(object):
+class DataFile:
     def __init__(self, file_name, mimetype, content_type, size, content, info=None):
         self.file_name = file_name
         self.mimetype = mimetype
