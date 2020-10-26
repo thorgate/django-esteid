@@ -12,7 +12,7 @@ help:
 	@echo "  lint - check code style"
 	@echo "  test - run tests quickly with the default Python"
 	@echo "  test-all - run tests on every Python version with tox"
-	@echo "  test-full - shorthand for test lint coverage"
+	@echo "  test-full - shorthand for 'lint coverage'"
 	@echo "  coverage - check code coverage quickly with the default Python"
 
 .PHONY:
@@ -51,7 +51,7 @@ test-all:
 	tox
 
 .PHONY:
-test-full: test lint coverage
+test-full: lint coverage
 
 .PHONY:
 coverage:
