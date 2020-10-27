@@ -6,7 +6,6 @@ import pytest
 import esteid_certificates
 import requests_mock
 from django.utils.functional import Promise
-from oscrypto import asymmetric
 from requests import Response
 from requests.exceptions import ConnectionError, ConnectTimeout, HTTPError
 
@@ -428,14 +427,13 @@ def test_sign_flow_ee(demo_api):
     auth_result = run_authentication_flow(demo_api, pin, COUNTRY_ESTONIA)
 
     # Select user's certificate
-    subject_cert_der = demo_api.select_signing_certificate(document_number=auth_result.document_number)
-    subject_cert: asymmetric.Certificate = asymmetric.load_certificate(subject_cert_der)
+    subject_cert = demo_api.select_signing_certificate(document_number=auth_result.document_number)
 
     # Generate a XAdES signature
     xs: XmlSignature = (
         XmlSignature.create()
         .add_document(file_name, data, mime_type)
-        .set_certificate(subject_cert.asn1)
+        .set_certificate(subject_cert)
         .update_signed_info()
     )
 
@@ -447,8 +445,7 @@ def test_sign_flow_ee(demo_api):
     xs.verify()
 
     issuer_cn = xs.get_certificate_issuer_common_name()
-    issuer_cert_file = esteid_certificates.get_certificate(issuer_cn)
-    issuer_cert = asymmetric.load_certificate(issuer_cert_file)
+    issuer_cert = esteid_certificates.get_certificate(issuer_cn)
 
     # Get an OCSP status confirmation
     ocsp = OCSP(url=OCSP_DEMO_URL)

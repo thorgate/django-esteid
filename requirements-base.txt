@@ -1,8 +1,4 @@
-asn1crypto
 attrs>=19.2.0
-cryptography>=3
 esteid-certificates
-lxml>=4
-oscrypto
 pyasice>=1.0b3
 requests>=2.20

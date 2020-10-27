@@ -3,7 +3,6 @@ from time import sleep, time
 import pytest
 
 from esteid_certificates import get_certificate
-from oscrypto import asymmetric
 
 from pyasice import Container, XmlSignature
 from pyasice.ocsp import OCSP
@@ -61,15 +60,9 @@ def test_mobileid_sign_flow_ee(demo_mid_api, MID_DEMO_PHONE_EE_OK, MID_DEMO_PIN_
     # Authenticate user
     user_cert = demo_mid_api.get_certificate(MID_DEMO_PIN_EE_OK, MID_DEMO_PHONE_EE_OK)
 
-    # Select user's certificate
-    subject_cert = asymmetric.load_certificate(user_cert)
-
     # Generate a XAdES signature
     xs: XmlSignature = (
-        XmlSignature.create()
-        .add_document(file_name, data, mime_type)
-        .set_certificate(subject_cert.asn1)
-        .update_signed_info()
+        XmlSignature.create().add_document(file_name, data, mime_type).set_certificate(user_cert).update_signed_info()
     )
 
     # Sign the XAdES structure
@@ -86,11 +79,10 @@ def test_mobileid_sign_flow_ee(demo_mid_api, MID_DEMO_PHONE_EE_OK, MID_DEMO_PIN_
     xs.verify()
 
     # Get an OCSP status confirmation
-    issuer_cert_file = get_certificate(subject_cert.asn1.issuer.native["common_name"])
-    issuer_cert = asymmetric.load_certificate(issuer_cert_file)
+    issuer_cert = get_certificate(xs.get_certificate_issuer_common_name())
 
     ocsp = OCSP(url=OCSP_DEMO_URL)
-    ocsp.validate(subject_cert, issuer_cert, sign_result.signature)
+    ocsp.validate(user_cert, issuer_cert, sign_result.signature)
 
     # Embed the OCSP response
     xs.set_ocsp_response(ocsp)
