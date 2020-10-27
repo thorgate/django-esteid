@@ -1,6 +1,6 @@
 import binascii
 import logging
-from typing import BinaryIO, List
+from typing import List
 
 from django.conf import settings
 from esteid_certificates import get_certificate
@@ -55,7 +55,7 @@ class IdCardSigner(Signer):
             "digest": binascii.b2a_hex(signed_digest).decode(),
         }
 
-    def finalize(self, data: dict = None) -> BinaryIO:
+    def finalize(self, data: dict = None) -> pyasice.Container:
         try:
             signature_value = data["signature_value"]
         except (TypeError, KeyError) as e:
@@ -88,4 +88,4 @@ class IdCardSigner(Signer):
 
         container.add_signature(xml_sig)
 
-        return container.finalize()
+        return container

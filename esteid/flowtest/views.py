@@ -4,6 +4,8 @@ from tempfile import NamedTemporaryFile
 from django.views.generic import DetailView
 from rest_framework.views import APIView
 
+from pyasice import Container
+
 from esteid.signing import DataFile, SignViewDjangoMixin, SignViewRestMixin
 
 # Register our signers
@@ -27,10 +29,10 @@ class BaseMethods:
 
         return []
 
-    def save_container(self, container, *args, **kwargs):
+    def save_container(self, container: Container, *args, **kwargs):
         # UploadedFile(container, "signed_document.doc", Container.MIME_TYPE)
         with NamedTemporaryFile("wb", delete=False) as f:
-            f.write(container.getbuffer())
+            f.write(container.finalize().getbuffer())
         self.request.session["__ddoc_container_file"] = f.name
 
 

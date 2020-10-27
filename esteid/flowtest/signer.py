@@ -1,4 +1,4 @@
-from typing import BinaryIO, List
+from typing import List
 
 from pyasice import XmlSignature
 
@@ -15,9 +15,8 @@ class MySigner(Signer):
 
         return {"verification_code": "1234"}
 
-    def finalize(self, data=None) -> BinaryIO:
-        container = Container.open(self.session_data.temp_container_file)
-        return container.finalize()
+    def finalize(self, data=None) -> Container:
+        return Container.open(self.session_data.temp_container_file)
 
 
 class MyPostSigner(MySigner):
@@ -31,7 +30,7 @@ class MyPostSigner(MySigner):
         except (TypeError, KeyError):
             raise InvalidParameter("certificate")
 
-    def finalize(self, data=None) -> BinaryIO:
+    def finalize(self, data=None) -> Container:
         try:
             data["signature_value"]
         except (TypeError, KeyError):

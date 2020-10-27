@@ -15,13 +15,14 @@ Solution: One view, [Pluggable signers](#pluggable-signer)
 
 ```python
 # views.py
-from typing import BinaryIO
 from django.core.files.uploadedfile import UploadedFile
 from django.views.generic import DetailView
+from esteid.compat import container_info
 from esteid.signing import Container, DataFile, SignViewDjangoMixin
 
 # Import all the necessary signers (a.k.a registration)
-from esteid.idcard.signer import IdCardSigner  # noqa
+from esteid.idcard import IdCardSigner  # noqa
+from esteid.mobileid import MobileIdSigner  # noqa
 
 class MyDocumentSignView(SignViewDjangoMixin, DetailView):
     def get_files_to_sign(self, *args, **kwargs):
@@ -31,9 +32,11 @@ class MyDocumentSignView(SignViewDjangoMixin, DetailView):
             DataFile(instance.document, "application/openoffice-file-bar")
         ]
 
-    def save_container(self, container: BinaryIO, *args, **kwargs):
+    def save_container(self, container: Container, *args, **kwargs):
         instance = self.get_object()
-        instance.container = UploadedFile(container, "signed_document.doc", Container.MIME_TYPE)
+        # Be sure to call `container_info(container)` before `container.finalize()`
+        instance.container_info = container_info(container) 
+        instance.container = UploadedFile(container.finalize(), "signed_document.doc", container.MIME_TYPE)
         instance.save()
 
 # urls.py
@@ -58,6 +61,7 @@ Integration is made easy by means of the view mixin class `SignViewMixin`.
 
 For rest-framework, its derivative `SignViewRestMixin` implements the get, post, and patch handlers:
 ```python
+from rest_framework.views import APIView
 from esteid.signing import SignViewRestMixin
 
 class YourSignView(SignViewRestMixin, APIView):
@@ -66,6 +70,7 @@ class YourSignView(SignViewRestMixin, APIView):
 
 For django without rest-framework, another derivative `SignViewDjangoMixin` can be used in a similar way:
 ```python
+from django.views.generic import View
 from esteid.signing import SignViewDjangoMixin
 
 class YourSignView(SignViewDjangoMixin, View):

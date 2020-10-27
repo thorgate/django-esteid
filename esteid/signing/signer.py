@@ -66,7 +66,7 @@ class Signer:
         """
         raise NotImplementedError
 
-    def finalize(self, data=None) -> BinaryIO:
+    def finalize(self, data=None) -> Container:
         """
         Abstract method. Checks the signing process status and finalizes the container when complete.
 

@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import BinaryIO, List, Optional
+from typing import List, Optional
 
 from django.conf import settings
 from esteid_certificates import get_certificate
@@ -108,7 +108,7 @@ class MobileIdSigner(Signer):
             "verification_code": sign_session.verification_code,
         }
 
-    def finalize(self, data: dict = None) -> BinaryIO:
+    def finalize(self, data: dict = None) -> Container:
         digest = self.session_data.digest
         session_id = self.session_data.session_id
 
@@ -140,7 +140,7 @@ class MobileIdSigner(Signer):
 
         container.add_signature(xml_sig)
 
-        return container.finalize()
+        return container
 
     def save_session_data(self, *, digest: bytes, container: Container, xml_sig: XmlSignature, session_id: str):
         data_obj = self.session_data

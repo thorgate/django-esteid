@@ -5,6 +5,8 @@ from typing import BinaryIO, TYPE_CHECKING, Union
 
 from django.http import HttpRequest, JsonResponse, QueryDict
 
+import pyasice
+
 from .exceptions import ActionInProgress, InvalidParameter, SigningError
 from .signer import Signer
 
@@ -39,9 +41,18 @@ class SignViewMixin:
         """
         raise NotImplementedError
 
-    def save_container(self, container: BinaryIO, *args, **kwargs):
+    def save_container(self, container: pyasice.Container, *args, **kwargs):
         """
-        Receives a file handle to the temporary container file, expected to save the file contents as appropriate.
+        Receives a container instance, expected to save the file contents as appropriate.
+
+        Example with Django's UploadedFile:
+
+            instance = self.get_object()
+            # Be sure to call `container_info(container)` before `container.finalize()`
+            instance.container_info = esteid.compat.container_info(container)
+            instance.container = UploadedFile(container.finalize(), "signed_document.doc", container.MIME_TYPE)
+            instance.save()
+
         """
         raise NotImplementedError
 
