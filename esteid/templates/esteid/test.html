@@ -166,7 +166,7 @@
                     <div class="form-group">
                         <label for="idCodeInput">Your ID code:</label>
                         <input type="text" name="id_code" id="idCodeInput" class="form-control"
-                               value="{{ request.session.smartid_test_id_code }}" />
+                               value="{{ request.session.smartid_test_id_code | default:'10101010005' }}" />
                     </div>
                 </form>
             </div>
@@ -258,7 +258,7 @@
             $('#mid-modal').modal()
         })
 
-        $('#signMobile').on('click', function (e) {
+        function signMobileID(e) {
             e.preventDefault()
             var mobileIdForm = document.forms.mobileId
             var phoneNr = mobileIdForm.phone_nr.value
@@ -281,7 +281,6 @@
                 id_code: idCode,
                 csrfmiddlewaretoken: csrf_token
             })
-
                 .then(function (response) {
                     console.log('MID: got verification code', response.verification_code)
 
@@ -318,7 +317,7 @@
                         alert('Something went wrong, please try again')
                     }
                 })
-        })
+        }
 
         $('#sign-smartid').on('click', function (e) {
             e.preventDefault()
@@ -335,8 +334,10 @@
             }
         }
 
-        $('#sign-smartid-button').on('click', function (e) {
+        function signSmartID(e) {
             console.log("Signing with Smart ID")
+            e.preventDefault()
+
             var timeoutForVerificationCode = 2000  // delay polling to let user to enter verification code
 
             function onSuccessAuth(response) {
@@ -382,7 +383,6 @@
             }
 
 
-            e.preventDefault()
             var form = document.forms.smartId
             var idCode = form.id_code.value
 
@@ -401,7 +401,7 @@
                 onSuccessAuth,
                 onError
             )
-        })
+        }
 
         $('#sign-id').on('click', function (e) {
             e.preventDefault()
@@ -446,6 +446,13 @@
                 window.location.reload()
             }, 2000)
         })
+
+        document.forms.smartId.onsubmit = signSmartID
+        $('#sign-smartid-button').on('click', signSmartID)
+
+        document.forms.mobileId.onsubmit = signMobileID
+        $('#signMobile').on('click', signMobileID)
+
     })
 
 </script>

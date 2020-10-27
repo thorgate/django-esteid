@@ -58,6 +58,13 @@ To test Mobile ID signing, you will need [test phone numbers and ID codes](https
 
 You can not use real phone numbers or ID codes with the demo service.
 
+### SmartID
+
+To test signing with SmartID, yoy can use [the test ID codes](https://github.com/SK-EID/smart-id-documentation/wiki/Environment-technical-parameters).
+ 
+You can also register a demo SmartID account and use a demo SmartID app to enter the PINs; please visit the
+[demo SmartID portal](https://sid.demo.sk.ee/portal/login) for the details. 
+
 ### ID card
 
 ID card signing requires SSL to work, even in a testing enviorment.  
@@ -97,8 +104,3 @@ digidoc-tool open --tslurl=https://open-eid.github.io/test-TL/tl-mp-test-EE.xml 
 ```
 Instructions on setting up the environment 
 [can be found here](https://github.com/open-eid/libdigidocpp/wiki/Using-test-TSL-lists#digidoc-toolexe-utility-program).
-
-### SmartID
-
-To test signing with SmartID, you will need a demo SmartID account and a demo SmartID app; please visit the
-[demo SmartID portal](https://sid.demo.sk.ee/portal/login) for the details. 

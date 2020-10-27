@@ -501,32 +501,37 @@ class SmartIdStatusAction(BaseAction):
             }
 
         # Continue with signing - poll status and finalize
+        logger.debug("SmartID: polling status of signing")
 
         session_id = session_data["session_id"]
         signed_digest = session_data["digest_b64"]
         temp_signature_file = session_data["temp_signature_file"]
         temp_container_file = session_data["temp_container_file"]
 
-        with open(temp_signature_file, "rb") as f:
-            xml_sig = XmlSignature(f.read())
-
-        # Load a partially prepared BDoc from a tempfile and clean it up
-        container = Container.open(temp_container_file)
-
         service = TranslatedSmartIDService.get_instance()
         try:
             status = service.sign_status(session_id, binascii.a2b_base64(signed_digest))
         except ActionNotCompleted:
+            # Do not delete session here.
             return {
                 "success": False,
                 "pending": True,
             }
         except Exception:
+            logger.exception("Failed to get signing status from Smart ID service")
             # NOTE: we could pick some exceptions that don't require cleanup,
             # but this also requires support from the party that polls this action.
             # Most likely the whole process would need to be restarted anyway
             delete_esteid_session(request)
             raise
+
+        logger.debug("SmartID Signing complete")
+
+        with open(temp_signature_file, "rb") as f:
+            xml_sig = XmlSignature(f.read())
+
+        # Load a partially prepared BDoc from a tempfile and clean it up
+        container = Container.open(temp_container_file)
 
         # now we don't need the session anymore
         delete_esteid_session(request)

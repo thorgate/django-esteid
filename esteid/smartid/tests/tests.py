@@ -269,12 +269,12 @@ def run_authentication_flow(demo_api, id_number, country, hash_type=HASH_SHA512,
 
 @pytest.mark.slow
 @pytest.mark.parametrize("hash_type", HASH_ALGORITHMS)
-def test_all_hash_algorithms(demo_api, hash_type):
+def test_all_hash_algorithms(demo_api, hash_type, SMARTID_DEMO_ID_CODE_EE):
     """Test full authentication flow w/ all hash algorithms
 
     Note: This does a real connection to Smart-ID api so it's marked as a slow test
     """
-    status_res = run_authentication_flow(demo_api, "10101010005", COUNTRY_ESTONIA, hash_type)
+    status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, COUNTRY_ESTONIA, hash_type)
 
     assert status_res.document_number == "PNOEE-10101010005-Z1B2-Q"
     assert status_res.certificate
@@ -282,40 +282,40 @@ def test_all_hash_algorithms(demo_api, hash_type):
 
 
 @pytest.mark.slow
-def test_authentication_flow_ee(demo_api):
+def test_authentication_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     """Test full authentication flow for EE
 
     Note: This does a real connection to Smart-ID api so it's marked as a slow test
     """
-    status_res = run_authentication_flow(demo_api, "10101010005", COUNTRY_ESTONIA)
+    status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, COUNTRY_ESTONIA)
 
-    assert status_res.document_number == "PNOEE-10101010005-Z1B2-Q"
+    assert status_res.document_number == f"PNOEE-{SMARTID_DEMO_ID_CODE_EE}-Z1B2-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
 
 @pytest.mark.slow
-def test_authentication_flow_lv(demo_api):
+def test_authentication_flow_lv(demo_api, SMARTID_DEMO_ID_CODE_LV):
     """Test full authentication flow for LV
 
     Note: This does a real connection to Smart-ID api so it's marked as a slow test
     """
-    status_res = run_authentication_flow(demo_api, "010101-10006", COUNTRY_LATVIA)
+    status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_LV, COUNTRY_LATVIA)
 
-    assert status_res.document_number == "PNOLV-010101-10006-SGT7-Q"
+    assert status_res.document_number == f"PNOLV-{SMARTID_DEMO_ID_CODE_LV}-SGT7-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
 
 @pytest.mark.slow
-def test_authentication_flow_lt(demo_api):
+def test_authentication_flow_lt(demo_api, SMARTID_DEMO_ID_CODE_LT):
     """Test full authentication flow for LT
 
     Note: This does a real connection to Smart-ID api so it's marked as a slow test
     """
-    status_res = run_authentication_flow(demo_api, "10101010005", COUNTRY_LITHUANIA)
+    status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_LT, COUNTRY_LITHUANIA)
 
-    assert status_res.document_number == "PNOLT-10101010005-Z52N-Q"
+    assert status_res.document_number == f"PNOLT-{SMARTID_DEMO_ID_CODE_LT}-Z52N-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
@@ -413,7 +413,7 @@ def run_sign_flow(demo_api, id_number=None, country=None, doc_num=None, signed_d
 
 
 @pytest.mark.slow
-def test_sign_flow_ee(demo_api):
+def test_sign_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     """Test full sign flow for EE
 
     Note: This does a number of real connections to Smart-ID apis so it's marked as a slow test
@@ -421,10 +421,9 @@ def test_sign_flow_ee(demo_api):
     file_name = "test.txt"
     data = b"Hello World!"
     mime_type = "text/plain"
-    pin = "10101010005"
 
     # Authenticate user
-    auth_result = run_authentication_flow(demo_api, pin, COUNTRY_ESTONIA)
+    auth_result = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, COUNTRY_ESTONIA)
 
     # Select user's certificate
     subject_cert = demo_api.select_signing_certificate(document_number=auth_result.document_number)

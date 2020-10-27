@@ -14,17 +14,32 @@ from ..types import AuthenticateResult
 from ..utils import get_verification_code
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def demo_api():
     return SmartIDService(uuid.UUID("00000000-0000-0000-0000-000000000000"), "DEMO")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def i18n_demo_api():
     return TranslatedSmartIDService(uuid.UUID("00000000-0000-0000-0000-000000000000"), "DEMO")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
+def SMARTID_DEMO_ID_CODE_EE():
+    return "10101010005"
+
+
+@pytest.fixture
+def SMARTID_DEMO_ID_CODE_LT():
+    return "10101010005"
+
+
+@pytest.fixture
+def SMARTID_DEMO_ID_CODE_LV():
+    return "010101-10006"
+
+
+@pytest.fixture
 def static_auth_result(static_random_text):
     return AuthenticateResult(
         session_id="FAKE",
@@ -34,7 +49,7 @@ def static_auth_result(static_random_text):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def static_status_response(static_signature, static_signature_algorithm, static_certificate):
     return {
         "state": STATE_COMPLETE,
