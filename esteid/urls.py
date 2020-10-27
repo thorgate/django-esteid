@@ -20,7 +20,9 @@ from .views import (
 
 urlpatterns = []
 
-if settings.DEBUG:
+# In a project, the URLs can be included if settings.DEBUG is on.
+# In tests, settings.DEBUG is False for unknown reasons, so we check that the root urlconf points at this file.
+if settings.DEBUG or settings.ROOT_URLCONF == __name__:
     urlpatterns += [
         url("^$", SKTestView.as_view(), name="sk_test"),
         # NOTE: compare the template test-new.html to test.html locally to see JS changes.
