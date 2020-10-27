@@ -153,13 +153,7 @@ class SignViewRestMixin(SignViewMixin):
 
     def patch(self, request, *args, **kwargs):
         """
-        Handles session finish requests that require input data (ID Card)
-        """
-        return self.finish_session(request, *args, **kwargs)
-
-    def get(self, request, *args, **kwargs):
-        """
-        Handles finalize requests that do not require input data
+        Handles session finish requests
         """
         return self.finish_session(request, *args, **kwargs)
 
@@ -178,15 +172,9 @@ class SignViewDjangoMixin(SignViewMixin):
 
     def patch(self, request: "RequestType", *args, **kwargs):
         """
-        Handles session finish requests that require input data (ID Card)
+        Handles session finish requests
         """
         request.data = self.parse_request(request)
-        return self.finish_session(request, *args, **kwargs)
-
-    def get(self, request: "RequestType", *args, **kwargs):
-        """
-        Handles finalize requests that do not require input data
-        """
         return self.finish_session(request, *args, **kwargs)
 
     @staticmethod

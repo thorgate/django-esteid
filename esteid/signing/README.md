@@ -34,7 +34,8 @@ class MyDocumentSignView(SignViewDjangoMixin, DetailView):
 
     def save_container(self, container: Container, *args, **kwargs):
         instance = self.get_object()
-        # Be sure to call `container_info(container)` before `container.finalize()`
+        # `container_info(container)` returns a dict with info about signature and files.
+        # Be sure to call it before `container.finalize()`
         instance.container_info = container_info(container) 
         instance.container = UploadedFile(container.finalize(), "signed_document.doc", container.MIME_TYPE)
         instance.save()

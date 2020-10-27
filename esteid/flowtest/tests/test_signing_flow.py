@@ -50,7 +50,7 @@ def test_my_signing_flow(urlconf, content_type, datafiles):
         temp_container_file = session[Signer._SESSION_KEY]["temp_container_file"]
         assert os.path.exists(temp_container_file)
 
-        response = client.get(url)
+        response = client.patch(url, data, content_type)
         assert response.status_code == 200
         assert response.json() == {
             "status": SigningTestView.Status.SUCCESS,
