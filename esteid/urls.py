@@ -20,7 +20,7 @@ from .views import (
 
 urlpatterns = []
 
-if settings.ROOT_URLCONF == __name__:
+if settings.DEBUG:
     urlpatterns += [
         url("^$", SKTestView.as_view(), name="sk_test"),
         # NOTE: compare the template test-new.html to test.html locally to see JS changes.
