@@ -4,9 +4,10 @@ The idea: have a clear, extensible API that is easy to integrate.
 
 Solution: One view, [Pluggable signers](#pluggable-signer)
 
-[Quickstart](#quickstart)
-[Integration with projects](#integration-with-projects)
-[Implementation details](#implementation-details)
+## Contents
+* [Quickstart](#quickstart)
+* [Integration with projects](#integration-with-projects)
+* [Implementation details](#implementation-details)
 
 ## Quickstart
 
