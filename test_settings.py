@@ -1,3 +1,5 @@
+import os
+
 DEBUG = True
 
 SECRET_KEY = 'q^es5sedujo$g@%-d4tl9ws@z+#m1mab&sdr_5)r&a80_+kd@+'
@@ -20,9 +22,17 @@ MIDDLEWARE = [
 
 INSTALLED_APPS = [
     'django.contrib.sessions',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'rest_framework',
     'esteid',
-    "sslserver",
+    'esteid.flowtest',
 ]
+
+if 'TOX_TESTS' not in os.environ:
+    INSTALLED_APPS += [
+        "sslserver",
+    ]
 
 USE_TZ = True
 TZ = "UTC"

@@ -47,6 +47,10 @@ test:
 	PYTHONPATH=. pytest
 
 .PHONY:
+test-one-fail:
+	PYTHONPATH=. pytest -x
+
+.PHONY:
 test-all:
 	tox
 

@@ -54,3 +54,6 @@ docs/_build
 .python-version
 
 db.sqlite
+
+localhost.crt
+localhost.key

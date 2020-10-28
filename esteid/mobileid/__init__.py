@@ -1,3 +1,4 @@
-__all__ = ["MobileIDError"]
+__all__ = ["MobileIDError", "MobileIdSigner"]
 
 from ..exceptions import EsteidError as MobileIDError
+from .signer import MobileIdSigner
