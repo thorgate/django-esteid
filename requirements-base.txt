@@ -1,0 +1,4 @@
+attrs>=19.2.0
+esteid-certificates==1.0.*
+pyasice==1.0.*
+requests>=2.20

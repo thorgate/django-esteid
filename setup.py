@@ -11,7 +11,8 @@ except ImportError:
 version = esteid.__version__
 
 readme = open('README.md').read()
-requirements = open('requirements.txt').read()
+requirements_base = open('requirements-base.txt').readlines()
+requirements = open('requirements.txt').readlines()
 
 setup(
     name='django-esteid',
@@ -26,7 +27,7 @@ setup(
         'esteid',
     ],
     include_package_data=True,
-    install_requires=list(filter(lambda x: bool(x) and not x.strip().startswith('#'), requirements.splitlines())),
+    install_requires=[line for line in requirements + requirements_base if line and not line.startswith(('#', '-'))],
     license="BSD",
     zip_safe=False,
     keywords='esteid django',

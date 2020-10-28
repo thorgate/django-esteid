@@ -1,18 +1,16 @@
+import logging
 import os
 import subprocess
-import logging
-
 from tempfile import NamedTemporaryFile
 
 from django.utils.encoding import force_bytes, force_text
+from esteid_certificates import get_certificate_file_name, UnknownCertificateError
 
-from esteid.certs import get_certificate_file_name, UnknownCertificateError
 
 logger = logging.getLogger(__name__)
 
 
 class OCSPVerifier(object):
-
     def __init__(self, certificate, issuer, ocsp_url, va_file_path):
         self.certificate = certificate
         self.issuer = issuer
@@ -29,7 +27,7 @@ class OCSPVerifier(object):
         if not self.issuer:
             return 2
 
-        issuer_cn = self.issuer.get('CN', None)
+        issuer_cn = self.issuer.get("CN", None)
         if not issuer_cn:
             return 3
 
@@ -40,34 +38,35 @@ class OCSPVerifier(object):
 
         # Save cert to a temporary file
         cert_file = NamedTemporaryFile(delete=False)
-        cert_file.write(force_bytes(self.certificate.replace('\t', '')))
+        cert_file.write(force_bytes(self.certificate.replace("\t", "")))
         cert_file.close()
 
         # Run openssl ocsp verify command
         args = [
-            'openssl', 'ocsp',
-            '-issuer %s' % issuer_cert_filename,
-            '-cert %s' % cert_file.name,
-            '-url %s' % self.ocsp_url,
-            '-VAfile %s' % self.va_file_path,
+            "openssl",
+            "ocsp",
+            "-issuer %s" % issuer_cert_filename,
+            "-cert %s" % cert_file.name,
+            "-url %s" % self.ocsp_url,
+            "-VAfile %s" % self.va_file_path,
         ]
 
         try:
-            output = subprocess.check_output(' '.join(args), stderr=subprocess.STDOUT, shell=True)
+            output = subprocess.check_output(" ".join(args), stderr=subprocess.STDOUT, shell=True)
             output = force_text(output)
 
-            if ': good' in output:
+            if ": good" in output:
                 result = 0
 
-            elif ': revoked' in output:
+            elif ": revoked" in output:
                 result = 6
 
             else:
-                logger.info('openssl ocsp: unknown output: %s', output)
+                logger.info("openssl ocsp: unknown output: %s", output)
                 result = 7
 
         except subprocess.CalledProcessError as e:
-            logger.error('openssl ocsp: failed with output: %s', e.output)
+            logger.error("openssl ocsp: failed with output: %s", e.output)
             result = 5
 
         # delete temporary file
@@ -78,10 +77,10 @@ class OCSPVerifier(object):
     @classmethod
     def parse_issuer(cls, issuer):
         res = {}
-        issuer = issuer.strip().strip('/').split('/')
+        issuer = issuer.strip().strip("/").split("/")
 
         for part in issuer:
-            part = part.split('=')
+            part = part.split("=")
             res[part[0]] = part[1]
 
         return res

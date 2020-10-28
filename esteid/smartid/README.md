@@ -6,15 +6,15 @@ Main documentation sources:
 
 **Note:***
 
-Currently containers with a SmartID-generated signature are not compatible with MobiilID/ID-Card.
+Currently containers with a SmartID-generated signature are not compatible with MobileID/ID-Card.
 This means, such a signature is valid, but adding another signature to the same container
-by means of MobiilID/ID-Card DigiDoc Service API will fail. 
+by means of MobileID/ID-Card DigiDoc Service API will fail. 
 
 This is the limitation of DigiDoc Service (which uses old versions of 
-respective libraries) and can not be resolved except by moving to the new REST API for MobiilID. 
+respective libraries) and can not be resolved except by moving to the new REST API for MobileID. 
 
 Adding a SmartID signature to a container with a previously generated SmartID signature, 
-as well as a MobiilID/ID-Card generated one, works without restrictions.
+as well as a MobileID/ID-Card generated one, works without restrictions.
 
 (Same note is included in the [top level readme](../../README.md).)
 
@@ -39,7 +39,7 @@ as well as a MobiilID/ID-Card generated one, works without restrictions.
 1. Get user's signing certificate from SmartID (aka certificate selection).
     This should be ready in two requests, one is again a session initialization, the second one is the result. 
 
-1. Prepare the [XAdES signature structure](../bdoc2/README.md) for signing, aka `XmlSignature`
+1. Prepare the [XAdES signature structure](https://github.com/thorgate/pyasice) for signing, aka `XmlSignature`. 
 1. Get the actual signature from the SmartID service.
 
     1. Start a signing session using the document number from the authentication response and the certificate from the
@@ -47,14 +47,16 @@ as well as a MobiilID/ID-Card generated one, works without restrictions.
     1. Present a Verification Code in the response, which user is expected to see on his device before entering PIN2
     1. Poll the server for signing status, which returns the signature when successful. 
 
-1. Update the `XmlSignature` structure with the received signature.
-1. Ensure _Long-Term_ signature validity for compliance with XAdES-LT profile (as per the [BDOC v2.1 spec](https://www.id.ee/public/bdoc-spec212-eng.pdf))
-    1. Perform an OCSP request for user's certificate validity confirmation, and embed the response in the `XmlSignature`.
-        It's possible to stop at this point but only if the OCSP service is qualified for a Time-Mark response 
-        (for a so-called XAdES-LT-TM signature), and apparently the one we use is not qualified.
-    1. Perform a TimeStamp request -- a feature of an XAdES-LT-TS document 
-    1. Embed the received responses in the `XmlSignature` object.
-1. Build a new BDOC container, or update an existing one, with the resulting `XmlSignature` XML content.
+1. ##### Finalize the XmlSignature and the ASiC-E container
+    
+    1. Update the `XmlSignature` structure with the received signature.
+        1. Ensure _Long-Term_ signature validity for compliance with XAdES-LT profile (as per the [BDOC v2.1 spec](https://www.id.ee/public/bdoc-spec212-eng.pdf))
+        1. Perform an OCSP request for user's certificate validity confirmation, and embed the response in the `XmlSignature`.
+            It's possible to stop at this point but only if the OCSP service is qualified for a Time-Mark response 
+            (for a so-called XAdES-LT-TM signature), and apparently the one we use is not qualified.
+        1. Perform a TimeStamp request -- a feature of an XAdES-LT-TS document 
+        1. Embed the received responses in the `XmlSignature` object.
+    1. Build a new BDOC container, or update an existing one, with the resulting `XmlSignature` XML content.
  
 
 ## API Endpoints
@@ -85,7 +87,7 @@ Successful result structure:
 ## Calculate Verification Code
 
 ```python
-from esteid.smartid.crypto import get_verification_code
+from esteid.smartid.utils import get_verification_code
 get_verification_code(signed_data) 
 ```
 
