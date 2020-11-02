@@ -6,7 +6,7 @@ from django.conf import settings
 
 from pyasice import Container, XmlSignature
 
-from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter
+from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
 
@@ -37,7 +37,7 @@ class UserInput(PredictableDict):
         result = super().is_valid(raise_exception=raise_exception)
         if result:
             if not (self.phone_number and re.match(PHONE_NUMBER_REGEXP, self.phone_number)):
-                raise ValueError("Invalid value for phone number")
+                raise InvalidParameter(param="phone_number")
             if not id_code_ee_is_valid(self.id_code):
                 raise InvalidIdCode
             if not (self.get("language") and self.language in Languages.ALL):
@@ -62,17 +62,17 @@ class MobileIdSigner(Signer):
         Receives user input via POST: `id_code`, `phone_number`, `language`
         """
         if not isinstance(initial_data, dict):
-            raise InvalidParameter("Missing required parameters")
+            raise InvalidParameters("Missing required parameters")
 
         user_input = UserInput(**initial_data)
 
         try:
             user_input.is_valid()
-        except InvalidIdCode:
+        except (InvalidIdCode, InvalidParameter):
             # Just to be explicit
             raise
         except ValueError as e:
-            raise InvalidParameter("Invalid parameters") from e
+            raise InvalidParameters("Invalid parameters") from e
 
         self.id_code = user_input.id_code
         self.phone_number = user_input.phone_number
