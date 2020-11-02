@@ -33,9 +33,9 @@ from ..types import InterimSessionData
 def test_signing_types_session_data(value, result):
     if isinstance(result, Exception):
         with pytest.raises(type(result)):
-            InterimSessionData(**value).is_valid()
+            InterimSessionData(value).is_valid()
     else:
-        data = InterimSessionData(**value)
+        data = InterimSessionData(value)
         assert data.is_valid()
         assert data.digest == base64.b64decode(value["digest_b64"])
         assert data.temp_container_file == value["temp_container_file"]

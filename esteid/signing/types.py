@@ -106,10 +106,10 @@ class InterimSessionData(PredictableDict):
     temp_signature_file: str
     timestamp: int
 
-    def _get_digest_bytes(self):
+    @property
+    def digest(self):
         return base64.b64decode(self.digest_b64)
 
-    def _set_digest_bytes(self, digest: bytes):
-        self.digest_b64 = base64.b64encode(digest).decode()
-
-    digest = property(_get_digest_bytes, _set_digest_bytes)
+    @digest.setter
+    def digest(self, value: bytes):
+        self.digest_b64 = base64.b64encode(value).decode()
