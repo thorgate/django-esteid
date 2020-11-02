@@ -11,6 +11,7 @@ from esteid.signing import DataFile, SignViewDjangoMixin, SignViewRestMixin
 # Register our signers
 from ..idcard import IdCardSigner  # noqa
 from ..mobileid import MobileIdSigner  # noqa
+from ..smartid import SmartIdSigner  # noqa
 from .signer import MyPostSigner, MySigner  # noqa
 
 

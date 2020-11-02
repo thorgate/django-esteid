@@ -2,6 +2,7 @@
 
 [![pypi Status](https://badge.fury.io/py/django-esteid.png)](https://badge.fury.io/py/django-esteid)
 [![Build Status](https://travis-ci.org/thorgate/django-esteid.svg?branch=master)](https://travis-ci.org/thorgate/django-esteid)
+[![Coverage Status](https://coveralls.io/repos/github/thorgate/django-esteid/badge.svg?branch=master)](https://coveralls.io/github/thorgate/django-esteid?branch=master)
 
 Django-esteid is a package that provides Esteid based authentication for your Django applications.
 
@@ -19,9 +20,11 @@ Add `esteid` to installed apps:
         # ...
     ]
 
-Then use it in a project:
+There is currently no integration reference (work is in progress), but please take a look 
+at the [test page](./esteid/templates/esteid/test-new.html) for some insight, 
+and read the [testing](#testing) section below.
 
-    import esteid
+Static files such as the services' logos and helper JS are also shipped with this library. 
 
 ### SmartID
 
@@ -35,6 +38,14 @@ Detailed docs are [here](esteid/mobileid/README.md).
 
 Detailed docs are [here](esteid/idcard/README.md).
 
+### Service settings
+
+You can 
+
+### Context processors
+
+`esteid.context_processors.esteid_services` adds service enabled/demo statuses to the template context.
+This way you can easily manage the necessary services displayed on the auth/signing page.
 
 ## Testing
 
@@ -74,19 +85,24 @@ To perform signing with ID card, you would need the `chrome-token-signing` packa
 `apt-get install chrome-token-signing`
 
 #### Testing with ssl
- 
-You can make your webserver https enabled by first creating the cert using openssl.
+
+You can run an HTTPS webserver with `./manage.py runsslserver 127.0.0.1:8765`. It will use a development certificate
+coming with the `djangosslserver` package. 
+
+Note that the cert is self-signed, so you will need to create a security exception in browser.
+
+If you need to create your own cert using openssl:
 ```
 openssl req -x509 -out localhost.crt -keyout localhost.key \
   -newkey rsa:2048 -nodes -sha256 \
   -subj '/CN=localhost' -extensions EXT -config <( \
    printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
 ```
-Then start the webserver with runsslserver, then you can connect to `https://127.0.0.1:8000`
+Then start the HTTPS webserver as follows: 
 
-`python manage.py runsslserver 127.0.0.1:8000 --certificate localhost.crt --key localhost.key`
+`python manage.py runsslserver 127.0.0.1:8765 --certificate localhost.crt --key localhost.key`
 
-Note that the cert is self-signed, so you will need to create a security exception.
+A security exception is also necessary as marked above.
 
 #### ngrok
 If you don't want to use a self-signed cert you can route the test site through HTTPS with [ngrok](https://ngrok.com/). 

@@ -8,7 +8,7 @@ from esteid.constants import HASH_SHA512, MOBILE_ID_DEMO_URL
 from esteid.tests.conftest import *  # noqa: F401, F403 -- Force pytest to load fixtures from the common conftest
 
 from ..base import MobileIDService
-from ..constants import EndResults, STATE_COMPLETE
+from ..constants import EndResults
 from ..i18n import TranslatedMobileIDService
 from ..types import AuthenticateResult
 from ..utils import get_verification_code
@@ -48,7 +48,7 @@ def mid_auth_result(static_random_text):
 @pytest.fixture()
 def mid_auth_status_response(static_signature, static_signature_algorithm, static_certificate):
     return {
-        "state": STATE_COMPLETE,
+        "state": MobileIDService.ProcessingStates.COMPLETE,
         "result": EndResults.OK,
         "signature": {
             "algorithm": static_signature_algorithm,
@@ -62,7 +62,7 @@ def mid_auth_status_response(static_signature, static_signature_algorithm, stati
 @pytest.fixture()
 def mid_sign_status_response(static_signature, static_certificate, static_signature_algorithm):
     return {
-        "state": STATE_COMPLETE,
+        "state": MobileIDService.ProcessingStates.COMPLETE,
         "result": EndResults.OK,
         "signature": {
             "algorithm": static_signature_algorithm,

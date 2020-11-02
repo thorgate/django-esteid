@@ -36,13 +36,18 @@ as well as a MobileID/ID-Card generated one, works without restrictions.
         * OUTPUT: Present a Verification Code in the response, which user is expected to see on his device before entering PIN1 
     1. Poll the server for authentication status 
     
+    NOTE: It looks like the Smart ID API has been updated and this step is no longer required for signing.
+    Still the document number is required, but it can be obtained from the next step.
+    
 1. Get user's signing certificate from SmartID (aka certificate selection).
-    This should be ready in two requests, one is again a session initialization, the second one is the result. 
+    This should be ready in two requests, one is again a session initialization, the second one is the result.
+    
+    NOTE: Now this endpoint also returns document number, so we don't need to authenticate user. 
 
 1. Prepare the [XAdES signature structure](https://github.com/thorgate/pyasice) for signing, aka `XmlSignature`. 
 1. Get the actual signature from the SmartID service.
 
-    1. Start a signing session using the document number from the authentication response and the certificate from the
+    1. Start a signing session using the document number from the authentication/certificate selection response and the certificate from the
         certificate selection response.
     1. Present a Verification Code in the response, which user is expected to see on his device before entering PIN2
     1. Poll the server for signing status, which returns the signature when successful. 

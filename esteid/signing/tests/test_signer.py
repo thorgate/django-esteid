@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
+from esteid.exceptions import EsteidError
 from esteid.signing import Signer
-from esteid.signing.exceptions import SigningError
 
 
 @patch.object(Signer, "SIGNING_METHODS", {})
@@ -18,6 +18,7 @@ def test_signer_register_subclass():
 
     assert Signer.SIGNING_METHODS == {"test": signer_class}
 
+    # Asserts that the signer class has not been registered yet, which is not true
     with pytest.raises(AssertionError):
         create_signer()
 
@@ -28,5 +29,5 @@ def test_signer_select():
         pass
 
     assert Signer.select_signer("my") is MySigner
-    with pytest.raises(SigningError):
+    with pytest.raises(EsteidError):
         Signer.select_signer("nonexistent")

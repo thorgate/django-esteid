@@ -1,10 +1,14 @@
 import logging
 import os
 import subprocess
+import warnings
 from tempfile import NamedTemporaryFile
 
 from django.utils.encoding import force_bytes, force_text
 from esteid_certificates import get_certificate_file_name, UnknownCertificateError
+
+
+warnings.warn("This module is deprecated. Please use the new signing API", DeprecationWarning)
 
 
 logger = logging.getLogger(__name__)

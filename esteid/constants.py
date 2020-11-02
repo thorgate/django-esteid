@@ -1,6 +1,9 @@
 MOBILE_ID_DEMO_URL = "https://tsp.demo.sk.ee/mid-api"
 MOBILE_ID_LIVE_URL = "https://mid.sk.ee/mid-api"
 
+SMART_ID_DEMO_URL = "https://sid.demo.sk.ee/smart-id-rp/v1"
+SMART_ID_LIVE_URL = "https://rp-api.smart-id.com/v1"
+
 OCSP_DEMO_URL = "http://demo.sk.ee/ocsp"
 OCSP_LIVE_URL = "http://ocsp.sk.ee/"
 

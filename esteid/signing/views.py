@@ -7,7 +7,8 @@ from django.http import HttpRequest, JsonResponse, QueryDict
 
 import pyasice
 
-from .exceptions import ActionInProgress, InvalidParameter, SigningError
+from esteid.exceptions import ActionInProgress, EsteidError, InvalidParameters, SigningSessionError
+
 from .signer import Signer
 
 
@@ -75,15 +76,13 @@ class SignViewMixin:
         Initiates a signing session
         """
 
-        # raise RuntimeError(str(dict(request.session)))
         try:
             signer = Signer.start_session(self.signing_method, request.session, request.data)
-        except InvalidParameter as e:
-            logger.exception("Invalid parameter %s", request.data)
-            return JsonResponse({"status": self.Status.ERROR, "error": e.args[0]}, status=e.status)
-        except SigningError as e:
+        except InvalidParameters as e:
+            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
+        except SigningSessionError as e:
             logger.exception("Failed to start session")
-            return JsonResponse({"status": self.Status.ERROR, "error": str(e)}, status=e.status)
+            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
         try:
             container = self.get_container(*args, **kwargs)
@@ -98,8 +97,8 @@ class SignViewMixin:
         try:
             response_to_user = signer.prepare(container, files_to_sign)
 
-        except SigningError as e:
-            return JsonResponse({"status": self.Status.ERROR, "error": str(e)}, status=e.status)
+        except EsteidError as e:
+            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
         except Exception:
             logger.exception("Failed to prepare signature.")
@@ -124,8 +123,8 @@ class SignViewMixin:
             do_cleanup = False
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
 
-        except SigningError as e:
-            return JsonResponse({"status": self.Status.ERROR, "error": str(e)}, status=e.status)
+        except EsteidError as e:
+            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
         except Exception:
             logger.exception("Failed to finalize signature.")
@@ -194,11 +193,11 @@ class SignViewDjangoMixin(SignViewMixin):
                 data = json.loads(request.body)
                 if isinstance(data, dict):
                     return data
-                raise InvalidParameter("Failed to parse request data as dict")
-        except InvalidParameter:
+                raise InvalidParameters("Failed to parse request data as dict")
+        except InvalidParameters:
             raise
         except Exception as e:
-            raise InvalidParameter(
+            raise InvalidParameters(
                 f"Failed to parse the request body according to content type {request.content_type}"
             ) from e
-        raise InvalidParameter(f"Unsupported request content type {request.content_type}")
+        raise InvalidParameters(f"Unsupported request content type {request.content_type}")

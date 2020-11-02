@@ -52,6 +52,8 @@ class PredictableDict(dict):
     Validate the presence of all required attributes and type-check all attributes with:
 
         Z(required_attr="test").is_valid()
+
+    Subclasses inherit annotated attributes and can override them, just like normal class attributes.
     """
 
     def __init__(self, *args, **kwargs):
@@ -59,7 +61,7 @@ class PredictableDict(dict):
         self.__dict__ = self
 
     def is_valid(self, raise_exception=True):
-        for attr_name, attr_type in self.__annotations__.items():
+        for attr_name, attr_type in self._get_annotations().items():
             # type -> (type, )
             # Union[T, S] -> U.__args__ == (T, S)
             valid_types = getattr(attr_type, "__args__", (attr_type,))
@@ -82,6 +84,16 @@ class PredictableDict(dict):
                 raise ValueError(f"Wrong type {type(val)} for key {attr_name}")
 
         return True
+
+    @classmethod
+    def _get_annotations(cls):
+        """Collects annotations from all parent classes according to inheritance rules."""
+        annotations = {}
+        for klass in reversed(cls.__mro__):
+            overrides = getattr(klass, "__annotations__", None)
+            if overrides:
+                annotations.update(overrides)
+        return annotations
 
 
 class InterimSessionData(PredictableDict):

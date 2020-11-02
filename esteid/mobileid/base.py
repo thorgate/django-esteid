@@ -1,27 +1,19 @@
 import base64
-from uuid import UUID
-
-import requests
 
 import pyasice
 
+from ..base_service import BaseSKService
 from ..constants import HASH_ALGORITHMS, HASH_SHA256
-from ..exceptions import ActionFailed, ActionNotCompleted
+from ..exceptions import CanceledByUser
 from ..exceptions import EsteidError as MobileIDError
-from ..exceptions import (
-    InvalidCredentials,
-    OfflineError,
-    SessionDoesNotExist,
-    SignatureVerificationError,
-    UserNotRegistered,
-)
-from ..util import generate_hash, secure_random
-from .constants import EndResults, Languages, STATE_RUNNING, STATES
+from ..exceptions import InvalidIdCode, SignatureVerificationError, UpstreamServiceError, UserNotRegistered, UserTimeout
+from ..util import generate_hash, id_code_ee_is_valid, secure_random
+from .constants import EndResults, Languages
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
 
 
-class MobileIDService:
+class MobileIDService(BaseSKService):
     """Mobile-ID Authentication and signing
 
     Based on https://github.com/SK-EID/MID
@@ -33,44 +25,16 @@ class MobileIDService:
         - Add more logging
     """
 
-    MESSAGES = {
-        "display_text": "Mobile-ID login",
-        "permission_denied": "No permission to issue the request",
-        "permission_denied_advanced": "No permission to issue the request (set certificate_level to {})",
-        "no_identity_code": "Identity {} was not found in Mobile-ID system",
-        "no_session_code": "Session {} does not exist",
-        "action_not_completed": "Action for session {} has not completed yet",
-        "unexpected_state": "Unexpected state {}",
-        "unexpected_end_result": "Unexpected end result {}",
-        "signature_mismatch": "Signature mismatch",
-        "timed_out": "Connection timed out, retry later",
-        "invalid_credentials": "Authentication failed: Check rp_uuid and verify the ip of the "
-        "server has been added to the service contract",
-        "unsupported_client": "The client is not supported",
-        "maintenance": "System is under maintenance, retry later",
-        "proxy_error": "Proxy error {}, retry later",
-        "http_error": "Invalid response code(status_code: {0}, body: {1})",
-        "invalid_signature_algorithm": "Invalid signature algorithm {}",
-    }
+    # Notes: the texts must not exceed 20 characters in length!
+    DISPLAY_TEXT_AUTH = "Authenticate"
+    DISPLAY_TEXT_SIGN = "Sign"
 
-    END_RESULT_MESSAGES = {
-        EndResults.OK: "Successfully authenticated with Mobile-ID",
-        EndResults.USER_CANCELLED: "User canceled the Mobile-ID request",
-        EndResults.TIMEOUT: "Mobile-ID request timed out",
-        EndResults.NOT_MID_CLIENT: "Not a Mobile-ID client",
-    }
+    NAME = "Mobile ID"
 
     class Actions:
         AUTH = "/authentication"
         SIGN = "/signature"
-        SESSION_STATUS = "{action_type}/session/{session_id}"
-
-    def __init__(self, rp_uuid: UUID, rp_name: str, api_root: str):
-        self.rp_uuid = rp_uuid
-        self.rp_name = rp_name
-        self.api_root = api_root
-
-        self.session = requests.Session()
+        SESSION_STATUS = "{action}/session/{session_id}"
 
     def get_certificate(self, id_code: str, phone_number: str) -> bytes:
         """
@@ -82,12 +46,15 @@ class MobileIDService:
             # TODO proper validation
             raise ValueError("Both id_code and phone_number are required")
 
+        if not id_code_ee_is_valid(id_code):
+            raise InvalidIdCode
+
         endpoint = "/certificate"
 
         result = self.invoke(
             endpoint,
             method="POST",
-            data=self.rp_params({"phoneNumber": phone_number, "nationalIdentityNumber": id_code}),
+            data={"phoneNumber": phone_number, "nationalIdentityNumber": id_code},
         )
 
         status = result["result"]
@@ -125,9 +92,13 @@ class MobileIDService:
         if not (id_code and phone_number):
             # TODO proper validation
             raise ValueError("Both id_code and phone_number are required")
+
+        if not id_code_ee_is_valid(id_code):
+            raise InvalidIdCode
+
         assert hash_type in HASH_ALGORITHMS
 
-        message = str(message or self.msg("display_text"))
+        message = str(message or self.DISPLAY_TEXT_AUTH)
         assert len(message) <= 20, f"Display text can not exceed 20 chars: got '{message}'"
 
         if language not in Languages.ALL:
@@ -142,18 +113,16 @@ class MobileIDService:
         result = self.invoke(
             endpoint,
             method="POST",
-            data=self.rp_params(
-                {
-                    "nationalIdentityNumber": id_code,
-                    "phoneNumber": phone_number,
-                    "hashType": hash_type,
-                    "hash": hash_value_b64.decode("utf-8"),
-                    "language": language,
-                    # Casting to str to ensure translations are resolved
-                    "displayText": message,  # NOTE: hard 20-char limit
-                    "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
-                }
-            ),
+            data={
+                "nationalIdentityNumber": id_code,
+                "phoneNumber": phone_number,
+                "hashType": hash_type,
+                "hash": hash_value_b64.decode("utf-8"),
+                "language": language,
+                # Casting to str to ensure translations are resolved
+                "displayText": message,  # NOTE: hard 20-char limit
+                "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
+            },
         )
 
         assert "sessionID" in result, "No session id in {result}".format(result=result)
@@ -191,7 +160,7 @@ class MobileIDService:
         try:
             pyasice.verify(cert_value, signature_value, digest, signature_algorithm[:6], prehashed=True)
         except pyasice.SignatureVerificationError as e:
-            raise SignatureVerificationError(self.msg("signature_mismatch")) from e
+            raise SignatureVerificationError from e
 
         return AuthenticateStatusResult(
             certificate=cert_value,
@@ -228,10 +197,13 @@ class MobileIDService:
             # TODO proper validation
             raise ValueError("Both id_code and phone_number are required")
 
+        if not id_code_ee_is_valid(id_code):
+            raise InvalidIdCode
+
         hash_type = hash_type.upper()
         assert hash_type in HASH_ALGORITHMS
 
-        message = str(message or self.msg("display_text"))
+        message = str(message or self.DISPLAY_TEXT_SIGN)
         assert len(message) <= 20, f"Display text can not exceed 20 chars: got '{message}'"
 
         if language not in Languages.ALL:
@@ -243,18 +215,16 @@ class MobileIDService:
         result = self.invoke(
             self.Actions.SIGN,
             method="POST",
-            data=self.rp_params(
-                {
-                    "nationalIdentityNumber": id_code,
-                    "phoneNumber": phone_number,
-                    "hashType": hash_type,
-                    "hash": hash_value_b64.decode("utf-8"),
-                    "language": language,
-                    # Casting to str to ensure translations are resolved
-                    "displayText": str(message or self.msg("display_text")),  # NOTE: 20-char limit
-                    "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
-                }
-            ),
+            data={
+                "nationalIdentityNumber": id_code,
+                "phoneNumber": phone_number,
+                "hashType": hash_type,
+                "hash": hash_value_b64.decode("utf-8"),
+                "language": language,
+                # Casting to str to ensure translations are resolved
+                "displayText": message,
+                "displayTextFormat": "UCS-2",  # the other choice is GSM-7 which is 7-bit
+            },
         )
 
         return SignResult(
@@ -287,7 +257,7 @@ class MobileIDService:
         try:
             pyasice.verify(certificate, signature, signed_digest, signature_algorithm[:6], prehashed=True)
         except pyasice.SignatureVerificationError as e:
-            raise SignatureVerificationError(self.msg("signature_mismatch")) from e
+            raise SignatureVerificationError from e
 
         return SignStatusResult(
             signature=signature,
@@ -298,85 +268,6 @@ class MobileIDService:
     # ============
     # Internals
     # ============
-    def rp_params(self, data):
-        """
-
-        :param dict data:
-        """
-        data.update(
-            {
-                "relyingPartyUUID": str(self.rp_uuid),
-                "relyingPartyName": self.rp_name,
-            }
-        )
-
-        return data
-
-    def api_url(self, endpoint):
-        return "{api_root}{endpoint}".format(api_root=self.api_root, endpoint=endpoint)
-
-    def invoke(self, endpoint, method="GET", query=None, data=None, headers=None):
-        query = query or {}
-
-        request_headers = {
-            "Content-Type": "application/json",
-        }
-
-        if headers:
-            request_headers.update(headers)
-
-        req = requests.Request(
-            method=method,
-            url=self.api_url(endpoint),
-            params=query,
-            json=data,
-            headers=request_headers,
-        )
-        prepared = req.prepare()
-
-        try:
-            # Attempt to fulfill the request
-            response = self.session.send(prepared)
-
-            # ensure we don't mask errors
-            response.raise_for_status()
-
-        except (requests.ConnectionError, requests.Timeout):
-            raise OfflineError(self.msg("timed_out"))
-
-        except requests.HTTPError as e:
-            status_code = e.response.status_code
-            if status_code == 401:
-                raise InvalidCredentials(self.msg("invalid_credentials")) from e
-
-            elif status_code == 400:
-                raise MobileIDError(f"Bad Request. Response:\n{e.response.text}") from e
-
-            # 580 System is under maintenance, retry later.
-            # see https://github.com/SK-EID/smart-id-documentation#413-http-status-code-usage
-            # (Note: Though not documented, Mobile ID also returns this occasionally.)
-            elif status_code == 580:
-                raise OfflineError(self.msg("maintenance")) from e
-
-            # Raise proxy errors as OfflineError
-            elif status_code in [502, 503, 504]:
-                raise OfflineError(self.msg("proxy_error").format(status_code)) from e
-
-            # HTTPErrors for everything else
-            raise requests.HTTPError(
-                self.msg("http_error").format(status_code, e.response.content), request=e.request, response=e.response
-            )
-
-        try:
-            return response.json()
-        except ValueError:
-            raise MobileIDError("Failed to parse response: {}".format(response.content))
-
-    def msg(self, code):
-        return self.MESSAGES[code]
-
-    def end_result_msg(self, end_result):
-        return self.END_RESULT_MESSAGES[end_result]
 
     def _get_session_response(self, action, session_id, timeout=None):
         """Perform a request to session status.
@@ -386,39 +277,25 @@ class MobileIDService:
         :param timeout:
         :return:
         """
-        endpoint = "{action}/session/{session_id}".format(action=action, session_id=session_id)
+        endpoint = self.Actions.SESSION_STATUS.format(action=action, session_id=session_id)
 
-        try:
-            data = self.invoke(
-                endpoint,
-                query={
-                    "timeoutMs": timeout,
-                },
-            )
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise SessionDoesNotExist(self.msg("no_session_code").format(session_id)) from e
-
-            raise
-
-        state = data["state"]
-        if state == STATE_RUNNING:
-            raise ActionNotCompleted(self.msg("action_not_completed").format(session_id))
-
-        # Documentation states that the state can only be RUNNING or COMPLETE
-        # Fail hard if we encounter unknown states
-        if state not in STATES:
-            raise MobileIDError(self.msg("unexpected_state").format(state))
+        data = self.poll_session(session_id, endpoint_url=endpoint, timeout=timeout)
 
         # result (str): End result of the transaction.
+        # This structure is different from Smart ID so can't efficiently put it into BaseSKService.poll_session()
         end_result = data["result"]
 
         if end_result != EndResults.OK:
+            if end_result == EndResults.TIMEOUT:
+                raise UserTimeout
+            elif end_result == EndResults.USER_CANCELLED:
+                raise CanceledByUser
+            elif end_result == EndResults.NOT_MID_CLIENT:
+                raise UserNotRegistered
             # Fail hard, if endResult is something unknown to us
             if end_result not in EndResults.ALL:
-                raise MobileIDError(self.msg("unexpected_end_result").format(end_result))
+                raise MobileIDError(f"Unexpected result '{end_result}' reported")
 
-            raise ActionFailed(end_result, self.end_result_msg(end_result))
+            raise UpstreamServiceError(f"Service returned {end_result}", service=self.NAME)
 
         return data
