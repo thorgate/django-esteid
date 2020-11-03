@@ -54,12 +54,12 @@ def container_info(bdoc_container: Container, full=True):
     if full:
         data_files_info = [
             {
-                "digestType": "sha256",
-                "digestValue": base64.b64encode(hashlib.sha256(content).digest()).decode(),
+                "digest_type": "sha256",
+                "digest_value": base64.b64encode(hashlib.sha256(content).digest()).decode(),
                 "filename": name,
                 "id": name,
-                "mimeType": mimetype,
-                "contentType": mimetype,
+                "mime_type": mimetype,
+                "content_type": mimetype,
                 "size": len(content),
             }
             for name, content, mimetype in bdoc_container.iter_data_files()
@@ -73,9 +73,7 @@ def container_info(bdoc_container: Container, full=True):
         ]
     return SignedDocInfo.from_dict(
         {
-            "dataFileInfo": data_files_info,
-            "format": "BDOC",
+            "data_file_info": data_files_info,
             "signature_info": [signature_info(signature) for signature in bdoc_container.iter_signatures()],
-            "version": "2.1",
         }
     )

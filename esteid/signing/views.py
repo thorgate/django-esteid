@@ -1,13 +1,14 @@
 import json
 import logging
 from http import HTTPStatus
-from typing import BinaryIO, TYPE_CHECKING, Union
+from typing import BinaryIO, Type, TYPE_CHECKING, Union
 
 from django.http import HttpRequest, JsonResponse, QueryDict
+from django.utils.translation import gettext
 
 import pyasice
 
-from esteid.exceptions import ActionInProgress, EsteidError, InvalidParameters, SigningSessionError
+from esteid.exceptions import ActionInProgress, EsteidError, InvalidParameters
 
 from .signer import Signer
 
@@ -48,10 +49,14 @@ class SignViewMixin:
 
         Example with Django's UploadedFile:
 
+            from esteid.compat import container_info
             instance = self.get_object()
             # Be sure to call `container_info(container)` before `container.finalize()`
-            instance.container_info = esteid.compat.container_info(container)
+            instance.container_info = container_info(container)
             instance.container = UploadedFile(container.finalize(), "signed_document.doc", container.MIME_TYPE)
+            # OR:
+            # buffer = container.finalize().getbuffer()
+            # instance.container = SimpleUploadedFile("signed_document.doc", buffer, container.MIME_TYPE)
             instance.save()
 
         """
@@ -71,18 +76,16 @@ class SignViewMixin:
         """
         return JsonResponse({"status": self.Status.SUCCESS})
 
+    def select_signer_class(self) -> Type["Signer"]:
+        return Signer.select_signer(self.signing_method)
+
     def start_session(self, request: "RequestType", *args, **kwargs):
         """
         Initiates a signing session
         """
 
-        try:
-            signer = Signer.start_session(self.signing_method, request.session, request.data)
-        except InvalidParameters as e:
-            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
-        except SigningSessionError as e:
-            logger.exception("Failed to start session")
-            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
+        signer_class = self.select_signer_class()
+        signer = signer_class.start_session(request.session, request.data)
 
         try:
             container = self.get_container(*args, **kwargs)
@@ -94,17 +97,7 @@ class SignViewMixin:
         else:
             files_to_sign = None
 
-        try:
-            response_to_user = signer.prepare(container, files_to_sign)
-
-        except EsteidError as e:
-            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
-
-        except Exception:
-            logger.exception("Failed to prepare signature.")
-            return JsonResponse(
-                {"status": self.Status.ERROR, "error": "Internal error"}, status=HTTPStatus.INTERNAL_SERVER_ERROR
-            )
+        response_to_user = signer.prepare(container, files_to_sign)
 
         return JsonResponse({**response_to_user, "status": self.Status.SUCCESS})
 
@@ -112,7 +105,9 @@ class SignViewMixin:
         """
         Checks the status of a signing session and attempts to finalize signing
         """
-        signer = Signer.load_session(self.signing_method, request.session)
+        signer_class = self.select_signer_class()
+        signer = signer_class.load_session(request.session)
+
         do_cleanup = True
 
         try:
@@ -123,43 +118,67 @@ class SignViewMixin:
             do_cleanup = False
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
 
-        except EsteidError as e:
-            return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
-
-        except Exception:
-            logger.exception("Failed to finalize signature.")
-            return JsonResponse(
-                {"status": self.Status.ERROR, "error": "Internal error"}, status=HTTPStatus.INTERNAL_SERVER_ERROR
-            )
-
         finally:
             if do_cleanup:
                 signer.cleanup()
 
         return self.get_success_response(*args, **kwargs)
 
-
-class SignViewRestMixin(SignViewMixin):
-    """
-    To be used with rest-framework's APIView
-    """
+    def report_error(self, e: EsteidError):
+        return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
     def post(self, request, *args, **kwargs):
         """
         Handles session start requests
         """
-        return self.start_session(request, *args, **kwargs)
+        try:
+            return self.start_session(request, *args, **kwargs)
+
+        except InvalidParameters as e:
+            # do not log this exception
+            return self.report_error(e)
+
+        except EsteidError as e:
+            logger.exception("Failed to start signing session.")
+            return self.report_error(e)
+
+        except Exception:
+            logger.exception("Failed to start signing session.")
+            return JsonResponse(
+                {"status": self.Status.ERROR, "error": "Internal error", "message": gettext("Internal server error")},
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     def patch(self, request, *args, **kwargs):
         """
         Handles session finish requests
         """
-        return self.finish_session(request, *args, **kwargs)
+        try:
+            return self.finish_session(request, *args, **kwargs)
+
+        except EsteidError as e:
+            logger.exception("Failed to finish signing session.")
+            return self.report_error(e)
+
+        except Exception:
+            logger.exception("Failed to finish signing session.")
+            return JsonResponse(
+                {"status": self.Status.ERROR, "error": "Internal error", "message": gettext("Internal server error")},
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+
+class SignViewRestMixin(SignViewMixin):
+    """
+    To be used with rest-framework's APIView.
+    """
 
 
 class SignViewDjangoMixin(SignViewMixin):
     """
-    To be used with plain Django class-based views (No rest-framework)
+    To be used with plain Django class-based views (No rest-framework).
+
+    Adds `data` attribute to the request with the POST or JSON data.
     """
 
     def post(self, request: "RequestType", *args, **kwargs):
@@ -167,14 +186,14 @@ class SignViewDjangoMixin(SignViewMixin):
         Handles session start requests
         """
         request.data = self.parse_request(request)
-        return self.start_session(request, *args, **kwargs)
+        return super().start_session(request, *args, **kwargs)
 
     def patch(self, request: "RequestType", *args, **kwargs):
         """
         Handles session finish requests
         """
         request.data = self.parse_request(request)
-        return self.finish_session(request, *args, **kwargs)
+        return super().finish_session(request, *args, **kwargs)
 
     @staticmethod
     def parse_request(request):
