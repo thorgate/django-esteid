@@ -1,67 +1,60 @@
 PROJECT := esteid
-VENV := ./venv/bin
-export PATH := $(VENV):$(PATH)
+VENV := ./venv
+export PATH := $(VENV)/bin:$(PATH)
 
 .PHONY:
-help:
-	@echo "Available commands:"
-	@echo "  venv - create virtualenv"
-	@echo "  clean-build - remove build artifacts"
-	@echo "  clean-pyc - remove Python file artifacts"
-	@echo "  fmt - format code with black & isort"
-	@echo "  lint - check code style"
-	@echo "  test - run tests quickly with the default Python"
-	@echo "  test-all - run tests on every Python version with tox"
-	@echo "  test-full - shorthand for 'lint coverage'"
-	@echo "  coverage - check code coverage quickly with the default Python"
+help:  ## Show this help.
+	@echo "Usage: make TARGET."
+	@echo "** Available TARGETs: **"
+	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
 
 .PHONY:
-venv:
+venv:  ## Create virtualenv in ./venv or $(VENV)
 	python -m venv venv
 	pip install -r requirements-dev.txt
 
 .PHONY:
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc  ## Clean build artifacts and pyc files
 
 .PHONY:
-clean-build:
+clean-build:  ## Clean build artifacts
 	rm -fr build/
 	rm -fr dist/
 	rm -fr *.egg-info
 
 .PHONY:
-clean-pyc:
+clean-pyc:  ## Clean pyc files
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +
 
 .PHONY:
-lint:
+lint:  ## Run python linters
 	black --check $(PROJECT)
 	isort --check-only --project=$(PROJECT) $(PROJECT)
 	flake8 $(PROJECT)
 
 .PHONY:
-test:
+test:  ## Run all python tests in the current virtual env
 	PYTHONPATH=. pytest
 
 .PHONY:
-test-one-fail:
+test-one-fail:  ## Run python tests in the current virtual env until first failure
 	PYTHONPATH=. pytest -x
 
 .PHONY:
-test-all:
+test-all:  ## Run tests in all environments with tox
 	tox
 
 .PHONY:
-test-full: lint coverage
+test-full: lint coverage  ## Run linters, tests, and coverage
 
 .PHONY:
-coverage:
+coverage:  ## Run coverage
 	PYTHONPATH=. pytest --cov=$(PROJECT) --cov-report html --cov-report term-missing
 
 .PHONY:
-fmt:
+fmt:  ## Format python code
 	black $(PROJECT)
 	isort --project=$(PROJECT) $(PROJECT)
