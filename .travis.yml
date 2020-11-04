@@ -29,6 +29,7 @@ jobs:
     - python: 3.7
       env:
         - DJANGO=2.1
+      after_success: coveralls
 
     - python: 3.7
       env:

@@ -1,65 +1,53 @@
 import logging
-import re
 from typing import List, Optional
 
-from django.conf import settings
-
+import pyasice
 from pyasice import Container, XmlSignature
 
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
 
-from .. import constants
-from ..util import id_code_ee_is_valid
-from .constants import Languages
-from .i18n import TranslatedMobileIDService
+from .base import validate_id_code
+from .constants import Countries
+from .i18n import TranslatedSmartIDService
 
 
 logger = logging.getLogger(__name__)
 
-ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
-ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
-
-OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
-TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_DEMO else constants.TSA_LIVE_URL)
-
-
-PHONE_NUMBER_REGEXP = r"^\+37[02]\d{7,8}$"  # Mobile ID supports Estonian and Lithuanian phones
-
 
 class UserInput(PredictableDict):
-    phone_number: str
     id_code: str
-    language: Optional[str]
+    country: Optional[str]
 
     def is_valid(self, raise_exception=True):
+        """
+        Raises InvalidIdCode or ValueError
+        """
         result = super().is_valid(raise_exception=raise_exception)
         if result:
-            if not (self.phone_number and re.match(PHONE_NUMBER_REGEXP, self.phone_number)):
-                raise ValueError("Invalid value for phone number")
-            if not id_code_ee_is_valid(self.id_code):
-                raise InvalidIdCode
-            if not (self.get("language") and self.language in Languages.ALL):
-                self.language = Languages.ENG
+            if not (self.get("country") and self.country in Countries.ALL):
+                self.country = Countries.ESTONIA
+
+            validate_id_code(self.id_code, self.country)
+
         return result
 
 
-class MobileIdSessionData(InterimSessionData):
+class SmartIdSessionData(InterimSessionData):
     session_id: str
 
 
-class MobileIdSigner(Signer):
-    phone_number: str
+class SmartIdSigner(Signer):
     id_code: str
-    language: str
+    country: str
 
-    SessionData = MobileIdSessionData
-    session_data: MobileIdSessionData
+    SessionData = SmartIdSessionData
+    session_data: SmartIdSessionData
 
     def setup(self, initial_data: dict = None):
         """
-        Receives user input via POST: `id_code`, `phone_number`, `language`
+        Receives user input via POST: `id_code`, `country`
         """
         if not isinstance(initial_data, dict):
             raise InvalidParameter("Missing required parameters")
@@ -75,19 +63,18 @@ class MobileIdSigner(Signer):
             raise InvalidParameter("Invalid parameters") from e
 
         self.id_code = user_input.id_code
-        self.phone_number = user_input.phone_number
-        self.language = user_input.language
+        self.country = user_input.country
 
     def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
         container = self.open_container(container_file, files)
 
-        service = TranslatedMobileIDService.get_instance()
+        service = TranslatedSmartIDService.get_instance()
 
-        certificate = service.get_certificate(self.id_code, self.phone_number)
+        certificate, document_number = service.select_signing_certificate(self.id_code, self.country)
 
         xml_sig = container.prepare_signature(certificate)
 
-        sign_session = service.sign(self.id_code, self.phone_number, xml_sig.signed_data(), language=self.language)
+        sign_session = service.sign_by_document_number(document_number, xml_sig.signed_data())
 
         self.save_session_data(
             digest=sign_session.digest,
@@ -108,21 +95,22 @@ class MobileIdSigner(Signer):
         temp_container_file = self.session_data.temp_container_file
 
         with open(temp_signature_file, "rb") as f:
-            xml_sig = XmlSignature(f.read())
+            xml_sig = pyasice.XmlSignature(f.read())
 
-        service = TranslatedMobileIDService.get_instance()
+        service = TranslatedSmartIDService.get_instance()
 
         try:
-            status = service.sign_status(session_id, xml_sig.get_certificate_value(), digest)
+            status = service.sign_status(session_id, digest)
         except ActionInProgress:
             # Just to be explicit about the InProgress status
             raise
+
+        container = pyasice.Container.open(temp_container_file)
 
         xml_sig.set_signature_value(status.signature)
 
         self.finalize_xml_signature(xml_sig)
 
-        container = Container.open(temp_container_file)
         container.add_signature(xml_sig)
 
         return container

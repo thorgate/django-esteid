@@ -1,3 +1,4 @@
-__all__ = ["SmartIDError"]
+__all__ = ["SmartIDError", "SmartIdSigner"]
 
 from ..exceptions import EsteidError as SmartIDError
+from .signer import SmartIdSigner

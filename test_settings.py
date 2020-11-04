@@ -1,5 +1,22 @@
 import os
 
+# ****** Esteid service settings ******
+
+ESTEID_DEMO = True
+ID_CARD_ENABLED = True
+
+MOBILE_ID_ENABLED = True
+MOBILE_ID_SERVICE_NAME = 'DEMO'
+MOBILE_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
+MOBILE_ID_TEST_MODE = True
+
+SMART_ID_ENABLED = True
+SMART_ID_SERVICE_NAME = 'DEMO'
+SMART_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
+SMART_ID_TEST_MODE = True
+
+# ***** End of Esteid service settings ******
+
 DEBUG = True
 
 SECRET_KEY = 'q^es5sedujo$g@%-d4tl9ws@z+#m1mab&sdr_5)r&a80_+kd@+'
@@ -26,7 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'rest_framework',
     'esteid',
-    'esteid.flowtest',
 ]
 
 if 'TOX_TESTS' not in os.environ:
@@ -48,6 +64,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.request',
+                'esteid.context_processors.esteid_services'
             ],
             'loaders': [
                 'django.template.loaders.app_directories.Loader',
@@ -81,11 +98,3 @@ LOGGING = {
         'django.security': {'handlers': [], 'propagate': True},
     }
 }
-
-MOBILE_ID_SERVICE_NAME = 'DEMO'
-MOBILE_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
-MOBILE_ID_TEST_MODE = True
-
-SMART_ID_SERVICE_NAME = 'DEMO'
-SMART_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
-SMART_ID_TEST_MODE = True

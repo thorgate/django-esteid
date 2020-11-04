@@ -1,14 +1,3 @@
-# Documentation states that the state can only be RUNNING or COMPLETE
-# see https://github.com/SK-EID/smart-id-documentation#464-response-structure
-STATE_RUNNING = "RUNNING"
-STATE_COMPLETE = "COMPLETE"
-
-STATES = (
-    STATE_RUNNING,
-    STATE_COMPLETE,
-)
-
-
 class EndResults:
     """Taken FWIW from the docs"""
 

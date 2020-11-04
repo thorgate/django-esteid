@@ -5,48 +5,14 @@ from django.utils.translation import ugettext_lazy as _
 from esteid.constants import MOBILE_ID_DEMO_URL, MOBILE_ID_LIVE_URL
 
 from .base import MobileIDService
-from .constants import EndResults
 
 
 class TranslatedMobileIDService(MobileIDService):
-    """MobileIDService w/ translatable error messages"""
+    """MobileIDService w/ translatable messages and django settings-aware"""
 
-    MESSAGES = {
-        "display_text": _("Mobile-ID login"),  # NOTE:!!!! 20-char limit !!!!!!
-        "permission_denied": _("No permission to issue the request"),
-        "permission_denied_advanced": _("No permission to issue the request (set certificate_level to {})"),
-        "no_identity_code": _("Identity {} was not found in Mobile-ID system"),
-        "no_session_code": _("Session {} does not exist"),
-        "action_not_completed": _("Action for session {} has not completed yet"),
-        "unexpected_state": _("Unexpected state {}"),
-        "unexpected_end_result": _("Unexpected end result {}"),
-        "signature_mismatch": _("Signature mismatch"),
-        "timed_out": _("Connection timed out, retry later"),
-        "invalid_credentials": _(
-            "Authentication failed: Check rp_uuid and verify the ip of the "
-            "server has been added to the service contract"
-        ),
-        "unsupported_client": _("The client is not supported"),
-        "maintenance": _("System is under maintenance, retry later"),
-        "proxy_error": _("Proxy error {}, retry later"),
-        "http_error": _("Invalid response code(status_code: {0}, body: {1})"),
-        "invalid_signature_algorithm": _("Invalid signature algorithm {}"),
-    }
-
-    END_RESULT_MESSAGES = {
-        EndResults.OK: _("Successfully authenticated with Mobile-ID"),
-        EndResults.USER_CANCELLED: _("User canceled the Mobile-ID request"),
-        EndResults.TIMEOUT: _("Mobile-ID request timed out"),
-        EndResults.NOT_MID_CLIENT: _("User is not a Mobile-ID client."),
-    }
-
-    def msg(self, code):
-        # Cast to string so translations are resolved
-        return str(super().msg(code))
-
-    def end_result_msg(self, end_result):
-        # Cast to string so translations are resolved
-        return str(super().end_result_msg(end_result))
+    # NOTE:!!!! 20-char limit !!!!!!
+    DISPLAY_TEXT_AUTH = _("Authenticate")
+    DISPLAY_TEXT_SIGN = _("Sign")
 
     @classmethod
     def get_instance(cls) -> "TranslatedMobileIDService":

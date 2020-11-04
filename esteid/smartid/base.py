@@ -1,41 +1,52 @@
 import base64
-from uuid import UUID
+import logging
+from time import sleep, time
 
 import requests
 
 import pyasice
 
+from ..base_service import BaseSKService
 from ..constants import HASH_ALGORITHMS, HASH_SHA256
-from ..exceptions import ActionFailed, ActionNotCompleted
+from ..exceptions import ActionInProgress, CanceledByUser
 from ..exceptions import EsteidError as SmartIDError
 from ..exceptions import (
-    IdentityCodeDoesNotExist,
-    InvalidCredentials,
-    OfflineError,
+    InvalidIdCode,
+    InvalidParameter,
     PermissionDenied,
-    SessionDoesNotExist,
     SignatureVerificationError,
-    UnsupportedClientImplementation,
+    UpstreamServiceError,
+    UserNotRegistered,
+    UserTimeout,
 )
-from ..util import generate_hash, secure_random
-from .constants import (
-    CERTIFICATE_LEVEL_ADVANCED,
-    CERTIFICATE_LEVEL_QUALIFIED,
-    CERTIFICATE_LEVELS,
-    COUNTRIES,
-    END_RESULT_CODES,
-    END_RESULT_DOCUMENT_UNUSABLE,
-    END_RESULT_OK,
-    END_RESULT_TIMEOUT,
-    END_RESULT_USER_REFUSED,
-    STATE_RUNNING,
-    STATES,
-)
+from ..util import generate_hash, id_code_ee_is_valid, id_code_lt_is_valid, id_code_lv_is_valid, secure_random
+from .constants import CERTIFICATE_LEVEL_QUALIFIED, CERTIFICATE_LEVELS, Countries, EndResults
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
 
 
-class SmartIDService(object):
+ID_CODE_VALIDATORS = {
+    Countries.ESTONIA: id_code_ee_is_valid,
+    Countries.LATVIA: id_code_lv_is_valid,
+    Countries.LITHUANIA: id_code_lt_is_valid,
+}
+
+logger = logging.getLogger(__name__)
+
+
+def validate_id_code(id_code, country):
+    try:
+        validator = ID_CODE_VALIDATORS[country]
+    except (KeyError, TypeError):
+        raise InvalidParameter(f"Unsupported country '{country}'", param="country")
+
+    if not validator(id_code):
+        # Find country name from Countries attributes
+        cty = next(name for name, value in iter(Countries.__dict__.items()) if value == country)
+        raise InvalidIdCode(f"ID code '{id_code}' is not valid for {cty.capitalize()}")
+
+
+class SmartIDService(BaseSKService):
     """Smart-ID Authentication and signing
 
     Based on https://github.com/SK-EID/smart-id-documentation
@@ -47,45 +58,18 @@ class SmartIDService(object):
         - Add more logging
     """
 
-    MESSAGES = {
-        "display_text": "Log in with Smart-ID",
-        "permission_denied": "No permission to issue the request",
-        "permission_denied_advanced": "No permission to issue the request (set certificate_level to {})",
-        "no_identity_code": "Identity {} was not found in Smart-ID system",
-        "no_session_code": "Session {} does not exist",
-        "action_not_completed": "Action for session {} has not completed yet",
-        "unexpected_state": "Unexpected state {}",
-        "unexpected_end_result": "Unexpected end result {}",
-        "signature_mismatch": "Signature mismatch",
-        "timed_out": "Connection timed out, retry later",
-        "invalid_credentials": "Authentication failed: Check rp_uuid and verify the ip of the "
-        "server has been added to the service contract",
-        "unsupported_client": "The client is not supported",
-        "maintenance": "System is under maintenance, retry later",
-        "proxy_error": "Proxy error {}, retry later",
-        "http_error": "Invalid response code(status_code: {0}, body: {1})",
-        "invalid_signature_algorithm": "Invalid signature algorithm {}",
-    }
+    DISPLAY_TEXT_AUTH = "Authenticate"
+    DISPLAY_TEXT_SIGN = "Sign"
 
-    END_RESULT_MESSAGES = {
-        END_RESULT_OK: "Successfully authenticated with Smart-ID",
-        END_RESULT_USER_REFUSED: "User refused the Smart-ID request",
-        END_RESULT_TIMEOUT: "Smart-ID request timed out",
-        END_RESULT_DOCUMENT_UNUSABLE: "Smart-ID document is not usable. Please check your Smart-ID application or "
-        "contact Smart-ID support",
-    }
+    NAME = "Smart ID"
 
-    TEST_API_ROOT = "https://sid.demo.sk.ee/smart-id-rp/v1"
-    API_ROOT = "https://rp-api.smart-id.com/v1"
-
-    def __init__(self, rp_uuid, rp_name, api_root=None):
-        self.rp_uuid = rp_uuid  # type: UUID
-        self.rp_name = rp_name  # type: str
-        self.api_root = api_root or self.TEST_API_ROOT
-
-        self.is_test = self.api_root == self.TEST_API_ROOT
-
-        self.session = requests.Session()
+    class Actions:
+        AUTH = "/authentication/pno/{country}/{id_code}"
+        SIGN = "/signature/pno/{country}/{id_code}"
+        SIGN_BY_DOCUMENT = "/signature/document/{document}"
+        SELECT_CERTIFICATE = "/certificatechoice/pno/{country}/{id_code}"
+        SELECT_CERTIFICATE_BY_DOCUMENT = "/certificatechoice/document/{document_number}"
+        SESSION_STATUS = "/session/{session_id}"
 
     def authenticate(
         self, id_code, country, certificate_level=CERTIFICATE_LEVEL_QUALIFIED, message=None, hash_type=HASH_SHA256
@@ -95,29 +79,28 @@ class SmartIDService(object):
         see https://github.com/SK-EID/smart-id-documentation#44-authentication-session
 
         :param str id_code: National identity number
-        :param str country: Country as an uppercase ISO 3166-1 alpha-2 code (choices: SMARTID_COUNTRIES)
+        :param str country: Country as an uppercase ISO 3166-1 alpha-2 code (choices: Countries.ALL)
         :param str certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
         :param str message: Text to display for authentication consent dialog on the mobile device
         :param str hash_type: Hash algorithm to use when generating a random hash value (choices: HASH_ALGORITHMS)
         :return AuthenticateResult: Result of the request
         """
         # Ensure required values are set
-        assert id_code
-        assert country in COUNTRIES
+        validate_id_code(id_code, country)
         assert certificate_level in CERTIFICATE_LEVELS
         assert hash_type in HASH_ALGORITHMS
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)
 
-        endpoint = "/authentication/pno/{country}/{id_code}".format(country=country, id_code=id_code)
+        endpoint = self.Actions.AUTH.format(country=country, id_code=id_code)
 
         data = {
             "certificateLevel": certificate_level,
             "hashType": hash_type,
             "hash": base64.b64encode(hash_value).decode(),
             # Casting to str to ensure translations are resolved
-            "displayText": str(message or self.msg("display_text")),
+            "displayText": str(message or self.DISPLAY_TEXT_AUTH),
             # Don't use nonce to so we can rely on idempotent behaviour
             #
             # From the docs:
@@ -137,27 +120,11 @@ class SmartIDService(object):
             result = self.invoke(
                 endpoint,
                 method="POST",
-                data=self.rp_params(data),
+                data=data,
             )
 
-        except requests.HTTPError as e:
-            # From the docs:
-            #
-            # HTTP error code 403 - Relying Party has no permission to issue the request. This may happen when:
-            #  Relying Party has no permission to invoke operations on accounts with ADVANCED certificates.
-            if e.response.status_code == 403:
-                if certificate_level == CERTIFICATE_LEVEL_ADVANCED:
-                    raise PermissionDenied(self.msg("permission_denied_advanced").format(CERTIFICATE_LEVEL_QUALIFIED))
-
-                raise PermissionDenied(self.msg("permission_denied"))
-
-            # From the docs:
-            #
-            # HTTP error code 404 - object described in URL was not found, essentially meaning that the user does not
-            # have account in Smart-ID system.
-            elif e.response.status_code == 404:
-                raise IdentityCodeDoesNotExist(self.msg("no_identity_code").format(id_code))
-
+        except UpstreamServiceError as e:
+            self._handle_specific_errors(e)
             raise
 
         return AuthenticateResult(
@@ -203,8 +170,8 @@ class SmartIDService(object):
 
         try:
             pyasice.verify(cert_value, signature_value, hash_value, signature_algorithm[:6], prehashed=True)
-        except pyasice.SignatureVerificationError:
-            raise SignatureVerificationError(self.msg("signature_mismatch"))
+        except pyasice.SignatureVerificationError as e:
+            raise SignatureVerificationError from e
 
         return AuthenticateStatusResult(
             document_number=document_number,
@@ -228,32 +195,26 @@ class SmartIDService(object):
         see https://github.com/SK-EID/smart-id-documentation#45-signing-session
 
         :param str id_code: National identity number
-        :param str country: Country as an uppercase ISO 3166-1 alpha-2 code (choices: SMARTID_COUNTRIES)
+        :param str country: Country as an uppercase ISO 3166-1 alpha-2 code (choices: Countries.ALL)
         :param bytes signed_data: Binary data to sign
         :param str certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
         :param str message: Text to display for authentication consent dialog on the mobile device
         :param str hash_type: Hash algorithm used to sign data
         :return SignResult: Result of the request
         """
-        assert id_code
-        assert country in COUNTRIES
+        validate_id_code(id_code, country)
 
-        endpoint = "/signature/pno/{country}/{id_code}".format(country=country, id_code=id_code)
+        endpoint = self.Actions.SIGN.format(country=country, id_code=id_code)
         try:
             return self._sign(endpoint, signed_data, certificate_level, message, hash_type)
-        except requests.HTTPError as e:
-            # From the docs:
-            #
-            # HTTP error code 404 - object described in URL was not found, essentially meaning that the user does not
-            # have account in Smart-ID system.
-            if e.response.status_code == 404:
-                raise IdentityCodeDoesNotExist(self.msg("no_identity_code").format(id_code))
+        except UpstreamServiceError as e:
+            self._handle_specific_errors(e)
             raise
 
     def sign_by_document_number(
         self,
-        document_number,
-        signed_data,
+        document_number: str,
+        signed_data: bytes,
         certificate_level=CERTIFICATE_LEVEL_QUALIFIED,
         message=None,
         hash_type=HASH_SHA256,
@@ -265,16 +226,16 @@ class SmartIDService(object):
 
         see https://github.com/SK-EID/smart-id-documentation#45-signing-session
 
-        :param str document_number: Document number, obtained from auth session
-        :param str signed_data: Binary data to sign
-        :param str certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
+        :param document_number: Document number, obtained from auth session
+        :param signed_data: Binary data to sign
+        :param certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
         :param str message: Text to display for authentication consent dialog on the mobile device
         :param str hash_type: Hash algorithm used to sign data
         :return SignResult: Result of the request
         """
         assert document_number
 
-        endpoint = "/signature/document/{document}".format(document=document_number)
+        endpoint = self.Actions.SIGN_BY_DOCUMENT.format(document=document_number)
         return self._sign(endpoint, signed_data, certificate_level, message, hash_type)
 
     def _sign(self, endpoint, signed_data, certificate_level, message, hash_type) -> SignResult:
@@ -298,27 +259,17 @@ class SmartIDService(object):
             result = self.invoke(
                 endpoint,
                 method="POST",
-                data=self.rp_params(
-                    {
-                        "certificateLevel": certificate_level,
-                        "hashType": hash_type,
-                        "hash": hash_value_b64.decode("ascii"),
-                        # Casting to str to ensure translations are resolved
-                        "displayText": str(message or self.msg("display_text")),
-                    }
-                ),
+                data={
+                    "certificateLevel": certificate_level,
+                    "hashType": hash_type,
+                    "hash": hash_value_b64.decode("ascii"),
+                    # Casting to str to ensure translations are resolved
+                    "displayText": str(message or self.DISPLAY_TEXT_SIGN),
+                },
             )
 
-        except requests.HTTPError as e:
-            # From the docs:
-            #
-            # HTTP error code 403 - Relying Party has no permission to issue the request. This may happen when:
-            #  Relying Party has no permission to invoke operations on accounts with ADVANCED certificates.
-            if e.response.status_code == 403:
-                if certificate_level == CERTIFICATE_LEVEL_ADVANCED:
-                    raise PermissionDenied(self.msg("permission_denied_advanced").format(CERTIFICATE_LEVEL_QUALIFIED))
-
-                raise PermissionDenied(self.msg("permission_denied"))
+        except UpstreamServiceError as e:
+            self._handle_specific_errors(e)
             raise
 
         return SignResult(
@@ -327,7 +278,7 @@ class SmartIDService(object):
             verification_code=get_verification_code(content_hash),  # YES we hash the hash.
         )
 
-    def sign_status(self, session_id, digest: bytes, timeout: int = 10000):
+    def sign_status(self, session_id, digest: bytes, timeout: int = 1000):
         """Retrieve signing session result from Smart-ID backend
 
         see https://github.com/SK-EID/smart-id-documentation#46-session-status
@@ -357,7 +308,7 @@ class SmartIDService(object):
 
     def select_signing_certificate(
         self, id_code=None, country=None, document_number=None, certificate_level=CERTIFICATE_LEVEL_QUALIFIED
-    ):
+    ) -> tuple:
         """Obtain a certificate that will be used for signing.
 
         This method is REQUIRED prior to signing with `sign()`. Otherwise it's possible that `authenticate()` would
@@ -367,125 +318,48 @@ class SmartIDService(object):
         :param country:
         :param document_number:
         :param certificate_level:
-        :return: bytes - ASN.1 (DER) certificate
+        :return: tuple[bytes, str] - ASN.1 (DER) certificate and document number
         """
-
-        assert document_number or (id_code and country in COUNTRIES)
-
         if document_number:
-            endpoint = "/certificatechoice/document/{document}".format(document=document_number)
+            endpoint = self.Actions.SELECT_CERTIFICATE_BY_DOCUMENT.format(document_number=document_number)
         else:
-            endpoint = "/certificatechoice/pno/{country}/{id_code}".format(country=country, id_code=id_code)
+            validate_id_code(id_code, country)
+            endpoint = self.Actions.SELECT_CERTIFICATE.format(country=country, id_code=id_code)
 
-        try:
-            result = self.invoke(
-                endpoint,
-                method="POST",
-                data=self.rp_params(
-                    {
-                        "certificateLevel": certificate_level,
-                    }
-                ),
-            )
-
-        except (requests.ConnectionError, requests.Timeout):
-            raise OfflineError(self.msg("timed_out"))
-
-        except requests.HTTPError:
-            raise
+        result = self.invoke(
+            endpoint,
+            method="POST",
+            data={
+                "certificateLevel": certificate_level,
+            },
+        )
 
         session_id = result["sessionID"]
 
-        data = self._get_session_response(session_id, 10000)
-        return base64.b64decode(data["cert"]["value"])
+        start_time = int(time())
+        while True:
+            # Note: Normally the session response is returned quickly to the first polling request.
+            # In case this doesn't happen, we allow polling for 60 seconds with a 3-second interval.
+            # These numbers are arbitrary but since they only serve as contingency fallback,
+            # making constants out of them seems redundant.
+            try:
+                data = self._get_session_response(session_id, 1000)
+                break
+            except ActionInProgress as e:
+                now = int(time())
+                if now > start_time + 60:
+                    raise UpstreamServiceError(
+                        "Failed to get a certificate response within 60 seconds", service=self.NAME
+                    ) from e
+                sleep(3)
+
+        document_number = data["result"]["documentNumber"]
+        certificate = base64.b64decode(data["cert"]["value"])
+        return certificate, document_number
 
     # ============
     # Internals
     # ============
-
-    def close_session(self):  # pragma: no cover
-        pass
-
-    def rp_params(self, data):
-        """
-
-        :param dict data:
-        """
-        data.update(
-            {
-                "relyingPartyUUID": str(self.rp_uuid),
-                "relyingPartyName": self.rp_name,
-            }
-        )
-
-        return data
-
-    def api_url(self, endpoint):
-        return "{api_root}{endpoint}".format(api_root=self.api_root, endpoint=endpoint)
-
-    def invoke(self, endpoint, method="GET", query=None, data=None, headers=None):  # pylint: disable-msg=R0913
-        query = query or {}
-
-        request_headers = {
-            "Content-Type": "application/json",
-        }
-
-        if headers:
-            request_headers.update(headers)
-
-        req = requests.Request(
-            method=method,
-            url=self.api_url(endpoint),
-            params=query,
-            json=data,
-            headers=request_headers,
-        )
-        prepared = req.prepare()
-
-        try:
-            # Attempt to fulfill the request
-            response = self.session.send(prepared)
-
-            # ensure we don't mask errors
-            response.raise_for_status()
-
-        except (requests.ConnectionError, requests.Timeout):
-            raise OfflineError(self.msg("timed_out"))
-
-        except requests.HTTPError as e:
-            status_code = e.response.status_code
-            if status_code == 401:
-                raise InvalidCredentials(self.msg("invalid_credentials"))
-
-            # 480 The client (i.e. client-side implementation of this API) is old and not
-            #  supported any more. Relying Party must contact customer support.
-            elif status_code == 480:
-                raise UnsupportedClientImplementation(self.msg("unsupported_client"))
-
-            # 580 System is under maintenance, retry later.
-            # see https://github.com/SK-EID/smart-id-documentation#413-http-status-code-usage
-            elif status_code == 580:
-                raise OfflineError(self.msg("maintenance"))
-
-            # Raise proxy errors as OfflineError
-            elif status_code in [502, 503, 504]:
-                raise OfflineError(self.msg("proxy_error").format(status_code))
-
-            # HTTPErrors for everything else
-            raise requests.HTTPError(
-                self.msg("http_error").format(status_code, e.response.content), request=e.request, response=e.response
-            )
-
-        try:
-            return response.json()
-        except ValueError:
-            raise SmartIDError("Failed to parse response: {}".format(response.content))
-
-    def msg(self, code):
-        return self.MESSAGES[code]
-
-    def end_result_msg(self, end_result):
-        return self.END_RESULT_MESSAGES[end_result]
 
     def _get_session_response(self, session_id, timeout):
         """Perform a request to session status.
@@ -494,39 +368,52 @@ class SmartIDService(object):
         :param timeout:
         :return:
         """
-        endpoint = "/session/{session_id}".format(session_id=session_id)
-
-        try:
-            data = self.invoke(
-                endpoint,
-                query={
-                    "timeoutMs": timeout,
-                },
-            )
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise SessionDoesNotExist(self.msg("no_session_code").format(session_id))
-
-            raise
-
-        state = data["state"]
-        if state == STATE_RUNNING:
-            raise ActionNotCompleted(self.msg("action_not_completed").format(session_id))
-
-        # Documentation states that the state can only be RUNNING or COMPLETE
-        # Fail hard if we encounter unknown states
-        if state not in STATES:
-            raise SmartIDError(self.msg("unexpected_state").format(state))
+        data = self.poll_session(session_id, endpoint_url=self.Actions.SESSION_STATUS, timeout=timeout)
 
         # result.endResult (str): End result of the transaction.
+        # This structure is different from Mobile ID so can't efficiently put it into BaseSKService.poll_session()
         end_result = data["result"]["endResult"]
 
-        if end_result != END_RESULT_OK:
-            # Fail hard, if endResult is something unknown to us
-            if end_result not in END_RESULT_CODES:
-                raise SmartIDError(self.msg("unexpected_end_result").format(end_result))
+        if end_result != EndResults.OK:
+            if end_result == EndResults.TIMEOUT:
+                raise UserTimeout
+            elif end_result == EndResults.USER_REFUSED:
+                raise CanceledByUser
 
-            raise ActionFailed(end_result, self.end_result_msg(end_result))
+            # Fail hard, if endResult is something unknown to us
+            elif end_result not in EndResults.ALL:
+                raise SmartIDError(f"Unexpected end result {end_result}")
+
+            raise UpstreamServiceError(end_result)
 
         return data
+
+    def _handle_specific_errors(self, exc: UpstreamServiceError):
+        """
+        Handles some SmartID-specific errors
+        """
+        cause = getattr(exc, "__cause__", None)
+        if isinstance(cause, requests.HTTPError):
+            response = cause.response
+            # From the docs:
+            #
+            # HTTP error code 403 - Relying Party has no permission to issue the request. This may happen when:
+            #  Relying Party has no permission to invoke operations on accounts with ADVANCED certificates.
+            if response.status_code == 403:
+                raise PermissionDenied("Certificate level ADVANCED not allowed") from exc
+
+            # From the docs:
+            #
+            # HTTP error code 404 - object described in URL was not found,
+            # essentially meaning that the user does not have account in Smart-ID system.
+            elif response.status_code == 404:
+                raise UserNotRegistered from exc
+
+            # Log the HTTP response
+            logger.exception(
+                "The %s service returned an error %s at %s. Response:\n %s",
+                self.NAME,
+                response.status_code,
+                response.url,
+                response.text,
+            )

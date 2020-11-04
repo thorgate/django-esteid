@@ -1,7 +1,7 @@
 import binascii
 import logging
-import re
 import typing
+import warnings
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -11,22 +11,24 @@ import pyasice
 from pyasice import Container, finalize_signature, verify, XmlSignature
 
 from esteid import constants
-from esteid.exceptions import ActionNotCompleted, EsteidError, IdentityCodeDoesNotExist, UserNotRegistered
+from esteid.exceptions import ActionInProgress, EsteidError, InvalidIdCode, UserNotRegistered
 from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.smartid.i18n import TranslatedSmartIDService
 
 from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
-from .smartid.constants import COUNTRY_ESTONIA
+from .smartid.constants import Countries
+from .util import id_code_ee_is_valid
 
 
 if typing.TYPE_CHECKING:
     from .generic import GenericDigitalSignViewMixin
 
+warnings.warn("The actions API is deprecated. Please use the new signing API", DeprecationWarning)
 
 logger = logging.getLogger(__name__)
 
 ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
-ESTEID_COUNTRY = getattr(settings, "ESTEID_COUNTRY", COUNTRY_ESTONIA)
+ESTEID_COUNTRY = getattr(settings, "ESTEID_COUNTRY", Countries.ESTONIA)
 ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
 
 OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
@@ -61,7 +63,7 @@ class IdCardPrepareAction(BaseAction):
         delete_esteid_session(request)
 
         if not certificate:
-            certificate = params["certificate"]
+            certificate = (params or {}).get("certificate")
 
         if not certificate:
             return {
@@ -128,7 +130,7 @@ class IdCardFinishAction(BaseAction):
             }
 
         if signature_value is None:
-            signature_value = params["signature_value"]
+            signature_value = (params or {}).get("signature_value")
             if not signature_value:
                 return {
                     "success": False,
@@ -217,8 +219,8 @@ class MobileIdSignAction(BaseAction):
                 "code": "BAD_PARAMS",
             }
 
-        if not re.match(r"\d{11}$", id_code):
-            # TODO better validation
+        # NOTE: since EE and LT id codes use the same format, we are using the same function.
+        if not id_code_ee_is_valid(id_code):
             return {
                 "success": False,
                 "code": "INVALID_ID_CODE",
@@ -308,8 +310,8 @@ class MobileIdStatusAction(BaseAction):
             status = service.sign_status(
                 session_id, xml_sig.get_certificate_value(), binascii.a2b_base64(signed_digest)
             )
-        except ActionNotCompleted:
-            #  when there is an `ActionNotCompleted` exception, we shouldn't delete the session.
+        except ActionInProgress:
+            #  when there is an `ActionInProgress` exception, we shouldn't delete the session.
             return {
                 "success": False,
                 "pending": True,
@@ -367,19 +369,6 @@ class SmartIdSignAction(BaseAction):
         if not id_code:
             id_code = params.get("id_code")
 
-        if not id_code:
-            return {
-                "success": False,
-                "code": "BAD_PARAMS",
-            }
-
-        if not re.match(r"\d{11}$", id_code):
-            # TODO better validation
-            return {
-                "success": False,
-                "code": "INVALID_ID_CODE",
-            }
-
         if not country:
             country = params.get("country") or ESTEID_COUNTRY
 
@@ -396,7 +385,12 @@ class SmartIdSignAction(BaseAction):
 
         try:
             auth_result = service.authenticate(id_code, country)
-        except IdentityCodeDoesNotExist:
+        except InvalidIdCode:
+            return {
+                "success": False,
+                "code": "INVALID_ID_CODE",
+            }
+        except UserNotRegistered:
             return {
                 "success": False,
                 "code": "NOT_A_SMARTID_USER",
@@ -433,10 +427,10 @@ class SmartIdStatusAction(BaseAction):
 
         service = TranslatedSmartIDService.get_instance()
 
-        # this may raise ActionNotCompleted
+        # this may raise ActionInProgress
         result = service.status(session_id, binascii.a2b_base64(signed_digest), timeout=1000)
 
-        certificate = service.select_signing_certificate(document_number=result.document_number)
+        certificate, _ = service.select_signing_certificate(document_number=result.document_number)
 
         temp_container_file_name = session_data["temp_container_file"]
 
@@ -482,7 +476,7 @@ class SmartIdStatusAction(BaseAction):
         if phase == "auth":
             try:
                 return cls.auth_status_and_start_sign(request, session_data)
-            except ActionNotCompleted:
+            except ActionInProgress:
                 return {
                     "success": False,
                     "pending": True,
@@ -511,7 +505,7 @@ class SmartIdStatusAction(BaseAction):
         service = TranslatedSmartIDService.get_instance()
         try:
             status = service.sign_status(session_id, binascii.a2b_base64(signed_digest))
-        except ActionNotCompleted:
+        except ActionInProgress:
             # Do not delete session here.
             return {
                 "success": False,

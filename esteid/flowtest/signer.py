@@ -2,8 +2,8 @@ from typing import List
 
 from pyasice import XmlSignature
 
+from esteid.exceptions import InvalidParameter
 from esteid.signing import Container, DataFile, Signer
-from esteid.signing.exceptions import InvalidParameter
 
 
 class MySigner(Signer):
@@ -28,12 +28,12 @@ class MyPostSigner(MySigner):
         try:
             initial_data["certificate"]
         except (TypeError, KeyError):
-            raise InvalidParameter("certificate")
+            raise InvalidParameter(param="certificate")
 
     def finalize(self, data=None) -> Container:
         try:
             data["signature_value"]
         except (TypeError, KeyError):
-            raise InvalidParameter("signature_value")
+            raise InvalidParameter(param="signature_value")
 
         return super().finalize()

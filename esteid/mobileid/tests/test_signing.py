@@ -9,7 +9,7 @@ from pyasice.ocsp import OCSP
 from pyasice.tsa import TSA
 
 from ...constants import OCSP_DEMO_URL, TSA_DEMO_URL
-from ...exceptions import ActionNotCompleted
+from ...exceptions import ActionInProgress
 from ..types import SignResult, SignStatusResult
 
 
@@ -40,7 +40,7 @@ def run_sign_flow(demo_mid_api, certificate, id_number=None, phone_number=None, 
     while status_res is None and time() < end_time:
         try:
             status_res = demo_mid_api.sign_status(res.session_id, certificate, res.digest)
-        except ActionNotCompleted:
+        except ActionInProgress:
             sleep(1.0)
 
     assert isinstance(status_res, SignStatusResult)

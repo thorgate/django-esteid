@@ -1,12 +1,28 @@
+import logging
 import os
 from tempfile import NamedTemporaryFile
 from time import time
 from typing import BinaryIO, Dict, List, Type, Union
 
+from django.conf import settings
+from esteid_certificates import get_certificate
+
+import pyasice
 from pyasice import Container, XmlSignature
 
-from .exceptions import SigningError, SigningSessionDoesNotExist, SigningSessionExists
+from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists, UpstreamServiceError
+
+from .. import constants
 from .types import DataFile, InterimSessionData
+
+
+ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
+ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
+
+OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
+TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_DEMO else constants.TSA_LIVE_URL)
+
+logger = logging.getLogger(__name__)
 
 
 class Signer:
@@ -204,6 +220,19 @@ class Signer:
             raise ValueError("Either container path or list of files must be present and not empty")
         return container
 
+    @staticmethod
+    def finalize_xml_signature(xml_sig: XmlSignature):
+        """
+        Makes requests to OCSP and Time stamping services and embeds the responses in the XML signature.
+        """
+        issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
+
+        try:
+            pyasice.finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+        except pyasice.Error as e:
+            logger.exception("Signature confirmation service error")
+            raise UpstreamServiceError("Signature confirmation service error") from e
+
     # "Magic" registration of subclasses
 
     @staticmethod
@@ -211,7 +240,7 @@ class Signer:
         try:
             signer_class = Signer.SIGNING_METHODS[signing_method]
         except KeyError as e:
-            raise SigningError(f"Failed to load signer: method `{signing_method}` not registered") from e
+            raise EsteidError(f"Failed to load signer: method `{signing_method}` not registered") from e
         return signer_class
 
     def __init_subclass__(cls):
