@@ -8,7 +8,7 @@ import pytest
 from esteid.mobileid import MobileIdSigner
 from esteid.mobileid import signer as signer_module
 
-from ...exceptions import InvalidIdCode, InvalidParameter, SigningSessionDoesNotExist
+from ...exceptions import InvalidIdCode, InvalidParameter, InvalidParameters, SigningSessionDoesNotExist
 
 
 @pytest.fixture()
@@ -43,12 +43,12 @@ def mobileidservice():
     [
         pytest.param(
             None,
-            InvalidParameter,
+            InvalidParameters,
             id="No data",
         ),
         pytest.param(
             {},
-            InvalidParameter,
+            InvalidParameters,
             id="Empty data",
         ),
         pytest.param(

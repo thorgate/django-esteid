@@ -1,5 +1,5 @@
 PROJECT := esteid
-VENV := ./venv
+VENV := ./.venv
 export PATH := $(VENV)/bin:$(PATH)
 
 .PHONY:
@@ -9,8 +9,10 @@ help:  ## Show this help.
 	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
 
 .PHONY:
-venv:  ## Create virtualenv in ./venv or $(VENV)
-	python -m venv venv
+venv: .venv  ## Create virtualenv in $(VENV)
+
+.venv:  ## Create virtualenv in ./venv or $(VENV)
+	python -m venv --prompt=django-esteid $(VENV)
 	pip install -r requirements-dev.txt
 
 .PHONY:

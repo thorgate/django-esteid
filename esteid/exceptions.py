@@ -135,18 +135,25 @@ class InvalidParameters(EsteidError):
 
 
 class InvalidParameter(InvalidParameters):
-    """Invalid initialization parameters received from the request.
+    """Invalid initialization parameter PARAM received from the request.
 
     Takes a `param` kwarg
     """
 
     default_message = _("Invalid value for parameter {param}.")
 
+    def __init__(self, message=None, *, param, **kwargs):
+        super().__init__(message)
+        self.kwargs = {**kwargs, "param": param}
+
 
 class InvalidIdCode(InvalidParameter):
     """Invalid ID code (format or checksum don't match)"""
 
     default_message = _("Invalid ID code.")
+
+    def __init__(self, message=None, *, param="id_code", **kwargs):
+        super().__init__(message, param=param, **kwargs)
 
 
 class UserNotRegistered(EsteidError):

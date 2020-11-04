@@ -20,10 +20,6 @@ from django.views.generic import DetailView
 from esteid.compat import container_info
 from esteid.signing import Container, DataFile, SignViewDjangoMixin
 
-# Import all the necessary signers (a.k.a registration)
-from esteid.idcard import IdCardSigner  # noqa
-from esteid.mobileid import MobileIdSigner  # noqa
-
 class MyDocumentSignView(SignViewDjangoMixin, DetailView):
     def get_files_to_sign(self, *args, **kwargs):
         instance = self.get_object()
@@ -44,7 +40,18 @@ class MyDocumentSignView(SignViewDjangoMixin, DetailView):
 from django.urls.conf import re_path
 
 from esteid.signing import Signer
+# Import all the necessary signers (a.k.a registration)
+from esteid.idcard import IdCardSigner
+from esteid.mobileid import MobileIdSigner
+from esteid.smartid import SmartIdSigner
 from .views import MyDocumentSignView
+
+
+assert Signer.SIGNING_METHODS == {
+    'idcard': IdCardSigner,
+    'mobileid': MobileIdSigner,
+    'smartid': SmartIdSigner,
+}
 
 urlpatterns = [
     re_path(rf"^/document/(?P<id>\w+)/sign/{method}/", 
@@ -118,8 +125,8 @@ Also if container is stored in a remote storage, updating it in place can be imp
 ### File types
 
 To generate a signature over files, it is necessary to know the file name, its mime type, and the content.
-To simplify providing these data to `get_files_to_sign()`, a wrapper class `DataFile` is included which
-accepts a path to file, or a django File instance, and a `mime_type` argument, and deals with reading the file content
+To simplify providing these data to `get_files_to_sign()`, a wrapper class [`DataFile`](./types.py) is included which
+accepts a path to file, or a django `File` instance, and a `mime_type` argument, and deals with reading the file content
 when appropriate.
 
 ## Implementation details

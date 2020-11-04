@@ -4,7 +4,7 @@ from typing import List, Optional
 import pyasice
 from pyasice import Container, XmlSignature
 
-from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter
+from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameters
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
 
@@ -50,7 +50,7 @@ class SmartIdSigner(Signer):
         Receives user input via POST: `id_code`, `country`
         """
         if not isinstance(initial_data, dict):
-            raise InvalidParameter("Missing required parameters")
+            raise InvalidParameters("Missing required parameters")
 
         user_input = UserInput(**initial_data)
 
@@ -60,7 +60,7 @@ class SmartIdSigner(Signer):
             # Just to be explicit
             raise
         except ValueError as e:
-            raise InvalidParameter("Invalid parameters") from e
+            raise InvalidParameters from e
 
         self.id_code = user_input.id_code
         self.country = user_input.country
