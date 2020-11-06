@@ -3,7 +3,7 @@ import logging
 from http import HTTPStatus
 from typing import BinaryIO, Type, TYPE_CHECKING, Union
 
-from django.http import HttpRequest, JsonResponse, QueryDict
+from django.http import Http404, HttpRequest, JsonResponse, QueryDict
 from django.utils.translation import gettext
 
 import pyasice
@@ -142,6 +142,10 @@ class SignViewMixin:
             logger.exception("Failed to start signing session.")
             return self.report_error(e)
 
+        except Http404:
+            # Allow forwarding 404 from `get_object()` and the like
+            raise
+
         except Exception:
             logger.exception("Failed to start signing session.")
             return JsonResponse(
@@ -159,6 +163,10 @@ class SignViewMixin:
         except EsteidError as e:
             logger.exception("Failed to finish signing session.")
             return self.report_error(e)
+
+        except Http404:
+            # Allow forwarding 404 from `get_object()` and the like
+            raise
 
         except Exception:
             logger.exception("Failed to finish signing session.")
