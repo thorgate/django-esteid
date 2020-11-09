@@ -384,7 +384,7 @@ class SmartIdSignAction(BaseAction):
         service = TranslatedSmartIDService.get_instance()
 
         try:
-            auth_result = service.authenticate(id_code, country)
+            certificate, document_number = service.select_signing_certificate(id_code=id_code, country=country)
         except InvalidIdCode:
             return {
                 "success": False,
@@ -396,99 +396,45 @@ class SmartIdSignAction(BaseAction):
                 "code": "NOT_A_SMARTID_USER",
             }
         except EsteidError:
-            logger.exception("An error occurred during SmartID authentication")
+            logger.exception("An error occurred during SmartID certificate selection")
             raise
 
         container = open_container(container_path, files)
+        xml_sig = container.prepare_signature(certificate)
+
+        sign_result = service.sign_by_document_number(document_number, xml_sig.signed_data())
+
+        signed_digest = sign_result.digest
+        digest_hash_b64 = binascii.b2a_base64(signed_digest).decode()
+
         # always save container to a temp file
         with NamedTemporaryFile(mode="wb", delete=False) as temp_container_file:
             temp_container_file.write(container.finalize().getbuffer())
-
-        update_esteid_session(
-            request,
-            session_id=auth_result.session_id,
-            digest_b64=binascii.b2a_base64(auth_result.hash_value).decode(),
-            temp_container_file=temp_container_file.name,
-            phase="auth",
-        )
-
-        return {
-            "success": True,
-            "verification_code": auth_result.verification_code,
-        }
-
-
-class SmartIdStatusAction(BaseAction):
-    @classmethod
-    def auth_status_and_start_sign(cls, request, session_data):
-        logger.debug("SmartID auth_status_and_start_sign")
-        session_id = session_data["session_id"]
-        signed_digest = session_data["digest_b64"]
-
-        service = TranslatedSmartIDService.get_instance()
-
-        # this may raise ActionInProgress
-        result = service.status(session_id, binascii.a2b_base64(signed_digest), timeout=1000)
-
-        certificate, _ = service.select_signing_certificate(document_number=result.document_number)
-
-        temp_container_file_name = session_data["temp_container_file"]
-
-        container = Container.open(temp_container_file_name)
-        xml_sig = container.prepare_signature(certificate)
-
-        sign_result = service.sign_by_document_number(result.document_number, xml_sig.signed_data())
 
         # save intermediate signature XML to temp file
         with NamedTemporaryFile(delete=False) as temp_signature_file:
             temp_signature_file.write(xml_sig.dump())
 
-        # save container to the same temp file
-        container.save(temp_container_file_name)
-
-        signed_digest = sign_result.digest
-        digest_hash_b64 = binascii.b2a_base64(signed_digest).decode()
-
         update_esteid_session(
             request,
             session_id=sign_result.session_id,
             digest_b64=digest_hash_b64,
+            temp_container_file=temp_container_file.name,
             temp_signature_file=temp_signature_file.name,
-            temp_container_file=temp_container_file_name,
-            phase="sign",
         )
+
         return {
             "success": True,
             "verification_code": sign_result.verification_code,
         }
 
+
+class SmartIdStatusAction(BaseAction):
     @classmethod
     def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None):
         request = view.request
         session_data = get_esteid_session(request)
         if not session_data:
-            return {
-                "success": False,
-                "code": "NO_SESSION",
-            }
-
-        phase = session_data.get("phase")
-        if phase == "auth":
-            try:
-                return cls.auth_status_and_start_sign(request, session_data)
-            except ActionInProgress:
-                return {
-                    "success": False,
-                    "pending": True,
-                }
-            except Exception:
-                logger.exception("Failed to select signing certificate with Smart ID")
-                # NOTE: we could pick some exceptions that don't require cleanup,
-                # but this also requires support from the party that polls this action.
-                # Most likely the whole process would need to be restarted anyway
-                delete_esteid_session(request)
-                raise
-        elif phase != "sign":
             return {
                 "success": False,
                 "code": "NO_SESSION",

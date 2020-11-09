@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 import pytest
 
@@ -130,3 +131,10 @@ def static_certificate():
         b"6mfSuVBFivkmzUHVMS3mFUSBCInDv29gul5PSd3kWybhvVvxTD0E/WzuGRg5iJmKsbpCgS6WcP/A3I0W/zvUTcAii"
         b"mN3NoztEEMV6tiHeDB/zjIiNcOaQQE="
     )
+
+
+@pytest.fixture()
+def signed_container_file():
+    """A real container signed via the Demo MobileID service with a test account"""
+    with open(Path(__file__).parent / "files" / "signed-test-mobileid-ee.asice", "rb") as f:
+        yield f

@@ -186,7 +186,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="smartid-step">Verification code</h4>
+                <h4 class="modal-title">Verification code</h4>
             </div>
 
             <div class="modal-body">
@@ -344,32 +344,15 @@
 
             var timeoutForVerificationCode = 2000  // delay polling to let user to enter verification code
 
-            function onSuccessAuth(response) {
-                // Got a successful auth-start request...
-                console.log('SmartID: auth verification code', response.verification_code)
+            function onStartSign(response) {
+                // Got a successful sign-start request...
+                console.log('SmartID: Signing verification code', response.verification_code)
+
                 $('#verification-code-modal').modal({
                     backdrop: 'static',
                     keyboard: false
                 })
 
-                $('#smartid-step').text('Authentication')
-                $('#smartid-verification-code').text(response.verification_code)
-
-                // ...next phase: start signing
-                // we don't want to start polling immediately because user will need to enter verification code
-                setTimeout(function () {
-                    manager.smartidStatus({csrfmiddlewaretoken: csrf_token}).then(
-                        onStartSign,
-                        onError
-                    )
-                }, timeoutForVerificationCode)
-            }
-
-            function onStartSign(response) {
-                // Got a successful sign-start request...
-                console.log('SmartID: Auth OK, Signing verification code', response.verification_code)
-
-                $('#smartid-step').text('Signing')
                 $('#smartid-verification-code').text(response.verification_code)
 
                 // ...next phase: poll for status of signing
@@ -402,7 +385,7 @@
                 csrfmiddlewaretoken: csrf_token
             }).then(
                 // Start callback hell
-                onSuccessAuth,
+                onStartSign,
                 onError
             )
         }

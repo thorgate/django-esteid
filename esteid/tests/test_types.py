@@ -1,3 +1,6 @@
+import pyasice
+
+from esteid.compat import container_info
 from esteid.types import DataFileInfo, SignedDocInfo
 
 
@@ -21,3 +24,19 @@ def test_signeddocinfo_from_dict(signed_doc_dict):
             }
         )
     ]
+
+
+def test_signeddocinfo_from_container(signed_container_file):
+    with pyasice.Container(signed_container_file) as container:
+        data = container_info(container)
+
+    assert data.format == "BDOC"
+    assert data.version == "2.1"
+    assert data.mime_type == pyasice.Container.MIME_TYPE
+
+    assert len(data.signature_info) == 1
+    assert data.signature_info[0].signing_time
+    assert data.signature_info[0].signer.id_code == "60001019906"
+
+    assert len(data.data_file_info) == 1
+    assert data.data_file_info[0].filename == "test.txt"

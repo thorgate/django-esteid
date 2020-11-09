@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import List
 
 import attr
+
+import pyasice
 
 from esteid.util import (
     camel_2_py,
@@ -56,7 +59,7 @@ class Signer(FromDictMixin):
     # Note: This should also support common_name argument coming in
     full_name = attr.ib()
 
-    certificate = attr.ib(
+    certificate: Certificate = attr.ib(
         validator=attr.validators.instance_of(Certificate), converter=get_instance_converter(Certificate)
     )
 
@@ -105,11 +108,11 @@ class SignatureInfo(FromDictMixin):
     status = attr.ib(converter=convert_status)
     id = attr.ib()
 
-    signer = attr.ib(
+    signer: Signer = attr.ib(
         validator=attr.validators.instance_of(Signer),
         converter=get_instance_converter(Signer, prepare_kwargs=Signer.prepare_kwargs),
     )
-    confirmation = attr.ib(
+    confirmation: Confirmation = attr.ib(
         validator=attr.validators.instance_of(Confirmation), converter=get_instance_converter(Confirmation)
     )
 
@@ -152,10 +155,11 @@ class DataFileInfo(FromDictMixin):
 
 @attr.s
 class SignedDocInfo(FromDictMixin):
-    format = attr.ib()
-    version = attr.ib()
+    format = attr.ib(default="BDOC")
+    version = attr.ib(default="2.1")
+    mime_type = attr.ib(default=pyasice.Container.MIME_TYPE)
 
-    data_file_info = attr.ib(
+    data_file_info: List[DataFileInfo] = attr.ib(
         default=attr.Factory(list),
         validator=[
             attr.validators.instance_of(list),
@@ -164,7 +168,7 @@ class SignedDocInfo(FromDictMixin):
         converter=get_typed_list_converter(DataFileInfo),
     )
 
-    signature_info = attr.ib(
+    signature_info: List[SignatureInfo] = attr.ib(
         default=attr.Factory(list),
         validator=[
             attr.validators.instance_of(list),

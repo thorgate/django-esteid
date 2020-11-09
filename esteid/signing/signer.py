@@ -167,22 +167,20 @@ class Signer:
         return self._cleanup_session(self.session)
 
     @classmethod
-    def start_session(cls, signing_method, session, initial_data) -> "Signer":
+    def start_session(cls, session, initial_data) -> "Signer":
         """
         Initializes a fresh signing session.
         """
-        signer_class = cls.select_signer(signing_method)
-        signer = signer_class(session, initial=True)
+        signer = cls(session, initial=True)
         signer.setup(initial_data)
         return signer
 
     @classmethod
-    def load_session(cls, signing_method, session) -> "Signer":
+    def load_session(cls, session) -> "Signer":
         """
         Continues (loads) an existing signing session from the `session` object
         """
-        signer_class = cls.select_signer(signing_method)
-        return signer_class(session)
+        return cls(session, initial=False)
 
     @classmethod
     def _cleanup_session(cls, session):
@@ -236,7 +234,7 @@ class Signer:
     # "Magic" registration of subclasses
 
     @staticmethod
-    def select_signer(signing_method) -> Type["Signer"]:
+    def select_signer(signing_method: str) -> Type["Signer"]:
         try:
             signer_class = Signer.SIGNING_METHODS[signing_method]
         except KeyError as e:
