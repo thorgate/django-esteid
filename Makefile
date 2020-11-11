@@ -33,8 +33,8 @@ clean-pyc:  ## Clean pyc files
 
 .PHONY:
 lint:  ## Run python linters
-	black --check $(PROJECT)
-	isort --check-only --project=$(PROJECT) $(PROJECT)
+	black --check .
+	isort --check-only --project=$(PROJECT) .
 	flake8 $(PROJECT)
 
 .PHONY:
@@ -58,5 +58,5 @@ coverage:  ## Run coverage
 
 .PHONY:
 fmt:  ## Format python code
-	black $(PROJECT)
-	isort --project=$(PROJECT) $(PROJECT)
+	black .
+	isort --project=$(PROJECT) .

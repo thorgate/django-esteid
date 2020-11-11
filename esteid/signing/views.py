@@ -3,14 +3,25 @@ import logging
 from http import HTTPStatus
 from typing import BinaryIO, Type, TYPE_CHECKING, Union
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404, HttpRequest, JsonResponse, QueryDict
 from django.utils.translation import gettext
 
 import pyasice
 
-from esteid.exceptions import ActionInProgress, EsteidError, InvalidParameters
+from esteid import settings
+from esteid.exceptions import ActionInProgress, AlreadySignedByUser, EsteidError, InvalidParameters
+from esteid.types import Signer as SignerData
 
 from .signer import Signer
+
+
+try:
+    from rest_framework.exceptions import ValidationError as DRFValidationError
+except ImportError:
+    # If rest framework is not installed, create a stub class so the isinstance check is always false
+    class DRFValidationError:
+        pass
 
 
 if TYPE_CHECKING:
@@ -76,6 +87,19 @@ class SignViewMixin:
         """
         return JsonResponse({"status": self.Status.SUCCESS})
 
+    def check_eligibility(self, signer: Signer, container: pyasice.Container = None):
+        if container is None or settings.ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE:
+            return
+
+        signatories = []
+        for signature in container.iter_signatures():
+            subject_cert = signature.get_certificate()
+            signatory = SignerData.from_certificate(subject_cert)
+            signatories.append(signatory.id_code)
+
+        if signer.id_code in signatories:
+            raise AlreadySignedByUser
+
     def select_signer_class(self) -> Type["Signer"]:
         return Signer.select_signer(self.signing_method)
 
@@ -96,6 +120,8 @@ class SignViewMixin:
             files_to_sign = self.get_files_to_sign(*args, **kwargs)
         else:
             files_to_sign = None
+
+        self.check_eligibility(signer, container)
 
         response_to_user = signer.prepare(container, files_to_sign)
 
@@ -127,31 +153,36 @@ class SignViewMixin:
     def report_error(self, e: EsteidError):
         return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
+    def handle_errors(self, e: Exception, stage="start"):
+        if isinstance(e, EsteidError):
+            # Do not log user input related errors
+            if not isinstance(e, InvalidParameters):
+                logger.exception("Failed to %s signing session.", stage)
+            return self.report_error(e)
+
+        if isinstance(e, (Http404, DRFValidationError)):
+            raise
+
+        if isinstance(e, DjangoValidationError):
+            return JsonResponse(
+                {"status": self.Status.ERROR, "error": e.__class__.__name__, "message": str(e)},
+                status=HTTPStatus.CONFLICT,
+            )
+
+        logger.exception("Failed to %s signing session.", stage)
+        return JsonResponse(
+            {"status": self.Status.ERROR, "error": "Internal error", "message": gettext("Internal server error")},
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
     def post(self, request, *args, **kwargs):
         """
         Handles session start requests
         """
         try:
             return self.start_session(request, *args, **kwargs)
-
-        except InvalidParameters as e:
-            # do not log this exception
-            return self.report_error(e)
-
-        except EsteidError as e:
-            logger.exception("Failed to start signing session.")
-            return self.report_error(e)
-
-        except Http404:
-            # Allow forwarding 404 from `get_object()` and the like
-            raise
-
-        except Exception:
-            logger.exception("Failed to start signing session.")
-            return JsonResponse(
-                {"status": self.Status.ERROR, "error": "Internal error", "message": gettext("Internal server error")},
-                status=HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
+        except Exception as e:
+            return self.handle_errors(e, stage="start")
 
     def patch(self, request, *args, **kwargs):
         """
@@ -159,21 +190,8 @@ class SignViewMixin:
         """
         try:
             return self.finish_session(request, *args, **kwargs)
-
-        except EsteidError as e:
-            logger.exception("Failed to finish signing session.")
-            return self.report_error(e)
-
-        except Http404:
-            # Allow forwarding 404 from `get_object()` and the like
-            raise
-
-        except Exception:
-            logger.exception("Failed to finish signing session.")
-            return JsonResponse(
-                {"status": self.Status.ERROR, "error": "Internal error", "message": gettext("Internal server error")},
-                status=HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
+        except Exception as e:
+            return self.handle_errors(e, stage="finish")
 
 
 class SignViewRestMixin(SignViewMixin):

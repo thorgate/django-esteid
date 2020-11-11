@@ -4,7 +4,6 @@ import hashlib
 import pytest
 
 from esteid.constants import HASH_SHA512, MOBILE_ID_DEMO_SERVICE_NAME, MOBILE_ID_DEMO_SERVICE_UUID, MOBILE_ID_DEMO_URL
-from esteid.tests.conftest import *  # noqa: F401, F403 -- Force pytest to load fixtures from the common conftest
 
 from ..base import MobileIDService
 from ..constants import EndResults

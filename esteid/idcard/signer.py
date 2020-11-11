@@ -2,10 +2,14 @@ import binascii
 import logging
 from typing import List
 
+from oscrypto.asymmetric import Certificate as OsCryptoCertificate
+from oscrypto.asymmetric import load_certificate
+
 import pyasice
 
 from esteid.exceptions import InvalidParameter, SignatureVerificationError
 from esteid.signing import DataFile, Signer
+from esteid.types import Signer as SignerInfo
 
 
 logger = logging.getLogger(__name__)
@@ -13,6 +17,18 @@ logger = logging.getLogger(__name__)
 
 class IdCardSigner(Signer):
     certificate: bytes
+
+    _certificate_handle: "OsCryptoCertificate"
+
+    @property
+    def id_code(self) -> str:
+        try:
+            certificate_handle = self._certificate_handle
+        except AttributeError as e:
+            raise AttributeError("Attribute id_code not available: certificate not provided") from e
+
+        signer_info = SignerInfo.from_certificate(certificate_handle)
+        return signer_info.id_code
 
     def setup(self, initial_data: dict = None):
         """
@@ -28,6 +44,13 @@ class IdCardSigner(Signer):
         except (TypeError, ValueError) as e:
             raise InvalidParameter(
                 "Failed to decode parameter `certificate` from hex-encoding", param="certificate"
+            ) from e
+
+        try:
+            self._certificate_handle = load_certificate(certificate)
+        except ValueError as e:
+            raise InvalidParameter(
+                "Failed to recognize `certificate` as a supported certificate format", param="certificate"
             ) from e
 
         self.certificate = certificate

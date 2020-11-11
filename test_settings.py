@@ -1,5 +1,6 @@
 import os
 
+
 # ****** Esteid service settings ******
 # Refer to esteid.settings for a comprehensive list of settings.
 
@@ -12,82 +13,78 @@ SMART_ID_ENABLED = True
 
 DEBUG = True
 
-SECRET_KEY = 'q^es5sedujo$g@%-d4tl9ws@z+#m1mab&sdr_5)r&a80_+kd@+'
+SECRET_KEY = "q^es5sedujo$g@%-d4tl9ws@z+#m1mab&sdr_5)r&a80_+kd@+"
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "db.sqlite",
     }
 }
 
-ROOT_URLCONF = 'esteid.urls'
+ROOT_URLCONF = "esteid.urls"
 
 # Django pre-1.10 setting was MIDDLEWARE_CLASSES
 MIDDLEWARE = [
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    "django.contrib.sessions.middleware.SessionMiddleware",
 ]
 
 INSTALLED_APPS = [
-    'django.contrib.sessions',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'rest_framework',
-    'esteid',
+    "django.contrib.sessions",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "rest_framework",
+    "esteid",
 ]
 
-if 'TOX_TESTS' not in os.environ:
+if "TOX_TESTS" not in os.environ:
     INSTALLED_APPS += [
         "sslserver",
     ]
 
 USE_TZ = True
 TZ = "UTC"
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.i18n',
-                'django.template.context_processors.tz',
-                'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.request',
-                'esteid.context_processors.esteid_services'
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.i18n",
+                "django.template.context_processors.tz",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.request",
+                "esteid.context_processors.esteid_services",
             ],
-            'loaders': [
-                'django.template.loaders.app_directories.Loader',
+            "loaders": [
+                "django.template.loaders.app_directories.Loader",
             ],
         },
     },
 ]
 
 LOGGING = {
-    'version': 1,
-    'formatters': {
-        'verbose': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d %(funcName)s - %(message)s'
-        }
-    },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+    "version": 1,
+    "formatters": {"verbose": {"format": "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d %(funcName)s - %(message)s"}},
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "DEBUG",
         },
-        'esteid': {'handlers': [], 'propagate': True},
-        'django': {'handlers': [], 'propagate': True},
-        'django.request': {'handlers': [], 'propagate': True},
-        'django.security': {'handlers': [], 'propagate': True},
-    }
+        "esteid": {"handlers": [], "propagate": True},
+        "django": {"handlers": [], "propagate": True},
+        "django.request": {"handlers": [], "propagate": True},
+        "django.security": {"handlers": [], "propagate": True},
+    },
 }

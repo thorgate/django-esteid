@@ -56,6 +56,9 @@ class Signer:
     # timeout in seconds, after which a fresh session can be started even if old session data is present.
     SESSION_VALIDITY_TIMEOUT = 1  # 60 * 2
 
+    # the signing party's ID code, public attribute/property for use in checks etc.
+    id_code: str
+
     # Abstract Methods
 
     def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:

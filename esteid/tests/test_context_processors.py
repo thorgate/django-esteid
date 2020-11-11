@@ -1,8 +1,7 @@
 from esteid import context_processors
-from esteid.tests.conftest import override_esteid_settings
 
 
-def test_context_processors_esteid_services():
+def test_context_processors_esteid_services(override_esteid_settings):
     test_settings = {
         "ESTEID_DEMO": 1,
         "ID_CARD_ENABLED": 2,
