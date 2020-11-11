@@ -1,10 +1,9 @@
 import base64
 import hashlib
-import uuid
 
 import pytest
 
-from esteid.constants import HASH_SHA512, MOBILE_ID_DEMO_URL
+from esteid.constants import HASH_SHA512, MOBILE_ID_DEMO_SERVICE_NAME, MOBILE_ID_DEMO_SERVICE_UUID, MOBILE_ID_DEMO_URL
 from esteid.tests.conftest import *  # noqa: F401, F403 -- Force pytest to load fixtures from the common conftest
 
 from ..base import MobileIDService
@@ -16,12 +15,12 @@ from ..utils import get_verification_code
 
 @pytest.fixture()
 def demo_mid_api():
-    return MobileIDService(uuid.UUID("00000000-0000-0000-0000-000000000000"), "DEMO", MOBILE_ID_DEMO_URL)
+    return MobileIDService(MOBILE_ID_DEMO_SERVICE_UUID, MOBILE_ID_DEMO_SERVICE_NAME, MOBILE_ID_DEMO_URL)
 
 
 @pytest.fixture()
 def i18n_demo_mid_api():
-    return TranslatedMobileIDService(uuid.UUID("00000000-0000-0000-0000-000000000000"), "DEMO", MOBILE_ID_DEMO_URL)
+    return TranslatedMobileIDService(MOBILE_ID_DEMO_SERVICE_UUID, MOBILE_ID_DEMO_SERVICE_NAME, MOBILE_ID_DEMO_URL)
 
 
 @pytest.fixture()

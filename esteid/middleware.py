@@ -1,12 +1,11 @@
 import logging
 import warnings
 
-from django.conf import settings
 from esteid_certificates import get_certificate_file_name
 
+from esteid import settings
 from esteid.util import parse_legacy_dn, parse_rfc_dn
 
-from . import constants
 from .ocsp import OCSPVerifier
 
 
@@ -22,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 ERROR_NO_DN = 3000
 ERROR_INVALID_DN = 3001
-
-ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
-
-OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
 
 
 class BaseIdCardMiddleware(MiddlewareMixin):
@@ -117,7 +112,7 @@ class BaseIdCardMiddleware(MiddlewareMixin):
 
         :return:str
         """
-        return OCSP_URL
+        return settings.OCSP_URL
 
     @classmethod
     def get_ocsp_responder_certificate_path(cls):
@@ -136,7 +131,7 @@ class BaseIdCardMiddleware(MiddlewareMixin):
         if certificate_path == "sk-ocsp-responder-certificates.pem":
             return get_certificate_file_name(live_cert_name)
 
-        return test_cert_name if ESTEID_DEMO else live_cert_name
+        return test_cert_name if settings.ESTEID_DEMO else live_cert_name
 
     @classmethod
     def verify_ocsp(cls, certificate, issuer):

@@ -1,9 +1,4 @@
-class Countries:
-    ESTONIA = "EE"
-    LATVIA = "LV"
-    LITHUANIA = "LT"
-
-    ALL = (ESTONIA, LATVIA, LITHUANIA)
+from esteid.constants import Countries  # noqa
 
 
 CERTIFICATE_LEVEL_QUALIFIED = "QUALIFIED"

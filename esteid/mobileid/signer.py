@@ -2,15 +2,12 @@ import logging
 import re
 from typing import List, Optional
 
-from django.conf import settings
-
 from pyasice import Container, XmlSignature
 
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
 
-from .. import constants
 from ..util import id_code_ee_is_valid
 from .constants import Languages
 from .i18n import TranslatedMobileIDService
@@ -18,14 +15,8 @@ from .i18n import TranslatedMobileIDService
 
 logger = logging.getLogger(__name__)
 
-ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
-ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
 
-OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
-TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_DEMO else constants.TSA_LIVE_URL)
-
-
-PHONE_NUMBER_REGEXP = r"^\+37[02]\d{7,8}$"  # Mobile ID supports Estonian and Lithuanian phones
+PHONE_NUMBER_REGEXP = re.compile(r"^\+37[02]\d{7,8}$")  # Mobile ID supports Estonian and Lithuanian phones
 
 
 class UserInput(PredictableDict):

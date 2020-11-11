@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 
 import requests_mock
-from requests.exceptions import ConnectionError, ConnectTimeout
 
 import pyasice
 
@@ -14,11 +13,8 @@ from ...exceptions import (
     ActionInProgress,
     BadRequest,
     CanceledByUser,
-    InvalidCredentials,
-    OfflineError,
     SessionDoesNotExist,
     SignatureVerificationError,
-    UpstreamServiceError,
     UserNotRegistered,
     UserTimeout,
 )
@@ -195,34 +191,3 @@ def test_mobileid_authentication_flow_ee(demo_mid_api, hash_type, MID_DEMO_PIN_E
     )
 
     assert status_res.certificate
-
-
-@pytest.mark.parametrize("exc", [ConnectionError, ConnectTimeout])
-def test_mobileid_invoke_timeout(demo_mid_api, exc):
-    with requests_mock.mock() as m:
-        m.get(demo_mid_api.api_url(""), exc=exc)
-
-        with pytest.raises(OfflineError) as exc_info:
-            demo_mid_api.invoke("")
-
-        assert demo_mid_api.NAME in exc_info.value.get_message()
-
-
-@pytest.mark.parametrize(
-    "status_code,exc",
-    [
-        (401, InvalidCredentials),
-        (580, OfflineError),
-        (502, OfflineError),
-        (503, OfflineError),
-        (504, OfflineError),
-        (400, MobileIDError),
-        (500, UpstreamServiceError),
-    ],
-)
-def test_mobileid_invoke_errors(demo_mid_api, status_code, exc):
-    with requests_mock.mock() as m:
-        m.get(demo_mid_api.api_url(""), status_code=status_code)
-
-        with pytest.raises(exc):
-            demo_mid_api.invoke("")

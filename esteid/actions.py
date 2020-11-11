@@ -4,19 +4,17 @@ import typing
 import warnings
 from tempfile import NamedTemporaryFile
 
-from django.conf import settings
 from esteid_certificates import get_certificate
 
 import pyasice
 from pyasice import Container, finalize_signature, verify, XmlSignature
 
-from esteid import constants
+from esteid import settings
 from esteid.exceptions import ActionInProgress, EsteidError, InvalidIdCode, UserNotRegistered
 from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.smartid.i18n import TranslatedSmartIDService
 
 from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
-from .smartid.constants import Countries
 from .util import id_code_ee_is_valid
 
 
@@ -26,13 +24,6 @@ if typing.TYPE_CHECKING:
 warnings.warn("The actions API is deprecated. Please use the new signing API", DeprecationWarning)
 
 logger = logging.getLogger(__name__)
-
-ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
-ESTEID_COUNTRY = getattr(settings, "ESTEID_COUNTRY", Countries.ESTONIA)
-ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
-
-OCSP_URL = getattr(settings, "ESTEID_OCSP_URL", constants.OCSP_DEMO_URL if ESTEID_DEMO else constants.OCSP_LIVE_URL)
-TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_DEMO else constants.TSA_LIVE_URL)
 
 
 class BaseAction(object):
@@ -160,7 +151,13 @@ class IdCardFinishAction(BaseAction):
         issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
 
         try:
-            finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+            finalize_signature(
+                xml_sig,
+                issuer_cert,
+                lt_ts=settings.ESTEID_USE_LT_TS,
+                ocsp_url=settings.OCSP_URL,
+                tsa_url=settings.TSA_URL,
+            )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")
             return {
@@ -331,7 +328,13 @@ class MobileIdStatusAction(BaseAction):
         issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
 
         try:
-            finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+            finalize_signature(
+                xml_sig,
+                issuer_cert,
+                lt_ts=settings.ESTEID_USE_LT_TS,
+                ocsp_url=settings.OCSP_URL,
+                tsa_url=settings.TSA_URL,
+            )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")
             return {
@@ -370,7 +373,7 @@ class SmartIdSignAction(BaseAction):
             id_code = params.get("id_code")
 
         if not country:
-            country = params.get("country") or ESTEID_COUNTRY
+            country = params.get("country") or settings.ESTEID_COUNTRY
 
         files = view.get_files()
         container_path = view.get_bdoc_container_file()
@@ -481,7 +484,13 @@ class SmartIdStatusAction(BaseAction):
         issuer_cert = get_certificate(xml_sig.get_certificate_issuer_common_name())
 
         try:
-            finalize_signature(xml_sig, issuer_cert, lt_ts=ESTEID_USE_LT_TS, ocsp_url=OCSP_URL, tsa_url=TSA_URL)
+            finalize_signature(
+                xml_sig,
+                issuer_cert,
+                lt_ts=settings.ESTEID_USE_LT_TS,
+                ocsp_url=settings.OCSP_URL,
+                tsa_url=settings.TSA_URL,
+            )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")
             return {
