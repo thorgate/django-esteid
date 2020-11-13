@@ -10,7 +10,7 @@ from django.utils.translation import gettext
 import pyasice
 
 from esteid import settings
-from esteid.exceptions import ActionInProgress, AlreadySignedByUser, EsteidError, InvalidParameters
+from esteid.exceptions import ActionInProgress, AlreadySignedByUser, CanceledByUser, EsteidError, InvalidParameters
 from esteid.types import Signer as SignerData
 
 from .signer import Signer
@@ -153,8 +153,14 @@ class SignViewMixin:
     def report_error(self, e: EsteidError):
         return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
+    def handle_user_cancel(self):
+        pass
+
     def handle_errors(self, e: Exception, stage="start"):
         if isinstance(e, EsteidError):
+            if isinstance(e, CanceledByUser):
+                self.handle_user_cancel()
+
             # Do not log user input related errors
             if not isinstance(e, InvalidParameters):
                 logger.exception("Failed to %s signing session.", stage)
