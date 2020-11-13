@@ -4,7 +4,7 @@ import pytest
 
 from esteid.tests.conftest import *  # noqa: F401, F403  -- force pytest to use fixtures from that file
 
-from ...constants import HASH_SHA512, SMART_ID_DEMO_URL
+from ...constants import HASH_SHA512, SMART_ID_DEMO_SERVICE_NAME, SMART_ID_DEMO_SERVICE_UUID, SMART_ID_DEMO_URL
 from ...util import generate_hash
 from ..base import SmartIDService
 from ..constants import CERTIFICATE_LEVEL_QUALIFIED, EndResults
@@ -15,12 +15,12 @@ from ..utils import get_verification_code
 
 @pytest.fixture
 def demo_api():
-    return SmartIDService("00000000-0000-0000-0000-000000000000", "DEMO", SMART_ID_DEMO_URL)
+    return SmartIDService(SMART_ID_DEMO_SERVICE_UUID, SMART_ID_DEMO_SERVICE_NAME, SMART_ID_DEMO_URL)
 
 
 @pytest.fixture
 def i18n_demo_api():
-    return TranslatedSmartIDService("00000000-0000-0000-0000-000000000000", "DEMO", SMART_ID_DEMO_URL)
+    return TranslatedSmartIDService(SMART_ID_DEMO_SERVICE_UUID, SMART_ID_DEMO_SERVICE_NAME, SMART_ID_DEMO_URL)
 
 
 @pytest.fixture

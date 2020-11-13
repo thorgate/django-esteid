@@ -1,12 +1,12 @@
-from django.conf import settings
+from esteid import settings
 
 
 def esteid_services(*_, **__):
     return {
-        "ESTEID_DEMO": getattr(settings, "ESTEID_DEMO", True),
-        "ID_CARD_ENABLED": getattr(settings, "ID_CARD_ENABLED", False),
-        "MOBILE_ID_ENABLED": getattr(settings, "MOBILE_ID_ENABLED", False),
-        "MOBILE_ID_TEST_MODE": getattr(settings, "MOBILE_ID_TEST_MODE", True),
-        "SMART_ID_ENABLED": getattr(settings, "SMART_ID_ENABLED", False),
-        "SMART_ID_TEST_MODE": getattr(settings, "SMART_ID_TEST_MODE", True),
+        "ESTEID_DEMO": settings.ESTEID_DEMO,
+        "ID_CARD_ENABLED": settings.ID_CARD_ENABLED,
+        "MOBILE_ID_ENABLED": settings.MOBILE_ID_ENABLED,
+        "MOBILE_ID_TEST_MODE": settings.MOBILE_ID_TEST_MODE,
+        "SMART_ID_ENABLED": settings.SMART_ID_ENABLED,
+        "SMART_ID_TEST_MODE": settings.SMART_ID_TEST_MODE,
     }

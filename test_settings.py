@@ -1,19 +1,12 @@
 import os
 
 # ****** Esteid service settings ******
+# Refer to esteid.settings for a comprehensive list of settings.
 
 ESTEID_DEMO = True
 ID_CARD_ENABLED = True
-
 MOBILE_ID_ENABLED = True
-MOBILE_ID_SERVICE_NAME = 'DEMO'
-MOBILE_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
-MOBILE_ID_TEST_MODE = True
-
 SMART_ID_ENABLED = True
-SMART_ID_SERVICE_NAME = 'DEMO'
-SMART_ID_SERVICE_UUID = '00000000-0000-0000-0000-000000000000'
-SMART_ID_TEST_MODE = True
 
 # ***** End of Esteid service settings ******
 
