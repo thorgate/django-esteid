@@ -3,8 +3,8 @@ from typing import List, TYPE_CHECKING, Union
 
 import attr
 import pytz
-
 from oscrypto.asymmetric import load_certificate
+
 
 if TYPE_CHECKING:
     from oscrypto.asymmetric import Certificate as OsCryptoCertificate

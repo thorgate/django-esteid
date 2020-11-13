@@ -1,8 +1,9 @@
 import json
 
+import pytest
+
 import attr
 import oscrypto.asymmetric
-import pytest
 from django.core.serializers.json import DjangoJSONEncoder
 
 import pyasice
@@ -49,7 +50,7 @@ def test_signeddocinfo_from_container(signed_container_file):
     assert data.data_file_info[0].filename == "test.txt"
 
 
-@pytest.mark.parametrize('cert_type', ["bytes", "asn1", "oscrypto"])
+@pytest.mark.parametrize("cert_type", ["bytes", "asn1", "oscrypto"])
 def test_certificate_from_cert(static_certificate, cert_type):
     if cert_type == "bytes":
         cert = static_certificate
@@ -70,7 +71,7 @@ def test_certificate_from_cert(static_certificate, cert_type):
     assert cert_data.subject == "SMART-ID,HELLO,PNOEE-11702020200"
 
 
-@pytest.mark.parametrize('cert_type', ["bytes", "asn1", "oscrypto"])
+@pytest.mark.parametrize("cert_type", ["bytes", "asn1", "oscrypto"])
 def test_signer_data_from_oscrypto_cert(static_certificate, cert_type):
     if cert_type == "bytes":
         cert = static_certificate
