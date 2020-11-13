@@ -7,6 +7,8 @@ import pytest
 
 from django.test import override_settings
 
+import pyasice
+
 import esteid.settings
 
 
@@ -142,14 +144,25 @@ def static_certificate():
 @pytest.fixture()
 def signed_container_file():
     """A real container signed via the Demo MobileID service with a test account"""
-    with open(Path(__file__).parent / "files" / "signed-test-mobileid-ee.asice", "rb") as f:
+    with open(Path(__file__).parent / "esteid" / "tests" / "files" / "signed-test-mobileid-ee.asice", "rb") as f:
         yield f
 
 
-@contextmanager
-def override_esteid_settings(**kwargs):
-    with override_settings(**kwargs):
-        importlib.reload(esteid.settings)
-        yield
+@pytest.fixture()
+def signed_container(signed_container_file):
+    """A handle to the signed container"""
+    with pyasice.Container(signed_container_file) as f:
+        yield f
 
-    importlib.reload(esteid.settings)
+
+@pytest.fixture()
+def override_esteid_settings():
+    @contextmanager
+    def wrapped(**kwargs):
+        with override_settings(**kwargs):
+            importlib.reload(esteid.settings)
+            yield
+
+        importlib.reload(esteid.settings)
+
+    return wrapped

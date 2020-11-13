@@ -2,8 +2,6 @@ import base64
 
 import pytest
 
-from esteid.tests.conftest import *  # noqa: F401, F403  -- force pytest to use fixtures from that file
-
 from ...constants import HASH_SHA512, SMART_ID_DEMO_SERVICE_NAME, SMART_ID_DEMO_SERVICE_UUID, SMART_ID_DEMO_URL
 from ...util import generate_hash
 from ..base import SmartIDService

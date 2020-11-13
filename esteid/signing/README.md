@@ -7,6 +7,8 @@ Solution: One view, [Pluggable signers](#pluggable-signer)
 ## Contents
 * [Quickstart](#quickstart)
 * [Integration with projects](#integration-with-projects)
+  * [Error handling and logging](#error-handling-and-logging)
+  * [File types](#file-types)
 * [Implementation details](#implementation-details)
 
 ## Quickstart
@@ -121,6 +123,65 @@ It's possible to call e.g. the view's `get_object()` if the operation requires c
 Even though technically the container is only updated with a signature once, after signing is complete,
 we need to insure that we are updating the exact same file that was there at the beginning of the process.
 Also if container is stored in a remote storage, updating it in place can be impossible altogether.
+
+### Error handling and logging
+
+All exceptions that happen during signing are handled by the view mixin's method `handle_errors()`.
+
+By default, all exceptions except for those listed below produce a non-descriptive JSON response with the HTTP status
+of 500 _Internal server error_: 
+```json
+{
+    "status": "error",
+    "error": "Internal error", 
+    "message": "Internal server error"
+}
+``` 
+(the `message` may be translated.) 
+
+This is done to avoid disclosure of particular implementation details and consequent attacks. 
+Such errors are also logged.
+
+Exceptions of types `Http404` and `rest_framework.exceptions.ValidationError` are propagated upstream to be handled
+by Django and `rest_framework` natively, and not logged. 
+
+Exceptions of `django.core.exceptions.ValidationError` type are converted into a JSON response 
+with HTTP status of 409 (conflict) and a descriptive error message, and not logged. Below is a sample JSON response:
+```json
+{
+    "status": "error",
+    "error": "<< Exception class name >>", 
+    "message": "<< Exception message >>"
+}
+``` 
+
+Lastly, exceptions of type `EsteidError` and its derivatives produce an error response based on the exception
+class's `default_message` and `status`. This can be altered by changing the `get_user_error()` method of the exception
+class. These exceptions are logged, unless they are instances of `InvalidParameters`. 
+
+If you need to add an exception with a descriptive error shown to the user, the preferred way is to subclass
+`EsteidError`, or if it is related to user input, `InvalidParameters`, 
+and add the corresponding `default_message` and `status` attributes.
+
+The native Django and DRF `ValidationError`s can be used when the error is related to user input and not intended
+for logging. Finally, `Http404` fits when the object to sign can not be found, and can be raised 
+from the `get_container()` or `get_files_to_sign` methods.
+
+### Signing party's eligibility
+
+Technically it is possible for a signing party to sign a container multiple times. The XAdES standard doesn't seem to
+impose any restrictions on that. Though as every signing transaction costs money (with SK.ee services) and 
+to avoid issues in general, signing a container twice by the same person is disabled by default, except when debugging.
+
+To allow multiple signatures by same party, set `ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE` to `True` in django settings.
+
+The eligibility check is performed by the view during the signature preparation phase,
+in the `is_eligible_to_sign` method.
+It accepts the container handle and the ID code of the signing party as returned by the `Signer` implementation
+(for MobileID and SmartID, the ID code is entered by the user; for ID card, it is taken from the certificate).
+
+The `is_eligible_to_sign` method of the view may be overridden to perform extra checks on the signing party. 
+ 
 
 ### File types
 

@@ -61,3 +61,6 @@ TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_D
 
 # Used exclusively by esteid.middleware.BaseIdCardMiddleware
 ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH = getattr(settings, "ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH", None)
+
+# Whether one signatory can sign the same container more than once
+ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE = getattr(settings, "ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE", True)

@@ -31,7 +31,6 @@ class BaseMethods:
         return []
 
     def save_container(self, container: Container, *args, **kwargs):
-        # UploadedFile(container, "signed_document.doc", Container.MIME_TYPE)
         with NamedTemporaryFile("wb", delete=False) as f:
             f.write(container.finalize().getbuffer())
         self.request.session["__ddoc_container_file"] = f.name

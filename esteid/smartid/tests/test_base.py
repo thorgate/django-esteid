@@ -5,8 +5,6 @@ import requests_mock
 from django.core.exceptions import ImproperlyConfigured
 from requests.exceptions import ConnectTimeout
 
-from esteid.tests.conftest import override_esteid_settings
-
 from ...constants import SMART_ID_DEMO_URL, SMART_ID_LIVE_URL
 from ...exceptions import (
     BadRequest,
@@ -68,7 +66,7 @@ def test_smartid_translated_service(i18n_demo_api):
     assert i18n_demo_api.api_root == SMART_ID_DEMO_URL
 
 
-def test_smartid_translated_service_test_mode_off():
+def test_smartid_translated_service_test_mode_off(override_esteid_settings):
     with override_esteid_settings(
         SMART_ID_TEST_MODE=False,
         SMART_ID_SERVICE_UUID="00000000-0000-0000-0000-000000000000",
@@ -80,7 +78,7 @@ def test_smartid_translated_service_test_mode_off():
         assert service.rp_name == "test"
 
 
-def test_smartid_translated_service_requires_creds_for_live():
+def test_smartid_translated_service_requires_creds_for_live(override_esteid_settings):
     with override_esteid_settings(SMART_ID_TEST_MODE=False):
         with pytest.raises(ImproperlyConfigured, match="SMART_ID_SERVICE_NAME and SMART_ID_SERVICE_UUID"):
             TranslatedSmartIDService.get_instance()

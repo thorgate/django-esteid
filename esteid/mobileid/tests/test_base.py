@@ -4,8 +4,6 @@ import requests_mock
 from django.core.exceptions import ImproperlyConfigured
 from requests.exceptions import ConnectTimeout
 
-from esteid.tests.conftest import override_esteid_settings
-
 from ...constants import MOBILE_ID_DEMO_URL, MOBILE_ID_LIVE_URL
 from ...exceptions import EsteidError, InvalidCredentials, OfflineError, UpstreamServiceError
 from .. import MobileIDError
@@ -61,7 +59,7 @@ def test_mobileid_translated_service(i18n_demo_mid_api):
     assert i18n_demo_mid_api.api_root == MOBILE_ID_DEMO_URL
 
 
-def test_mobileid_translated_service_test_mode_off(i18n_demo_mid_api):
+def test_mobileid_translated_service_test_mode_off(i18n_demo_mid_api, override_esteid_settings):
     with override_esteid_settings(
         MOBILE_ID_TEST_MODE=False,
         MOBILE_ID_SERVICE_UUID="00000000-0000-0000-0000-000000000000",
@@ -73,7 +71,7 @@ def test_mobileid_translated_service_test_mode_off(i18n_demo_mid_api):
         assert service.rp_name == "test"
 
 
-def test_mobileid_translated_service_requires_creds_for_live():
+def test_mobileid_translated_service_requires_creds_for_live(override_esteid_settings):
     with override_esteid_settings(MOBILE_ID_TEST_MODE=False):
         with pytest.raises(ImproperlyConfigured, match="MOBILE_ID_SERVICE_NAME and MOBILE_ID_SERVICE_UUID"):
             TranslatedMobileIDService.get_instance()

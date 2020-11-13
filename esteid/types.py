@@ -1,7 +1,14 @@
 from datetime import datetime
-from typing import List
+from typing import List, TYPE_CHECKING, Union
 
 import attr
+import pytz
+from oscrypto.asymmetric import load_certificate
+
+
+if TYPE_CHECKING:
+    from oscrypto.asymmetric import Certificate as OsCryptoCertificate
+    from asn1crypto.cms import Certificate as Asn1CryptoCertificate
 
 import pyasice
 
@@ -31,11 +38,11 @@ class CertificatePolicy(FromDictMixin):
 
 @attr.s
 class Certificate(FromDictMixin):
-    valid_from = attr.ib()  # this might be a timestamp
-    issuer_serial = attr.ib()
     issuer = attr.ib()
-    valid_to = attr.ib()  # this might be a timestamp
+    issuer_serial = attr.ib()
     subject = attr.ib()
+    valid_from: datetime = attr.ib(converter=convert_time)
+    valid_to: datetime = attr.ib(converter=convert_time)
 
     policies = attr.ib(
         default=attr.Factory(list),
@@ -45,6 +52,27 @@ class Certificate(FromDictMixin):
         ],
         converter=get_typed_list_converter(CertificatePolicy),
     )
+
+    @classmethod
+    def from_certificate(cls, cert: "Union[bytes, Asn1CryptoCertificate, OsCryptoCertificate]"):
+        if isinstance(cert, bytes):
+            cert = load_certificate(cert)
+        cert_asn1: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
+        personal = cert_asn1.subject.native
+        issuer = cert_asn1["tbs_certificate"]["issuer"]
+        serial = cert_asn1["tbs_certificate"]["serial_number"].native
+
+        validity = cert_asn1["tbs_certificate"]["validity"].native
+        valid_from: datetime = validity["not_before"]
+        valid_to: datetime = validity["not_after"]
+
+        return cls(
+            issuer=issuer.human_friendly,
+            issuer_serial=str(serial),
+            subject=personal["common_name"],
+            valid_from=valid_from.replace(microsecond=0).astimezone(pytz.utc),
+            valid_to=valid_to.replace(microsecond=0).astimezone(pytz.utc),
+        )
 
 
 @attr.s
@@ -75,6 +103,33 @@ class Signer(FromDictMixin):
         kwargs["full_name"] = full_name
 
         return kwargs
+
+    @classmethod
+    def from_certificate(cls, cert: "Union[bytes, Asn1CryptoCertificate, OsCryptoCertificate]"):
+        """
+        Get personal info from an oscrypto/asn1crypto Certificate object
+
+        For a closer look at where the attributes come from:
+        asn1crypto.x509.NameType
+        """
+        if isinstance(cert, bytes):
+            cert = load_certificate(cert)
+        cert: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
+        subject = cert.subject.native
+
+        # ID codes usually given as PNO{EE,LT,LV}-XXXXXX.
+        # LV ID codes contain a dash so we need to be careful about it.
+        id_code = subject["serial_number"]
+        if id_code.startswith("PNO"):
+            prefix, id_code = id_code.split("-", 1)
+
+        given_name = subject["given_name"]
+        surname = subject["surname"]
+        return cls(
+            certificate=Certificate.from_certificate(cert),
+            full_name=f"{given_name} {surname}",
+            id_code=id_code,
+        )
 
 
 @attr.s

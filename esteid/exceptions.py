@@ -183,3 +183,14 @@ class UserTimeout(EsteidError):
     status = HTTPStatus.CONFLICT
 
     default_message = _("The signing operation timed out.")
+
+
+class AlreadySignedByUser(InvalidParameters):
+    """The container has been already signed by the same party.
+
+    The class is based on InvalidParameters so that such errors are not logged.
+    """
+
+    status = HTTPStatus.CONFLICT
+
+    default_message = _("The container has been already signed by the user.")
