@@ -21,7 +21,7 @@ jobs:
     - python: 3.7
       env:
         - DJANGO=2.1
-      after_success: coveralls
+      after_success: pip install coveralls && coveralls
 
     - python: 3.8
       env:
