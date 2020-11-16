@@ -384,7 +384,7 @@ class SmartIDService(BaseSKService):
             elif end_result not in EndResults.ALL:
                 raise SmartIDError(f"Unexpected end result {end_result}")
 
-            raise UpstreamServiceError(end_result)
+            raise UpstreamServiceError(end_result, service=self.NAME)
 
         return data
 

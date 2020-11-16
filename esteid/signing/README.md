@@ -167,6 +167,17 @@ The native Django and DRF `ValidationError`s can be used when the error is relat
 for logging. Finally, `Http404` fits when the object to sign can not be found, and can be raised 
 from the `get_container()` or `get_files_to_sign` methods.
 
+### Handling of user cancellation of signing
+
+When an additional action is necessary on user cancel, override the `handle_user_cancel` method of the signing view:
+
+```python
+class YourSignView(SignViewDjangoMixin, View):
+    ...
+    def handle_user_cancel(self):
+        ...
+``` 
+
 ### Signing party's eligibility
 
 Technically it is possible for a signing party to sign a container multiple times. The XAdES standard doesn't seem to

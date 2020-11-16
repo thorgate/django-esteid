@@ -48,6 +48,8 @@ class ActionInProgress(EsteidError):
 
     status = HTTPStatus.ACCEPTED
 
+    default_message = _("Operation is in progress.")
+
     def __init__(self, message=None, data: dict = None):
         super().__init__(message)
         self.data = data or {}
@@ -66,6 +68,10 @@ class UpstreamServiceError(EsteidError):
 
     default_message = _("The {service} service reported a failure.")
 
+    def __init__(self, message=None, *, service, **kwargs):
+        super().__init__(message)
+        self.kwargs = {"service": service, **kwargs}
+
 
 class OfflineError(UpstreamServiceError):
     default_message = _("The {service} service is unavailable at the moment. Please try again later.")
@@ -77,6 +83,10 @@ class PermissionDenied(UpstreamServiceError):
     """
 
     default_message = _("Operation with user certificate level ADVANCED not allowed.")
+
+    def __init__(self, message=None, **kwargs):
+        kwargs.setdefault("service", "smartid")
+        super().__init__(message, **kwargs)
 
 
 class UnsupportedClientImplementation(UpstreamServiceError):
