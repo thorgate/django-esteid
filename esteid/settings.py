@@ -7,8 +7,10 @@ from esteid import constants
 from esteid.constants import Countries
 
 
-# Whether to use demo OCSP and TSA services.
+# Demo mode: whether to use demo services by default, including OCSP and TSA.
 ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
+
+# *** ID Card ***
 
 # Whether to use the ID card signing method
 ID_CARD_ENABLED = getattr(settings, "ID_CARD_ENABLED", False)
@@ -16,9 +18,8 @@ ID_CARD_ENABLED = getattr(settings, "ID_CARD_ENABLED", False)
 # *** Mobile ID ***
 
 MOBILE_ID_ENABLED = getattr(settings, "MOBILE_ID_ENABLED", False)
-# Whether to use demo services and credentials for Mobile ID
-# NOTE: Test mode ON by default. To prevent accidental billing
-MOBILE_ID_TEST_MODE = getattr(settings, "MOBILE_ID_TEST_MODE", True)
+# Whether to use demo services and credentials for Mobile ID. Default to global demo mode
+MOBILE_ID_TEST_MODE = getattr(settings, "MOBILE_ID_TEST_MODE", ESTEID_DEMO)
 # MobileID Relying party name and UUID, for DEMO they are always the same so no need to explicitly set them
 MOBILE_ID_SERVICE_NAME = getattr(
     settings, "MOBILE_ID_SERVICE_NAME", None if not MOBILE_ID_TEST_MODE else constants.MOBILE_ID_DEMO_SERVICE_NAME
@@ -35,9 +36,8 @@ MOBILE_ID_API_ROOT = getattr(
 # *** Smart ID ***
 
 SMART_ID_ENABLED = getattr(settings, "SMART_ID_ENABLED", False)
-# Whether to use demo services and credentials for Smart ID
-# NOTE: Test mode ON by default. To prevent accidental billing
-SMART_ID_TEST_MODE = getattr(settings, "SMART_ID_TEST_MODE", True)
+# Whether to use demo services and credentials for Smart ID. Default to global demo mode
+SMART_ID_TEST_MODE = getattr(settings, "SMART_ID_TEST_MODE", ESTEID_DEMO)
 # SmartID Relying party name and UUID, for DEMO they are always the same so no need to explicitly set them
 SMART_ID_SERVICE_NAME = getattr(
     settings, "SMART_ID_SERVICE_NAME", None if not SMART_ID_TEST_MODE else constants.SMART_ID_DEMO_SERVICE_NAME
@@ -52,6 +52,8 @@ SMART_ID_API_ROOT = getattr(
 # The default country (mostly for SmartID)
 ESTEID_COUNTRY = getattr(settings, "ESTEID_COUNTRY", Countries.ESTONIA)
 
+# *** Signature validity services: OCSP, TSA ***
+
 # Whether to generate an LT-TS profile ASiC-E container (involves a TimeStamping confirmation)
 ESTEID_USE_LT_TS = getattr(settings, "ESTEID_USE_LT_TS", True)
 
@@ -62,5 +64,7 @@ TSA_URL = getattr(settings, "ESTEID_TSA_URL", constants.TSA_DEMO_URL if ESTEID_D
 # Used exclusively by esteid.middleware.BaseIdCardMiddleware
 ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH = getattr(settings, "ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH", None)
 
-# Whether one signatory can sign the same container more than once
-ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE = getattr(settings, "ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE", True)
+# *** Misc settings ***
+
+# Whether one signatory can sign the same container more than once. Default to allow for demo, disallow for live
+ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE = getattr(settings, "ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE", ESTEID_DEMO)
