@@ -2,13 +2,15 @@ import base64
 
 import pyasice
 
+from esteid import settings
+
 from ..base_service import BaseSKService
-from ..constants import HASH_ALGORITHMS, HASH_SHA256
+from ..constants import HASH_ALGORITHMS, HASH_SHA256, Languages
 from ..exceptions import CanceledByUser
 from ..exceptions import EsteidError as MobileIDError
 from ..exceptions import InvalidIdCode, SignatureVerificationError, UpstreamServiceError, UserNotRegistered, UserTimeout
 from ..util import generate_hash, id_code_ee_is_valid, secure_random
-from .constants import EndResults, Languages
+from .constants import EndResults
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
 
@@ -102,7 +104,7 @@ class MobileIDService(BaseSKService):
         assert len(message) <= 20, f"Display text can not exceed 20 chars: got '{message}'"
 
         if language not in Languages.ALL:
-            language = Languages.ENG
+            language = settings.MOBILE_ID_DEFAULT_LANGUAGE
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)

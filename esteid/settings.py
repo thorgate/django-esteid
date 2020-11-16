@@ -4,7 +4,7 @@ This module contains all configuration settings for django-esteid.
 from django.conf import settings
 
 from esteid import constants
-from esteid.constants import Countries
+from esteid.constants import Countries, Languages
 
 
 # Demo mode: whether to use demo services by default, including OCSP and TSA.
@@ -32,6 +32,10 @@ MOBILE_ID_API_ROOT = getattr(
     "MOBILE_ID_API_ROOT",
     constants.MOBILE_ID_DEMO_URL if MOBILE_ID_TEST_MODE else constants.MOBILE_ID_LIVE_URL,
 )
+MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", Languages.ENG)
+
+# Raises an ImproperlyConfigured error if a wrong language code was attempted
+MOBILE_ID_DEFAULT_LANGUAGE = Languages.identify_language(MOBILE_ID_DEFAULT_LANGUAGE)
 
 # *** Smart ID ***
 
