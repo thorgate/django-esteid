@@ -70,8 +70,8 @@ class MobileIdSigner(Signer):
         self.phone_number = user_input.phone_number
         self.language = user_input.language
 
-    def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
-        container = self.open_container(container_file, files)
+    def prepare(self, container=None, files: List[DataFile] = None) -> dict:
+        container = self.open_container(container, files)
 
         service = TranslatedMobileIDService.get_instance()
 

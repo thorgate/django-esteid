@@ -55,8 +55,8 @@ class IdCardSigner(Signer):
 
         self.certificate = certificate
 
-    def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
-        container = self.open_container(container_file, files)
+    def prepare(self, container: pyasice.Container = None, files: List[DataFile] = None) -> dict:
+        container = self.open_container(container, files)
         xml_sig = container.prepare_signature(self.certificate)
 
         # Note: uses default digest algorithm (sha256)

@@ -2,7 +2,7 @@ import logging
 import os
 from tempfile import NamedTemporaryFile
 from time import time
-from typing import BinaryIO, Dict, List, Type, Union
+from typing import Dict, List, Type
 
 from esteid_certificates import get_certificate
 
@@ -61,7 +61,7 @@ class Signer:
 
     # Abstract Methods
 
-    def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
+    def prepare(self, container: Container = None, files: List[DataFile] = None) -> dict:
         """
         Abstract method. Prepares the container, either from an existing one or from files.
 
@@ -200,12 +200,12 @@ class Signer:
             pass
 
     @staticmethod
-    def open_container(container_file: Union[str, BinaryIO] = None, files: List[DataFile] = None) -> Container:
-        if container_file:
-            if isinstance(container_file, str):
-                container = Container.open(container_file)
-            else:
-                container = Container(container_file)
+    def open_container(container: Container = None, files: List[DataFile] = None) -> Container:
+        if container:
+            if not isinstance(container, Container):
+                raise ValueError(
+                    f"Expected container to be a pyasice.Container instance, got {container.__class__.__name__}"
+                )
         elif files:
             container = Container()
             for f in files:
