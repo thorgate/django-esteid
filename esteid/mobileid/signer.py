@@ -4,12 +4,13 @@ from typing import List, Optional
 
 from pyasice import Container, XmlSignature
 
+from esteid import settings
+from esteid.constants import Languages
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
 
 from ..util import id_code_ee_is_valid
-from .constants import Languages
 from .i18n import TranslatedMobileIDService
 
 
@@ -32,7 +33,7 @@ class UserInput(PredictableDict):
             if not id_code_ee_is_valid(self.id_code):
                 raise InvalidIdCode
             if not (self.get("language") and self.language in Languages.ALL):
-                self.language = Languages.ENG
+                self.language = settings.MOBILE_ID_DEFAULT_LANGUAGE
         return result
 
 

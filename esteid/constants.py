@@ -1,3 +1,6 @@
+from django.core.exceptions import ImproperlyConfigured
+
+
 MOBILE_ID_DEMO_URL = "https://tsp.demo.sk.ee/mid-api"
 MOBILE_ID_LIVE_URL = "https://mid.sk.ee/mid-api"
 
@@ -30,8 +33,38 @@ HASH_ALGORITHMS = {
 
 
 class Countries:
+    """Mainly used by SmartID, also phone code"""
+
     ESTONIA = "EE"
     LATVIA = "LV"
     LITHUANIA = "LT"
 
     ALL = (ESTONIA, LATVIA, LITHUANIA)
+
+
+class Languages:
+    """Used by MobileID"""
+
+    ENG = "ENG"
+    EST = "EST"
+    LIT = "LIT"
+    RUS = "RUS"
+
+    ALL = (ENG, EST, LIT, RUS)
+
+    # also allow ISO 639-1 (or alpha-2) codes
+    _MAP_ISO_639_1_TO_MID = {
+        "en": ENG,
+        "et": EST,
+        "lt": LIT,
+        "ru": RUS,
+    }
+
+    @classmethod
+    def identify_language(cls, language_code):
+        all_langs = {**cls._MAP_ISO_639_1_TO_MID, **{c.lower(): c for c in cls.ALL}}
+        try:
+            language_code_lower = language_code.lower()
+            return all_langs[language_code_lower]
+        except (AttributeError, KeyError) as e:
+            raise ImproperlyConfigured(f"Language should be one of {','.join(all_langs)}, got `{language_code}`") from e

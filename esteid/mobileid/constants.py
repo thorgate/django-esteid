@@ -20,12 +20,3 @@ class EndResults:
         DELIVERY_ERROR,
         SIM_ERROR,
     )
-
-
-class Languages:
-    ENG = "ENG"
-    EST = "EST"
-    LIT = "LIT"
-    RUS = "RUS"
-
-    ALL = (ENG, EST, LIT, RUS)
