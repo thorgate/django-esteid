@@ -1,15 +1,15 @@
 from typing import List
 
-from pyasice import XmlSignature
+import pyasice
 
 from esteid.exceptions import InvalidParameter
 from esteid.signing import Container, DataFile, Signer
 
 
 class MySigner(Signer):
-    def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
-        container = self.open_container(container_file, files)
-        xml_sig = XmlSignature.create()
+    def prepare(self, container: pyasice.Container = None, files: List[DataFile] = None) -> dict:
+        container = self.open_container(container, files)
+        xml_sig = pyasice.XmlSignature.create()
 
         self.save_session_data(digest=b"test", container=container, xml_sig=xml_sig)
 

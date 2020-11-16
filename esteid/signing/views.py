@@ -45,9 +45,9 @@ class SignViewMixin:
     # this comes from the `url()` definition as in `View.as_view(signing_method='...')`
     signing_method: str = None
 
-    def get_container(self, *args, **kwargs) -> Union[str, BinaryIO]:
+    def get_container(self, *args, **kwargs) -> Union[str, BinaryIO, pyasice.Container]:
         """
-        Returns (path to|file handle of) the container to sign, if it exists prior to signing
+        Returns [path to|file handle of] the container to sign, if it exists prior to signing
 
         A string value is treated as a file path.
         A file handle is anything that provides a `read()` method that returns bytes.
@@ -88,6 +88,11 @@ class SignViewMixin:
         return JsonResponse({"status": self.Status.SUCCESS})
 
     def check_eligibility(self, signer: Signer, container: pyasice.Container = None):
+        """
+        Performs a check whether a signing party is eligible to sign the container.
+
+        Override it in subclasses as necessary:
+        """
         if container is None or settings.ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE:
             return
 
@@ -120,6 +125,11 @@ class SignViewMixin:
             files_to_sign = self.get_files_to_sign(*args, **kwargs)
         else:
             files_to_sign = None
+            if not isinstance(container, pyasice.Container):
+                if isinstance(container, str):
+                    container = pyasice.Container.open(container)
+                else:
+                    container = pyasice.Container(container)
 
         self.check_eligibility(signer, container)
 

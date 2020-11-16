@@ -4,6 +4,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from pyasice import Container
+
 from esteid.exceptions import (
     ActionInProgress,
     AlreadySignedByUser,
@@ -39,8 +41,8 @@ def signer_class():
 def signing_view(signer_class):
     the_view = SignViewMixin()
     with patch.object(the_view, "select_signer_class", return_value=signer_class), patch.object(
-        the_view, "get_container"
-    ):
+        the_view, "get_container", return_value=Container()
+    ), patch.object(the_view, "check_eligibility"):
         yield the_view
 
 
@@ -146,6 +148,8 @@ def test_signing_views_esteid_error_handling_prepare(error: EsteidError, signing
     signer_class().prepare.side_effect = error
 
     result = signing_view.post(Mock())
+
+    signing_view.check_eligibility.assert_called_once_with(signer_class(), signing_view.get_container())
 
     assert result.status_code == error.status
     assert json.loads(result.content) == {

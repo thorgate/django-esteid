@@ -65,8 +65,8 @@ class SmartIdSigner(Signer):
         self.id_code = user_input.id_code
         self.country = user_input.country
 
-    def prepare(self, container_file=None, files: List[DataFile] = None) -> dict:
-        container = self.open_container(container_file, files)
+    def prepare(self, container: Container = None, files: List[DataFile] = None) -> dict:
+        container = self.open_container(container, files)
 
         service = TranslatedSmartIDService.get_instance()
 
