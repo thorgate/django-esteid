@@ -96,6 +96,9 @@ def camel_2_py(the_dict):
 
 
 def convert_time(timestamp):
+    if not timestamp:
+        return None
+
     if isinstance(timestamp, datetime):
         if timezone.is_naive(timestamp):
             timestamp = timezone.make_aware(timestamp, timezone.utc)
