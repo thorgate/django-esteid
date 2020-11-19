@@ -2,6 +2,7 @@
 This module contains all configuration settings for django-esteid.
 """
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from esteid import constants
 from esteid.constants import Countries, Languages
@@ -25,7 +26,13 @@ MOBILE_ID_SERVICE_NAME = getattr(settings, "MOBILE_ID_SERVICE_NAME", None)
 MOBILE_ID_SERVICE_UUID = getattr(settings, "MOBILE_ID_SERVICE_UUID", None)
 MOBILE_ID_API_ROOT = getattr(settings, "MOBILE_ID_API_ROOT", None)
 
-_MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", Languages.ENG)
+_MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", None)
+
+if _MOBILE_ID_DEFAULT_LANGUAGE is None:
+    try:
+        _MOBILE_ID_DEFAULT_LANGUAGE = Languages.identify_language(settings.LANGUAGE_CODE)
+    except (AttributeError, ImproperlyConfigured):
+        _MOBILE_ID_DEFAULT_LANGUAGE = Languages.ENG
 
 # Raises an ImproperlyConfigured error if a wrong language code was attempted
 MOBILE_ID_DEFAULT_LANGUAGE = Languages.identify_language(_MOBILE_ID_DEFAULT_LANGUAGE)
