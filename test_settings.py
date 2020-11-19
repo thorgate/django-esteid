@@ -45,6 +45,8 @@ if "TOX_TESTS" not in os.environ:
     ]
 
 USE_TZ = True
+USE_I18N = True
+USE_L10N = True
 TZ = "UTC"
 STATIC_URL = "/static/"
 

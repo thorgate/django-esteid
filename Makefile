@@ -1,6 +1,7 @@
 PROJECT := esteid
 VENV := ./.venv
 export PATH := $(VENV)/bin:$(PATH)
+LOCALES := en et lt ru
 
 .PHONY:
 help:  ## Show this help.
@@ -60,3 +61,15 @@ coverage:  ## Run coverage
 fmt:  ## Format python code
 	black .
 	isort --project=$(PROJECT) .
+
+.PHONY:
+i18n-collect:  ## Collect translatable strings
+	@cd esteid && \
+	for locale in $(LOCALES); do \
+		mkdir -p locale/$$locale/LC_MESSAGES \
+		&& ../manage.py makemessages -l $$locale -e py; \
+	done
+
+.PHONY:
+i18n-compile:  ## Compile translatable strings
+	cd esteid && ../manage.py compilemessages
