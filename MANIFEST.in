@@ -3,4 +3,4 @@ include LICENSE
 include README.md
 include requirements-base.txt
 include requirements.txt
-recursive-include esteid *.html *.xml *.png *.gif *js *.css *jpg *jpeg *svg *py *pem
+recursive-include esteid *.html *.xml *.png *.gif *.js *.css *.jpg *.jpeg *.svg *.py *.pem *.po *.mo
