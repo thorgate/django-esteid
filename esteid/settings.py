@@ -21,21 +21,26 @@ MOBILE_ID_ENABLED = getattr(settings, "MOBILE_ID_ENABLED", False)
 # Whether to use demo services and credentials for Mobile ID. Default to global demo mode
 MOBILE_ID_TEST_MODE = getattr(settings, "MOBILE_ID_TEST_MODE", ESTEID_DEMO)
 # MobileID Relying party name and UUID, for DEMO they are always the same so no need to explicitly set them
-MOBILE_ID_SERVICE_NAME = getattr(
-    settings, "MOBILE_ID_SERVICE_NAME", None if not MOBILE_ID_TEST_MODE else constants.MOBILE_ID_DEMO_SERVICE_NAME
-)
-MOBILE_ID_SERVICE_UUID = getattr(
-    settings, "MOBILE_ID_SERVICE_UUID", None if not MOBILE_ID_TEST_MODE else constants.MOBILE_ID_DEMO_SERVICE_UUID
-)
-MOBILE_ID_API_ROOT = getattr(
-    settings,
-    "MOBILE_ID_API_ROOT",
-    constants.MOBILE_ID_DEMO_URL if MOBILE_ID_TEST_MODE else constants.MOBILE_ID_LIVE_URL,
-)
-MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", Languages.ENG)
+MOBILE_ID_SERVICE_NAME = getattr(settings, "MOBILE_ID_SERVICE_NAME", None)
+MOBILE_ID_SERVICE_UUID = getattr(settings, "MOBILE_ID_SERVICE_UUID", None)
+MOBILE_ID_API_ROOT = getattr(settings, "MOBILE_ID_API_ROOT", None)
+
+_MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", Languages.ENG)
 
 # Raises an ImproperlyConfigured error if a wrong language code was attempted
-MOBILE_ID_DEFAULT_LANGUAGE = Languages.identify_language(MOBILE_ID_DEFAULT_LANGUAGE)
+MOBILE_ID_DEFAULT_LANGUAGE = Languages.identify_language(_MOBILE_ID_DEFAULT_LANGUAGE)
+
+if MOBILE_ID_TEST_MODE:
+    if not MOBILE_ID_SERVICE_NAME:
+        MOBILE_ID_SERVICE_NAME = constants.MOBILE_ID_DEMO_SERVICE_NAME
+    if not MOBILE_ID_SERVICE_UUID:
+        MOBILE_ID_SERVICE_UUID = constants.MOBILE_ID_DEMO_SERVICE_UUID
+    if not MOBILE_ID_API_ROOT:
+        MOBILE_ID_API_ROOT = constants.MOBILE_ID_DEMO_URL
+else:
+    if not MOBILE_ID_API_ROOT:
+        MOBILE_ID_API_ROOT = constants.MOBILE_ID_LIVE_URL
+
 
 # *** Smart ID ***
 
@@ -43,15 +48,22 @@ SMART_ID_ENABLED = getattr(settings, "SMART_ID_ENABLED", False)
 # Whether to use demo services and credentials for Smart ID. Default to global demo mode
 SMART_ID_TEST_MODE = getattr(settings, "SMART_ID_TEST_MODE", ESTEID_DEMO)
 # SmartID Relying party name and UUID, for DEMO they are always the same so no need to explicitly set them
-SMART_ID_SERVICE_NAME = getattr(
-    settings, "SMART_ID_SERVICE_NAME", None if not SMART_ID_TEST_MODE else constants.SMART_ID_DEMO_SERVICE_NAME
-)
-SMART_ID_SERVICE_UUID = getattr(
-    settings, "SMART_ID_SERVICE_UUID", None if not SMART_ID_TEST_MODE else constants.SMART_ID_DEMO_SERVICE_UUID
-)
-SMART_ID_API_ROOT = getattr(
-    settings, "SMART_ID_API_ROOT", constants.SMART_ID_DEMO_URL if SMART_ID_TEST_MODE else constants.SMART_ID_LIVE_URL
-)
+SMART_ID_SERVICE_NAME = getattr(settings, "SMART_ID_SERVICE_NAME", None)
+SMART_ID_SERVICE_UUID = getattr(settings, "SMART_ID_SERVICE_UUID", None)
+
+SMART_ID_API_ROOT = getattr(settings, "SMART_ID_API_ROOT", None)
+
+if SMART_ID_TEST_MODE:
+    if not SMART_ID_SERVICE_NAME:
+        SMART_ID_SERVICE_NAME = constants.SMART_ID_DEMO_SERVICE_NAME
+    if not SMART_ID_SERVICE_UUID:
+        SMART_ID_SERVICE_UUID = constants.SMART_ID_DEMO_SERVICE_UUID
+    if not SMART_ID_API_ROOT:
+        SMART_ID_API_ROOT = constants.SMART_ID_DEMO_URL
+else:
+    if not SMART_ID_API_ROOT:
+        SMART_ID_API_ROOT = constants.SMART_ID_LIVE_URL
+
 
 # The default country (mostly for SmartID)
 ESTEID_COUNTRY = getattr(settings, "ESTEID_COUNTRY", Countries.ESTONIA)
