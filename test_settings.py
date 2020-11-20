@@ -29,6 +29,7 @@ ROOT_URLCONF = "esteid.urls"
 # Django pre-1.10 setting was MIDDLEWARE_CLASSES
 MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
 ]
 
 INSTALLED_APPS = [
