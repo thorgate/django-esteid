@@ -5,6 +5,8 @@ from typing import Union
 
 from django.core.files import File
 
+from esteid.types import PredictableDict
+
 
 class DataFile:
     """
@@ -49,65 +51,6 @@ class DataFile:
                     f.open("rb")
                     self.content = f.read()
         return self.content
-
-
-class PredictableDict(dict):
-    """
-    Allows attribute-style access to values of a dict.
-
-    Define necessary attributes as type annotations on your subclass:
-
-        class Z(PredictableDict):
-            required_attr: str
-            optional_attr: Optional[str]
-
-    and you will get nice attribute-style access with type hints.
-
-    Validate the presence of all required attributes and type-check all attributes with:
-
-        Z(required_attr="test").is_valid()
-
-    Subclasses inherit annotated attributes and can override them, just like normal class attributes.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
-
-    def is_valid(self, raise_exception=True):
-        for attr_name, attr_type in self._get_annotations().items():
-            # type -> (type, )
-            # Union[T, S] -> U.__args__ == (T, S)
-            valid_types = getattr(attr_type, "__args__", (attr_type,))
-
-            try:
-                val = self[attr_name]
-            except KeyError as e:
-                # No error for optional fields.
-                if type(None) in valid_types:
-                    # Optional[T] == Union[T, NoneType]
-                    continue
-
-                if not raise_exception:
-                    return False
-                raise ValueError(f"Missing required key {attr_name}") from e
-
-            if type(val) not in valid_types:
-                if not raise_exception:
-                    return False
-                raise ValueError(f"Wrong type {type(val)} for key {attr_name}")
-
-        return True
-
-    @classmethod
-    def _get_annotations(cls):
-        """Collects annotations from all parent classes according to inheritance rules."""
-        annotations = {}
-        for klass in reversed(cls.__mro__):
-            overrides = getattr(klass, "__annotations__", None)
-            if overrides:
-                annotations.update(overrides)
-        return annotations
 
 
 class InterimSessionData(PredictableDict):
