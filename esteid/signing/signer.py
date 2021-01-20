@@ -54,7 +54,7 @@ class Signer:
     _SESSION_KEY = f"{__name__}.session"
 
     # timeout in seconds, after which a fresh session can be started even if old session data is present.
-    SESSION_VALIDITY_TIMEOUT = 1  # 60 * 2
+    SESSION_VALIDITY_TIMEOUT = 60 * 2
 
     # the signing party's ID code, public attribute/property for use in checks etc.
     id_code: str
