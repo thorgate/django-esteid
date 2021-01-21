@@ -68,10 +68,10 @@ as well as a MobileID/ID-Card generated one, works without restrictions.
 
 
 Initialize the signing session: 
-https://github.com/SK-EID/smart-id-documentation#45-signing-session
+https://github.com/SK-EID/smart-id-documentation#2310-signing-session
 
 Poll session status:
-https://github.com/SK-EID/smart-id-documentation#46-session-status
+https://github.com/SK-EID/smart-id-documentation#2311-session-status
 
 Successful result structure:
 

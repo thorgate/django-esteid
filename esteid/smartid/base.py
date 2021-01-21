@@ -11,39 +11,20 @@ from ..constants import HASH_ALGORITHMS, HASH_SHA256
 from ..exceptions import ActionInProgress, CanceledByUser
 from ..exceptions import EsteidError as SmartIDError
 from ..exceptions import (
-    InvalidIdCode,
-    InvalidParameter,
     PermissionDenied,
     SignatureVerificationError,
     UpstreamServiceError,
     UserNotRegistered,
     UserTimeout,
 )
-from ..util import generate_hash, id_code_ee_is_valid, id_code_lt_is_valid, id_code_lv_is_valid, secure_random
-from .constants import CERTIFICATE_LEVEL_QUALIFIED, CERTIFICATE_LEVELS, Countries, EndResults
+from ..util import generate_hash, secure_random
+from ..validators import validate_id_code
+from .constants import CERTIFICATE_LEVEL_QUALIFIED, CERTIFICATE_LEVELS, EndResults
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
 
 
-ID_CODE_VALIDATORS = {
-    Countries.ESTONIA: id_code_ee_is_valid,
-    Countries.LATVIA: id_code_lv_is_valid,
-    Countries.LITHUANIA: id_code_lt_is_valid,
-}
-
 logger = logging.getLogger(__name__)
-
-
-def validate_id_code(id_code, country):
-    try:
-        validator = ID_CODE_VALIDATORS[country]
-    except (KeyError, TypeError):
-        raise InvalidParameter(f"Unsupported country '{country}'", param="country")
-
-    if not validator(id_code):
-        # Find country name from Countries attributes
-        cty = next(name for name, value in iter(Countries.__dict__.items()) if value == country)
-        raise InvalidIdCode(f"ID code '{id_code}' is not valid for {cty.capitalize()}")
 
 
 class SmartIDService(BaseSKService):
@@ -64,10 +45,9 @@ class SmartIDService(BaseSKService):
     NAME = "Smart ID"
 
     class Actions:
-        AUTH = "/authentication/pno/{country}/{id_code}"
-        SIGN = "/signature/pno/{country}/{id_code}"
+        AUTH = "/authentication/etsi/PNO{country}-{id_code}"
         SIGN_BY_DOCUMENT = "/signature/document/{document}"
-        SELECT_CERTIFICATE = "/certificatechoice/pno/{country}/{id_code}"
+        SELECT_CERTIFICATE = "/certificatechoice/etsi/PNO{country}-{id_code}"
         SELECT_CERTIFICATE_BY_DOCUMENT = "/certificatechoice/document/{document_number}"
         SESSION_STATUS = "/session/{session_id}"
 
@@ -92,13 +72,14 @@ class SmartIDService(BaseSKService):
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)
+        hash_value_b64 = base64.b64encode(hash_value).decode()
 
-        endpoint = self.Actions.AUTH.format(country=country, id_code=id_code)
+        endpoint = self.Actions.AUTH.format(country=country.upper(), id_code=id_code)
 
         data = {
             "certificateLevel": certificate_level,
             "hashType": hash_type,
-            "hash": base64.b64encode(hash_value).decode(),
+            "hash": hash_value_b64,
             # Casting to str to ensure translations are resolved
             "displayText": str(message or self.DISPLAY_TEXT_AUTH),
             # Don't use nonce to so we can rely on idempotent behaviour
@@ -131,6 +112,7 @@ class SmartIDService(BaseSKService):
             session_id=result["sessionID"],
             hash_type=hash_type,
             hash_value=hash_value,
+            hash_value_b64=hash_value_b64,
             verification_code=get_verification_code(hash_value),
         )
 
@@ -160,7 +142,8 @@ class SmartIDService(BaseSKService):
 
         # cert: Only available if result.endResult is OK
         # cert.value (str): Certificate value, DER+Base64 encoded
-        cert_value = base64.b64decode(data["cert"]["value"])
+        cert_b64 = data["cert"]["value"]
+        cert_value = base64.b64decode(cert_b64)
 
         # cert.certificateLevel (str): Level of Smart-ID certificate:
         #                              ADVANCED - Used for Smart-ID basic.
@@ -176,40 +159,9 @@ class SmartIDService(BaseSKService):
         return AuthenticateStatusResult(
             document_number=document_number,
             certificate=cert_value,
+            certificate_b64=cert_b64,
             certificate_level=certificate_level,
         )
-
-    def sign(
-        self,
-        id_code,
-        country,
-        signed_data,
-        certificate_level=CERTIFICATE_LEVEL_QUALIFIED,
-        message=None,
-        hash_type=HASH_SHA256,
-    ):
-        """Initiate a signature session.
-
-        Should not be used in favor of `sign_by_document_number()`.
-
-        see https://github.com/SK-EID/smart-id-documentation#45-signing-session
-
-        :param str id_code: National identity number
-        :param str country: Country as an uppercase ISO 3166-1 alpha-2 code (choices: Countries.ALL)
-        :param bytes signed_data: Binary data to sign
-        :param str certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
-        :param str message: Text to display for authentication consent dialog on the mobile device
-        :param str hash_type: Hash algorithm used to sign data
-        :return SignResult: Result of the request
-        """
-        validate_id_code(id_code, country)
-
-        endpoint = self.Actions.SIGN.format(country=country, id_code=id_code)
-        try:
-            return self._sign(endpoint, signed_data, certificate_level, message, hash_type)
-        except UpstreamServiceError as e:
-            self._handle_specific_errors(e)
-            raise
 
     def sign_by_document_number(
         self,
@@ -224,7 +176,7 @@ class SmartIDService(BaseSKService):
         This method is preferred over signing by id_code/country, and requires a prior authentication to get the
           document number, and also selecting a signing certificate.
 
-        see https://github.com/SK-EID/smart-id-documentation#45-signing-session
+        see https://github.com/SK-EID/smart-id-documentation#2310-signing-session
 
         :param document_number: Document number, obtained from auth session
         :param signed_data: Binary data to sign
@@ -233,19 +185,8 @@ class SmartIDService(BaseSKService):
         :param str hash_type: Hash algorithm used to sign data
         :return SignResult: Result of the request
         """
-        assert document_number
-
-        endpoint = self.Actions.SIGN_BY_DOCUMENT.format(document=document_number)
-        return self._sign(endpoint, signed_data, certificate_level, message, hash_type)
-
-    def _sign(self, endpoint, signed_data, certificate_level, message, hash_type) -> SignResult:
-        """Initiate a signing session
-
-        see https://github.com/SK-EID/smart-id-documentation#45-signing-session
-
-        :return SignResult: Result of the request
-        """
         # Ensure required values are set
+        assert document_number
         assert signed_data
         assert certificate_level in CERTIFICATE_LEVELS
         assert hash_type
@@ -254,6 +195,8 @@ class SmartIDService(BaseSKService):
 
         content_hash = generate_hash(hash_type, signed_data)
         hash_value_b64 = base64.b64encode(content_hash)
+
+        endpoint = self.Actions.SIGN_BY_DOCUMENT.format(document=document_number)
 
         try:
             result = self.invoke(
@@ -306,9 +249,7 @@ class SmartIDService(BaseSKService):
             certificate_level=data["cert"]["certificateLevel"],
         )
 
-    def select_signing_certificate(
-        self, id_code=None, country=None, document_number=None, certificate_level=CERTIFICATE_LEVEL_QUALIFIED
-    ) -> tuple:
+    def select_signing_certificate(self, id_code, country, certificate_level=CERTIFICATE_LEVEL_QUALIFIED) -> tuple:
         """Obtain a certificate that will be used for signing.
 
         This method is REQUIRED prior to signing with `sign()`. Otherwise it's possible that `authenticate()` would
@@ -316,15 +257,11 @@ class SmartIDService(BaseSKService):
 
         :param id_code:
         :param country:
-        :param document_number:
         :param certificate_level:
         :return: tuple[bytes, str] - ASN.1 (DER) certificate and document number
         """
-        if document_number:
-            endpoint = self.Actions.SELECT_CERTIFICATE_BY_DOCUMENT.format(document_number=document_number)
-        else:
-            validate_id_code(id_code, country)
-            endpoint = self.Actions.SELECT_CERTIFICATE.format(country=country, id_code=id_code)
+        validate_id_code(id_code, country)
+        endpoint = self.Actions.SELECT_CERTIFICATE.format(country=country.upper(), id_code=id_code)
 
         result = self.invoke(
             endpoint,
@@ -377,11 +314,11 @@ class SmartIDService(BaseSKService):
         if end_result != EndResults.OK:
             if end_result == EndResults.TIMEOUT:
                 raise UserTimeout
-            elif end_result == EndResults.USER_REFUSED:
+            if end_result == EndResults.USER_REFUSED:
                 raise CanceledByUser
 
             # Fail hard, if endResult is something unknown to us
-            elif end_result not in EndResults.ALL:
+            if end_result not in EndResults.ALL:
                 raise SmartIDError(f"Unexpected end result {end_result}")
 
             raise UpstreamServiceError(end_result, service=self.NAME)
@@ -406,7 +343,7 @@ class SmartIDService(BaseSKService):
             #
             # HTTP error code 404 - object described in URL was not found,
             # essentially meaning that the user does not have account in Smart-ID system.
-            elif response.status_code == 404:
+            if response.status_code == 404:
                 raise UserNotRegistered from exc
 
             # Log the HTTP response

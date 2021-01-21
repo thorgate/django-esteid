@@ -112,23 +112,11 @@ class Signer(FromDictMixin):
         For a closer look at where the attributes come from:
         asn1crypto.x509.NameType
         """
-        if isinstance(cert, bytes):
-            cert = load_certificate(cert)
-        cert: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
-        subject = cert.subject.native
-
-        # ID codes usually given as PNO{EE,LT,LV}-XXXXXX.
-        # LV ID codes contain a dash so we need to be careful about it.
-        id_code = subject["serial_number"]
-        if id_code.startswith("PNO"):
-            prefix, id_code = id_code.split("-", 1)
-
-        given_name = subject["given_name"]
-        surname = subject["surname"]
+        cert_holder_info = CertificateHolderInfo.from_certificate(cert)
         return cls(
-            certificate=Certificate.from_certificate(cert),
-            full_name=f"{given_name} {surname}",
-            id_code=id_code,
+            certificate=Certificate.from_certificate(cert_holder_info.asn1_certificate),
+            full_name=f"{cert_holder_info.given_name} {cert_holder_info.surname}",
+            id_code=cert_holder_info.id_code,
         )
 
 
@@ -301,3 +289,38 @@ class PredictableDict(dict):
             if overrides:
                 annotations.update(overrides)
         return annotations
+
+
+class CertificateHolderInfo(PredictableDict):
+    given_name: str
+    surname: str
+    id_code: str
+    asn1_certificate: "Asn1CryptoCertificate"
+
+    @classmethod
+    def from_certificate(cls, cert: "Union[bytes, Asn1CryptoCertificate, OsCryptoCertificate]"):
+        """
+        Get personal info from an oscrypto/asn1crypto Certificate object
+
+        For a closer look at where the attributes come from:
+        asn1crypto.x509.NameType
+        """
+        if isinstance(cert, bytes):
+            cert = load_certificate(cert)
+        cert: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
+        subject = cert.subject.native
+
+        # ID codes usually given as PNO{EE,LT,LV}-XXXXXX.
+        # LV ID codes contain a dash so we need to be careful about it.
+        id_code = subject["serial_number"]
+        if id_code.startswith("PNO"):
+            prefix, id_code = id_code.split("-", 1) # pylint: disable=unused-variable
+
+        given_name = subject["given_name"]
+        surname = subject["surname"]
+        return cls(
+            id_code=id_code,
+            given_name=given_name,
+            surname=surname,
+            asn1_certificate=cert,
+        )

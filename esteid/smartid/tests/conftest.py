@@ -38,9 +38,11 @@ def SMARTID_DEMO_ID_CODE_LV():
 
 @pytest.fixture
 def static_auth_result(static_random_text):
+    hash_value = generate_hash(HASH_SHA512, static_random_text)
     return AuthenticateResult(
         session_id="FAKE",
-        hash_value=generate_hash(HASH_SHA512, static_random_text),
+        hash_value=hash_value,
+        hash_value_b64=base64.b64encode(hash_value).decode(),
         hash_type=HASH_SHA512,
         verification_code=get_verification_code(static_random_text),
     )

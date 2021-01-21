@@ -9,8 +9,8 @@ from esteid.constants import Languages
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from esteid.signing import DataFile, Signer
 from esteid.signing.types import InterimSessionData, PredictableDict
+from esteid.validators import id_code_ee_is_valid
 
-from ..util import id_code_ee_is_valid
 from .i18n import TranslatedMobileIDService
 
 

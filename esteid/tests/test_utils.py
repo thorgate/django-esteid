@@ -3,7 +3,8 @@ import hashlib
 import pytest
 
 from esteid.constants import HASH_ALGORITHMS
-from esteid.util import generate_hash, id_code_ee_is_valid, id_code_lt_is_valid, id_code_lv_is_valid
+from esteid.util import generate_hash
+from esteid.validators import id_code_ee_is_valid, id_code_lt_is_valid, id_code_lv_is_valid
 
 
 @pytest.mark.parametrize("hash_algo", HASH_ALGORITHMS)

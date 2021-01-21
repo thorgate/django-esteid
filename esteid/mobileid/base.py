@@ -9,7 +9,8 @@ from ..constants import HASH_ALGORITHMS, HASH_SHA256, Languages
 from ..exceptions import CanceledByUser
 from ..exceptions import EsteidError as MobileIDError
 from ..exceptions import InvalidIdCode, SignatureVerificationError, UpstreamServiceError, UserNotRegistered, UserTimeout
-from ..util import generate_hash, id_code_ee_is_valid, secure_random
+from ..util import generate_hash, secure_random
+from ..validators import id_code_ee_is_valid
 from .constants import EndResults
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
@@ -290,9 +291,9 @@ class MobileIDService(BaseSKService):
         if end_result != EndResults.OK:
             if end_result == EndResults.TIMEOUT:
                 raise UserTimeout
-            elif end_result == EndResults.USER_CANCELLED:
+            if end_result == EndResults.USER_CANCELLED:
                 raise CanceledByUser
-            elif end_result == EndResults.NOT_MID_CLIENT:
+            if end_result == EndResults.NOT_MID_CLIENT:
                 raise UserNotRegistered
             # Fail hard, if endResult is something unknown to us
             if end_result not in EndResults.ALL:

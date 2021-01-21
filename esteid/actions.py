@@ -15,7 +15,7 @@ from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.smartid.i18n import TranslatedSmartIDService
 
 from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
-from .util import id_code_ee_is_valid
+from .validators import id_code_ee_is_valid
 
 
 if typing.TYPE_CHECKING:

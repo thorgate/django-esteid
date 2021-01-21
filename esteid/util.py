@@ -9,11 +9,6 @@ from django.utils import timezone
 from esteid.constants import HASH_ALGORITHMS
 
 
-ID_CODE_EE_REGEXP = re.compile(r"^[1-6] \d{2} [01]\d [0123]\d \d{4}$", re.VERBOSE)
-ID_CODE_LT_REGEXP = ID_CODE_EE_REGEXP
-ID_CODE_LV_REGEXP = re.compile(r"^\d{6}-\d{5}$")
-
-
 def secure_random(n):
     return os.urandom(n)
 
@@ -31,45 +26,6 @@ def generate_hash(algorithm, data):
     digest = hash_method(data).digest()
 
     return digest
-
-
-def id_code_ee_is_valid(id_code: str) -> bool:
-    """
-    Validates Estonian ID code, including checksum.
-
-    https://et.wikipedia.org/wiki/Isikukood
-    """
-    if isinstance(id_code, str) and bool(re.match(ID_CODE_EE_REGEXP, id_code)):
-        step1_factors = "1234567891"
-        checksum = sum([int(i) * int(d) for i, d in zip(step1_factors, id_code[:10])]) % 11
-        if checksum == 10:
-            step2_factors = "3456789123"
-            checksum = sum([int(i) * int(d) for i, d in zip(step2_factors, id_code[:10])]) % 11
-            if checksum == 10:
-                checksum = 0
-        if int(id_code[-1]) == checksum:
-            return True
-    return False
-
-
-def id_code_lv_is_valid(id_code: str) -> bool:
-    """
-    Validates Latvian ID code
-
-    Given the input in the following format ABCDEF-XGHIZ,
-    Z must equal to (1101-(1*A+6*B+3*C+7*D+9*E+10*F+5*X+8*G+4*H+2*I)) | Mod 11 | Mod 10.
-    """
-    if isinstance(id_code, str) and bool(re.match(ID_CODE_LV_REGEXP, id_code)):
-        id_code = id_code.replace("-", "")
-        factors = [1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
-        checksum = (1101 - sum([i * int(d) for i, d in zip(factors, id_code[:10])])) % 11 % 10
-        if int(id_code[-1]) == checksum:
-            return True
-    return False
-
-
-# Lithuanian ID code format is the same as Estonian.
-id_code_lt_is_valid = id_code_ee_is_valid
 
 
 def convert_status(status):

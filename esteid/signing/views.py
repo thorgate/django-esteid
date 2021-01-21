@@ -1,10 +1,9 @@
-import json
 import logging
 from http import HTTPStatus
 from typing import BinaryIO, Type, TYPE_CHECKING, Union
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.http import Http404, HttpRequest, JsonResponse, QueryDict
+from django.http import Http404, HttpRequest, JsonResponse
 from django.utils.translation import gettext
 
 import pyasice
@@ -13,6 +12,7 @@ from esteid import settings
 from esteid.exceptions import ActionInProgress, AlreadySignedByUser, CanceledByUser, EsteidError, InvalidParameters
 from esteid.types import Signer as SignerData
 
+from esteid.mixins import DjangoRestCompatibilityMixin
 from .signer import Signer
 
 
@@ -216,7 +216,7 @@ class SignViewRestMixin(SignViewMixin):
     """
 
 
-class SignViewDjangoMixin(SignViewMixin):
+class SignViewDjangoMixin(DjangoRestCompatibilityMixin, SignViewMixin):
     """
     To be used with plain Django class-based views (No rest-framework).
 
@@ -236,29 +236,3 @@ class SignViewDjangoMixin(SignViewMixin):
         """
         request.data = self.parse_request(request)
         return super().finish_session(request, *args, **kwargs)
-
-    @staticmethod
-    def parse_request(request):
-        """
-        Parses PATCH/POST request bodies as JSON or urlencoded, and assigns `request.data`.
-
-        Rationale:
-        * Compatibility with REST Framework.
-        * Allow JSON.
-        * Django's request.POST only works for POST, not PATCH etc.
-        """
-        try:
-            if request.content_type == "application/x-www-form-urlencoded":
-                return QueryDict(request.body).dict()
-            if request.content_type == "application/json":
-                data = json.loads(request.body)
-                if isinstance(data, dict):
-                    return data
-                raise InvalidParameters("Failed to parse request data as dict")
-        except InvalidParameters:
-            raise
-        except Exception as e:
-            raise InvalidParameters(
-                f"Failed to parse the request body according to content type {request.content_type}"
-            ) from e
-        raise InvalidParameters(f"Unsupported request content type {request.content_type}")
