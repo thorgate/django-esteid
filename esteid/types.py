@@ -314,7 +314,7 @@ class CertificateHolderInfo(PredictableDict):
         # LV ID codes contain a dash so we need to be careful about it.
         id_code = subject["serial_number"]
         if id_code.startswith("PNO"):
-            prefix, id_code = id_code.split("-", 1) # pylint: disable=unused-variable
+            prefix, id_code = id_code.split("-", 1)  # pylint: disable=unused-variable
 
         given_name = subject["given_name"]
         surname = subject["surname"]
