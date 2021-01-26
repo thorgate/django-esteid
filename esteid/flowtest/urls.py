@@ -1,6 +1,7 @@
 from django.conf.urls import url
 
 from esteid.authentication import Authenticator
+from esteid.mobileid import MobileIdAuthenticator  # noqa
 from esteid.signing import Signer
 from esteid.smartid import SmartIdAuthenticator  # noqa
 

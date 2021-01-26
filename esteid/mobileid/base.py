@@ -109,7 +109,7 @@ class MobileIDService(BaseSKService):
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)
-        hash_value_b64 = base64.b64encode(hash_value)
+        hash_value_b64 = base64.b64encode(hash_value).decode("utf-8")
 
         endpoint = self.Actions.AUTH
 
@@ -120,7 +120,7 @@ class MobileIDService(BaseSKService):
                 "nationalIdentityNumber": id_code,
                 "phoneNumber": phone_number,
                 "hashType": hash_type,
-                "hash": hash_value_b64.decode("utf-8"),
+                "hash": hash_value_b64,
                 "language": language,
                 # Casting to str to ensure translations are resolved
                 "displayText": message,  # NOTE: hard 20-char limit
@@ -132,6 +132,7 @@ class MobileIDService(BaseSKService):
         return AuthenticateResult(
             session_id=result["sessionID"],
             digest=hash_value,
+            hash_value_b64=hash_value_b64,
             hash_type=hash_type,
             verification_code=get_verification_code(hash_value),
         )
@@ -158,7 +159,8 @@ class MobileIDService(BaseSKService):
         assert signature_algorithm[:6].upper() in HASH_ALGORITHMS
 
         # cert: Certificate value, DER+Base64 encoded
-        cert_value = base64.b64decode(data["cert"])
+        cert_value_b64 = data["cert"]
+        cert_value = base64.b64decode(cert_value_b64)
 
         try:
             pyasice.verify(cert_value, signature_value, digest, signature_algorithm[:6], prehashed=True)
@@ -169,6 +171,7 @@ class MobileIDService(BaseSKService):
             certificate=cert_value,
             signature=signature_value,
             signature_algorithm=signature_algorithm,
+            certificate_b64=cert_value_b64,
         )
 
     def sign(

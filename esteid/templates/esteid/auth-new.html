@@ -131,7 +131,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Sign</button>
+                    <button type="submit" class="btn btn-primary">Authenticate</button>
                     <div class="lds-dual-ring"></div>
                 </div>
             </div>
@@ -165,7 +165,7 @@
 
             <div class="modal-body">
                 <p>
-                    Please follow the instructions to complete the signing process.
+                    Please follow the instructions to complete the authentication process.
                 </p>
             </div>
         </div>
@@ -201,7 +201,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Sign</button>
+                    <button type="submit" class="btn btn-primary">Authenticate</button>
                     <div class="lds-dual-ring"></div>
                 </div>
             </div>
@@ -263,6 +263,7 @@
 
     function onError(res) {
         $('#verification-code-modal').modal("hide")
+        $('#challenge-modal').modal('hide')
 
         console.log("Error:", res)
         if (res && res.message) {
@@ -279,7 +280,7 @@
 
             idUrl: '{% url 'auth-smartid' %}',
 
-            mobileIdUrl: '{% url 'auth-smartid' %}',
+            mobileIdUrl: '{% url 'auth-mobileid' %}',
 
             smartIdUrl: '{% url 'auth-smartid' %}',
 
@@ -342,22 +343,14 @@
                     $('#mid-modal').modal('hide')
 
                     manager.midStatus().then(
-                        function () {
+                        function (data) {
                             $('#challenge-modal').modal('hide')
-                            onAuthComplete()
+                            onAuthComplete(data)
                         },
-
-                        function (res) {
-                            if (res.message) {
-                                alert(res.message)
-                            } else {
-                                alert('Something went wrong, please try again')
-                            }
-
-                            $('#challenge-modal').modal('hide')
-                        }
+                        onError
+                    ).finally(
+                        () => stopSpinner(mobileIdForm)
                     )
-
                 }, onError)
                 .finally(
                     () => stopSpinner(mobileIdForm)

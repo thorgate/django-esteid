@@ -1,44 +1,16 @@
 import logging
-import re
-from typing import List, Optional
+from typing import List
 
 from pyasice import Container, XmlSignature
 
-from esteid import settings
-from esteid.constants import Languages
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from esteid.signing import DataFile, Signer
-from esteid.signing.types import InterimSessionData, PredictableDict
-from esteid.validators import id_code_ee_is_valid
 
 from .i18n import TranslatedMobileIDService
+from .types import MobileIdSessionData, UserInput
 
 
 logger = logging.getLogger(__name__)
-
-
-PHONE_NUMBER_REGEXP = re.compile(r"^\+37[02]\d{7,8}$")  # Mobile ID supports Estonian and Lithuanian phones
-
-
-class UserInput(PredictableDict):
-    phone_number: str
-    id_code: str
-    language: Optional[str]
-
-    def is_valid(self, raise_exception=True):
-        result = super().is_valid(raise_exception=raise_exception)
-        if result:
-            if not (self.phone_number and re.match(PHONE_NUMBER_REGEXP, self.phone_number)):
-                raise InvalidParameter(param="phone_number")
-            if not id_code_ee_is_valid(self.id_code):
-                raise InvalidIdCode
-            if not (self.get("language") and self.language in Languages.ALL):
-                self.language = settings.MOBILE_ID_DEFAULT_LANGUAGE
-        return result
-
-
-class MobileIdSessionData(InterimSessionData):
-    session_id: str
 
 
 class MobileIdSigner(Signer):

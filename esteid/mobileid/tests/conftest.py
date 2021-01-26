@@ -39,6 +39,7 @@ def mid_auth_result(static_random_text):
         session_id="FAKE",
         digest=digest,
         hash_type=HASH_SHA512,
+        hash_value_b64=base64.b64encode(digest).decode(),
         verification_code=get_verification_code(digest),
     )
 
