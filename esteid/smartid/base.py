@@ -286,7 +286,8 @@ class SmartIDService(BaseSKService):
                 now = int(time())
                 if now > start_time + 60:
                     raise UpstreamServiceError(
-                        "Failed to get a certificate response within 60 seconds", service=self.NAME
+                        "Failed to get a certificate response within 60 seconds",
+                        service=self.NAME,  # pylint: disable=no-member
                     ) from e
                 sleep(3)
 
@@ -321,7 +322,7 @@ class SmartIDService(BaseSKService):
             if end_result not in EndResults.ALL:
                 raise SmartIDError(f"Unexpected end result {end_result}")
 
-            raise UpstreamServiceError(end_result, service=self.NAME)
+            raise UpstreamServiceError(end_result, service=self.NAME)  # pylint: disable=no-member
 
         return data
 
@@ -349,7 +350,7 @@ class SmartIDService(BaseSKService):
             # Log the HTTP response
             logger.exception(
                 "The %s service returned an error %s at %s. Response:\n %s",
-                self.NAME,
+                self.NAME,  # pylint: disable=no-member
                 response.status_code,
                 response.url,
                 response.text,

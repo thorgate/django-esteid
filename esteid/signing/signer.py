@@ -10,7 +10,7 @@ import pyasice
 from pyasice import Container, XmlSignature
 
 from esteid import settings
-from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists, UpstreamServiceError
+from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 
 from .types import DataFile, InterimSessionData
 
@@ -246,8 +246,8 @@ class Signer:
                 tsa_url=settings.TSA_URL,
             )
         except pyasice.Error as e:
-            logger.exception("Signature confirmation service error")
-            raise UpstreamServiceError("Signature confirmation service error") from e
+            logger.exception("Signature confirmation error")
+            raise EsteidError("Signature confirmation error") from e
 
     # "Magic" registration of subclasses
 

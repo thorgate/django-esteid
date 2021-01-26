@@ -299,6 +299,7 @@ class MobileIDService(BaseSKService):
             if end_result not in EndResults.ALL:
                 raise MobileIDError(f"Unexpected result '{end_result}' reported")
 
-            raise UpstreamServiceError(f"Service returned {end_result}", service=self.NAME)
+            # pylint can't identify self.NAME
+            raise UpstreamServiceError(f"Service returned {end_result}", service=self.NAME)  # pylint: disable=no-member
 
         return data
