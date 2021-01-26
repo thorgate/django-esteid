@@ -52,6 +52,7 @@ class SessionViewMixin:
         pass
 
     def handle_errors(self, e: Exception, stage="start"):
+        logger.error("WTF")
         if isinstance(e, EsteidError):
             if isinstance(e, CanceledByUser):
                 self.handle_user_cancel()
@@ -105,14 +106,14 @@ class DjangoRestCompatibilityMixin(SessionViewMixin):
         Handles session start requests
         """
         request.data = self.parse_request(request)
-        return super().start_session(request, *args, **kwargs)
+        return super().post(request, *args, **kwargs)
 
     def patch(self, request: "RequestType", *args, **kwargs):
         """
         Handles session finish requests
         """
         request.data = self.parse_request(request)
-        return super().finish_session(request, *args, **kwargs)
+        return super().patch(request, *args, **kwargs)
 
     @staticmethod
     def parse_request(request):
