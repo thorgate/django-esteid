@@ -65,24 +65,35 @@ class Authenticator:
         """Customize this to receive and check any data prior to `prepare()`"""
         pass
 
-    # Session management
+    # Session management.
+    # NOTE: this part is largely a copy-paste from signing.
 
     def save_session_data(self, *, session_id, hash_value_b64):
         """
-        Saves the upstream service's session ID along with a timestamp that is used to determine session validity.
+        Saves the session data between initialization and polling requests
         """
-        self.session[self._SESSION_KEY] = {
-            "session_id": session_id,
-            "hash_value_b64": hash_value_b64,
-            "timestamp": int(time()),
-        }
+        session_data = self.session_data or SessionData()
+
+        session_data.session_id = session_id
+        session_data.hash_value_b64 = hash_value_b64
+        session_data.timestamp = int(time())
+
+        self.session[self._SESSION_KEY] = dict(session_data)
 
     def load_session_data(self, session) -> SessionData:
         try:
-            session_data = SessionData(session[self._SESSION_KEY])
-        except (KeyError, TypeError):
+            session_data = session[self._SESSION_KEY]
+        except KeyError:
+            session_data = {}
+
+        try:
+            session_data = SessionData(session_data)
+        except TypeError:
             session_data = SessionData()
-        self.session_data = session_data
+            self._cleanup_session(session)
+
+        # Not doing session data validation here, because
+        # an instance of another type may need different data
         return session_data
 
     def __init__(self, session, initial=False):
@@ -100,32 +111,39 @@ class Authenticator:
                 except AttributeError:
                     timestamp = 0
 
-                if not timestamp or time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
-                    raise SigningSessionExists("Another signing session already in progress")
+                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                    raise SigningSessionExists("Another authentication session already in progress")
 
-                # clear the old session data. This incurs no DB overhead:
-                # Django issues the actual DB query only in the process_response phase.
+                # session expired => create a fresh data store
+                session_data = SessionData()
+
+                # wipe the old data from session.
                 self._cleanup_session(session)
         else:
             if not session_data:
-                raise SigningSessionDoesNotExist("No active signing session found")
+                raise SigningSessionDoesNotExist("No active authentication session found")
 
             try:
                 session_data.is_valid()
             except ValueError as e:
-                raise SigningSessionDoesNotExist("Invalid signing session") from e
+                raise SigningSessionDoesNotExist("Invalid authentication session") from e
+
+            if time() > session_data.timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                raise SigningSessionDoesNotExist("This authentication session has expired")
+
         self.session = session
+        self.session_data = session_data
 
     def cleanup(self):
         """
-        Cleans temporary signing session data and files.
+        Cleans temporary authentication session data and files.
         """
         return self._cleanup_session(self.session)
 
     @classmethod
     def start_session(cls, session, initial_data) -> "Authenticator":
         """
-        Initializes a fresh signing session.
+        Initializes a fresh authentication session.
         """
         signer = cls(session, initial=True)
         signer.setup(initial_data)
@@ -134,7 +152,7 @@ class Authenticator:
     @classmethod
     def load_session(cls, session) -> "Authenticator":
         """
-        Continues (loads) an existing signing session from the `session` object
+        Continues (loads) an existing authentication session from the `session` object
         """
         return cls(session, initial=False)
 

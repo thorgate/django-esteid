@@ -3,7 +3,10 @@ from esteid.types import PredictableDict
 
 class SessionData(PredictableDict):
     """
-    Wrapper for temporary data stored between authentication polling requests
+    Wrapper for temporary data stored between authentication polling requests.
+
+    Contains the upstream service's session ID and the hash value used to calculate the authentication signature,
+     along with a timestamp that is used to determine session validity timeout.
     """
 
     timestamp: int

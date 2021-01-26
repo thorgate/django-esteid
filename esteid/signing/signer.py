@@ -119,10 +119,18 @@ class Signer:
 
     def load_session_data(self, session) -> InterimSessionData:
         try:
-            session_data = self.SessionData(session[self._SESSION_KEY])
-        except (KeyError, TypeError):
+            session_data = session[self._SESSION_KEY]
+        except KeyError:
+            session_data = {}
+
+        try:
+            session_data = self.SessionData(session_data)
+        except TypeError:
             session_data = self.SessionData()
-        self.session_data = session_data
+            self._cleanup_session(session)
+
+        # Not doing session data validation here, because
+        # an instance of another type may need different data
         return session_data
 
     def __init__(self, session, initial=False):
@@ -140,8 +148,11 @@ class Signer:
                 except AttributeError:
                     timestamp = 0
 
-                if not timestamp or time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
                     raise SigningSessionExists("Another signing session already in progress")
+
+                # session expired => create a fresh data store
+                session_data = self.SessionData()
 
                 # clear the old session data. This incurs no DB overhead:
                 # Django issues the actual DB query only in the process_response phase.
@@ -154,7 +165,12 @@ class Signer:
                 session_data.is_valid()
             except ValueError as e:
                 raise SigningSessionDoesNotExist("Invalid signing session") from e
+
+            if time() > session_data.timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                raise SigningSessionDoesNotExist("This signing session has expired")
+
         self.session = session
+        self.session_data = session_data
 
     def cleanup(self):
         """
