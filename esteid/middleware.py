@@ -46,6 +46,7 @@ class BaseIdCardMiddleware(MiddlewareMixin):
 
     Documentation (In Estonian):
     https://eid.eesti.ee/index.php/Kasutaja_tuvastamine_veebis#Veebiserveri_konfigureerimine
+    (In English) https://eid.eesti.ee/index.php/Authenticating_in_web_applications
     """
 
     DN_HEADER_NAME = None
