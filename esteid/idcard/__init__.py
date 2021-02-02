@@ -1,3 +1,4 @@
-__all__ = ["IdCardSigner"]
+__all__ = ["BaseIdCardAuthenticationView", "IdCardSigner"]
 
 from .signer import IdCardSigner
+from .views import BaseIdCardAuthenticationView

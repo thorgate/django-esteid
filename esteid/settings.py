@@ -16,6 +16,9 @@ ESTEID_DEMO = getattr(settings, "ESTEID_DEMO", True)
 # Whether to use the ID card signing method
 ID_CARD_ENABLED = getattr(settings, "ID_CARD_ENABLED", False)
 
+# For ID card authentication, this refers to the URLs which are allowed to open the auth iframe. '*' means any.
+ID_CARD_FRAME_TARGET_ORIGIN = getattr(settings, "ID_CARD_FRAME_TARGET_ORIGIN", "*")
+
 # *** Mobile ID ***
 
 MOBILE_ID_ENABLED = getattr(settings, "MOBILE_ID_ENABLED", False)

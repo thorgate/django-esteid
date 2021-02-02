@@ -34,7 +34,7 @@ class AuthenticationViewMixin(SessionViewMixin):
     # this comes from the `url()` definition as in `View.as_view(authentication_method='...')`
     authentication_method: str = None
 
-    def on_auth_complete(self, request, data: AuthenticationResult):
+    def on_auth_success(self, request, data: AuthenticationResult):
         """
         A hook to make use of the authentication data once the process is complete.
 
@@ -68,7 +68,7 @@ class AuthenticationViewMixin(SessionViewMixin):
             if do_cleanup:
                 authenticator.cleanup()
 
-        self.on_auth_complete(request, result)
+        self.on_auth_success(request, result)
 
         return JsonResponse({**result, "status": self.Status.SUCCESS})
 
@@ -92,7 +92,7 @@ class AuthenticationViewMixin(SessionViewMixin):
             if do_cleanup:
                 authenticator.cleanup()
 
-        self.on_auth_complete(request, result)
+        self.on_auth_success(request, result)
 
         return JsonResponse({**result, "status": self.Status.SUCCESS})
 

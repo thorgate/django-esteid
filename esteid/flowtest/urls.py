@@ -5,7 +5,7 @@ from esteid.mobileid import MobileIdAuthenticator  # noqa
 from esteid.signing import Signer
 from esteid.smartid import SmartIdAuthenticator  # noqa
 
-from .views import AuthTestRestView, AuthTestView, SigningTestRestView, SigningTestView
+from .views import AuthTestRestView, AuthTestView, IDCardAuthTestView, SigningTestRestView, SigningTestView
 
 
 # Signing
@@ -34,4 +34,9 @@ urlpatterns += [
         name=f"auth-rest-{method}",
     )
     for method in Authenticator.AUTHENTICATION_METHODS
+]
+
+urlpatterns += [
+    # See idcard/README.md as to why this view is special.
+    url("^authenticate-id-card/", IDCardAuthTestView.as_view(), name="auth-idcard")
 ]

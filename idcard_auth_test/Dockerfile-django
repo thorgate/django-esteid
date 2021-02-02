@@ -1,0 +1,14 @@
+FROM python:3.8-slim-buster
+
+VOLUME /app
+
+COPY ./requirements.txt /
+COPY ./requirements-base.txt /
+COPY ./requirements-dev.txt /
+COPY ./requirements-test.txt /
+
+RUN pip install -r requirements-dev.txt
+
+WORKDIR /app
+
+CMD bash
