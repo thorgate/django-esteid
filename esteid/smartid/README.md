@@ -4,50 +4,42 @@ Main documentation sources:
 * Technical overview: https://github.com/SK-EID/smart-id-documentation/wiki/Technical-overview
 * API: https://github.com/SK-EID/smart-id-documentation
 
-**Note:***
-
-Currently containers with a SmartID-generated signature are not compatible with MobileID/ID-Card.
-This means, such a signature is valid, but adding another signature to the same container
-by means of MobileID/ID-Card DigiDoc Service API will fail. 
-
-This is the limitation of DigiDoc Service (which uses old versions of 
-respective libraries) and can not be resolved except by moving to the new REST API for MobileID. 
-
-Adding a SmartID signature to a container with a previously generated SmartID signature, 
-as well as a MobileID/ID-Card generated one, works without restrictions.
-
-(Same note is included in the [top level readme](../../README.md).)
-
 ## Contents
 
-* [Generic Action Sequence](#generic-action-sequence)
+* [Authentication](#authentication)
+* [Signing](#signing)
 * [API Endpoints](#api-endpoints)
 * [Calculate Verification Code](#calculate-verification-code) 
 
+## Authentication
 
-## Generic Action Sequence
+Generic action sequence:
 
-1. Authenticate user in SmartID.
-    This gives us the user's document number.
-    
-    1. Initial Request:
-        * INPUT: user's ID code.
-        * Initialize an authentication session. 
-        * OUTPUT: Present a Verification Code in the response, which user is expected to see on his device before entering PIN1 
-    1. Poll the server for authentication status 
-    
-    NOTE: It looks like the Smart ID API has been updated and this step is no longer required for signing.
-    Still the document number is required, but it can be obtained from the next step.
-    
+1. Call the SmartID `start authentication session` endpoint, with a randomly generated _hash value_. 
+
+    API endpoint docs: https://github.com/SK-EID/smart-id-documentation#239-authentication-session
+
+    The endpoint returns a _session identifier_
+
+1. Using the same _hash value_, calculate and display to the user a verification code.
+1. Repeatedly poll the SmartID `session status` endpoint, passing the session identifier 
+   obtained at step 1 as a parameter, until the endpoint returns a response with status `COMPLETE`.
+1. If the previous step's response was not an error, there is a user certificate attached to it. 
+   The user authentication information is obtained from the certificate.   
+
+
+## Signing
+
+Generic action sequence:
+
 1. Get user's signing certificate from SmartID (aka certificate selection).
-    This should be ready in two requests, one is again a session initialization, the second one is the result.
-    
-    NOTE: Now this endpoint also returns document number, so we don't need to authenticate user. 
+
+   This endpoint also returns document number for later use. 
 
 1. Prepare the [XAdES signature structure](https://github.com/thorgate/pyasice) for signing, aka `XmlSignature`. 
 1. Get the actual signature from the SmartID service.
 
-    1. Start a signing session using the document number from the authentication/certificate selection response and the certificate from the
+    1. Start a signing session using the document number and certificate from the
         certificate selection response.
     1. Present a Verification Code in the response, which user is expected to see on his device before entering PIN2
     1. Poll the server for signing status, which returns the signature when successful. 

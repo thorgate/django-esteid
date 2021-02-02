@@ -295,6 +295,7 @@ class CertificateHolderInfo(PredictableDict):
     given_name: str
     surname: str
     id_code: str
+    country: str
     asn1_certificate: "Asn1CryptoCertificate"
 
     @classmethod
@@ -316,11 +317,10 @@ class CertificateHolderInfo(PredictableDict):
         if id_code.startswith("PNO"):
             prefix, id_code = id_code.split("-", 1)  # pylint: disable=unused-variable
 
-        given_name = subject["given_name"]
-        surname = subject["surname"]
         return cls(
+            country=subject["country_name"],
             id_code=id_code,
-            given_name=given_name,
-            surname=surname,
+            given_name=subject["given_name"],
+            surname=subject["surname"],
             asn1_certificate=cert,
         )

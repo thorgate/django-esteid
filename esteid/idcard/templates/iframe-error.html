@@ -1,0 +1,13 @@
+<html>
+<head>
+    <title>Authentication Failed</title>
+    <script>
+        console.error("Error: ", {{ error_json|safe }})
+        window.parent.postMessage({{ error_json|safe }}, "https://127.0.0.1.xip.io:8443")
+
+    </script>
+</head>
+<body>
+<h1>Authentication Failed</h1>
+</body>
+</html>

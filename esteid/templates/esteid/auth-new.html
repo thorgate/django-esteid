@@ -69,7 +69,7 @@
             </li>
         {% endif %}
         <li>
-            ID Card authentication requires the chrome-token-signing for chrome or firefox.
+            ID Card authentication requires the <b>chrome-token-signing</b> plugin for chrome or firefox.
         </li>
         <li>
             ID Card authentication requires HTTPS. Please refer to the README.
@@ -172,6 +172,8 @@
     </div>
 </div>
 
+<div id="idCardAuthWrapper" />
+
 <div class="modal fade" id="smartid-modal">
     <div class="modal-dialog">
         <form name="smartId">
@@ -273,12 +275,16 @@
         }
     }
 
+    const IFRAME_HOST = 'https://auth.127.0.0.1.xip.io:8443'
+    const SITE_HOST = 'https://127.0.0.1.xip.io:8443'
+
     $(function () {
-        var downloadUrl = '{% url 'download_signed_container' %}'
+        var idUrl = IFRAME_HOST + '{% url 'auth-idcard' %}'
+
         var manager = new Esteid.IdentificationManager({
             language: Esteid.Languages.ET,
 
-            idUrl: '{% url 'auth-smartid' %}',
+            idUrl, {# This is not used: Id Card authentication doesn't involve manager #}
 
             mobileIdUrl: '{% url 'auth-mobileid' %}',
 
@@ -288,8 +294,6 @@
         })
 
         function onAuthComplete(data) {
-            $('#get-document').attr('href', downloadUrl)
-
             $('#success-modal').modal({
                 backdrop: 'static',
                 keyboard: false
@@ -425,35 +429,34 @@
                 backdrop: 'static',
                 keyboard: false
             })
+            var parentElement = document.getElementById('idCardAuthWrapper')
 
-            manager.signWithIdCard().then(
-                function (data) {
-                    $('#id-modal').modal('hide')
-                    onAuthComplete(data)
-                },
+            var idcardAuthFrame = document.createElement("iframe")
+            idcardAuthFrame.id = "idCardAuthFrame"
+            idcardAuthFrame.src = idUrl
+            idcardAuthFrame.width = 1
+            idcardAuthFrame.height = 1
+            idcardAuthFrame.onload = () => console.log("LOADED")
+            parentElement.appendChild(idcardAuthFrame)
 
-                function (res) {
-                    if (res instanceof Error) {
-                        console.log(res.message, res)
-                        res = manager.getError(res.message)
-
-                        alert(res.message)
-
-                        console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']')
-                        $('#id-modal').modal('hide')
+            function handleMessageFromIFrame(evt) {
+                if(evt.origin.startsWith(IFRAME_HOST) || evt.origin.startsWith(SITE_HOST)) {
+                    console.log('idcardAuthFrame sent Data:', evt.data);
+                    if (evt.data.error) {
+                        alert(evt.data.error + ": " + evt.data.message)
                     } else {
-                        if (typeof res === 'string' || res.error_code) {
-                            var msg = res.message !== undefined ? res.message : res
-
-                            alert(msg)
-                            $('#id-modal').modal('hide')
-                        } else {
-                            console.error(res.message !== undefined ? res.message : res)
-                            alert('Something went wrong, please refresh the page and try again')
-                        }
+                        onAuthComplete(evt.data)
                     }
+                } else {
+                    console.error('Unexpected origin', evt.origin, 'Tried to send Data', evt.data);
+                    alert("Something went wrong")
                 }
-            )
+                $('#id-modal').modal('hide')
+                parentElement.removeChild(idcardAuthFrame)
+                // remove the listener anyway.
+                window.removeEventListener('message', handleMessageFromIFrame, false)
+            }
+            window.addEventListener('message', handleMessageFromIFrame, false);
         })
 
         $('#get-document').on('click', function () {
