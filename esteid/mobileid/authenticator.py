@@ -66,6 +66,7 @@ class MobileIdAuthenticator(Authenticator):
         cert_holder_info = CertificateHolderInfo.from_certificate(auth_result.certificate)
 
         return AuthenticationResult(
+            country=cert_holder_info.country,
             id_code=cert_holder_info.id_code,
             given_name=cert_holder_info.given_name,
             surname=cert_holder_info.surname,

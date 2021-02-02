@@ -15,6 +15,7 @@ class SessionData(PredictableDict):
 
 
 class AuthenticationResult(PredictableDict):
+    country: str
     id_code: str
     given_name: str
     surname: str
