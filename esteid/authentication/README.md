@@ -12,49 +12,44 @@ Solution: One view, [Pluggable authenticators](#pluggable-authenticator) (not 10
 ## Quickstart
 
 ```python
+# views_mixin.py
+class MyAuthMixin:
+    def on_auth_success(self, request, data):
+        """For instance, save the authentication data to session"""
+        request.session['username'] = f"{data.given_name} {data.surname}"
+
+
 # views.py - Pure Django
 from django.views.generic import View
 from esteid.authentication import AuthenticationViewDjangoMixin
 
-class MyAuthView(AuthenticationViewDjangoMixin, View):
+class MyAuthView(MyAuthMixin, AuthenticationViewDjangoMixin, View):
     pass
 
 # Or: views.py - Rest Framework
 from rest_framework.views import APIView
 from esteid.authentication import AuthenticationViewRestMixin
 
-class MyRestAuthView(AuthenticationViewRestMixin, APIView):
-    def on_auth_success(self, request, data):
-        request.session['username'] = f"{data.given_name} {data.surname}"
+class MyRestAuthView(MyAuthMixin, AuthenticationViewRestMixin, APIView):
+    pass
 
 # urls.py
 from django.urls.conf import path, re_path
 
-from esteid.authentication import Authenticator
-# Import all the necessary signers (a.k.a registration)
 from esteid.idcard import BaseIdCardAuthenticationView
 from esteid.mobileid import MobileIdAuthenticator
 from esteid.smartid import SmartIdAuthenticator
 from .views import MyAuthView
 
 
-class MyIdCardAuthenticationView(BaseIdCardAuthenticationView):
+class MyIdCardAuthenticationView(MyAuthMixin, BaseIdCardAuthenticationView):
     """A special view that handles ID Card authentication"""
-    def on_auth_success(self, request, data):
-        """For instance, save the authentication data to session"""
-        request.session['username'] = f"{data.given_name} {data.surname}"
     
-
-assert Authenticator.AUTHENTICATION_METHODS == {
-    'mobileid': MobileIdAuthenticator,
-    'smartid': SmartIdAuthenticator,
-}
-
 urlpatterns = [
-    re_path(rf"^/authenticate/{method}/", 
-            MyAuthView.as_view(authentication_method=method), 
-            name=f"auth-{method}")
-    for method in Authenticator.AUTHENTICATION_METHODS
+    re_path(rf"^/authenticate/{auth_class.get_method_name()}/", 
+            MyAuthView.as_view(authenticator=auth_class), 
+            name=f"auth-{auth_class.get_method_name()}")
+    for auth_class in [MobileIdAuthenticator, SmartIdAuthenticator]
 ]
 urlpatterns += [
     path(rf"^/authenticate/id-card/", MyAuthView.as_view(), name=f"auth-idcard")

@@ -170,11 +170,18 @@ class Authenticator:
             raise EsteidError(f"Failed to load signer: method `{authentication_method}` not registered") from e
         return authenticator_class
 
-    def __init_subclass__(cls):
-        """Registers subclasses automatically"""
+    @classmethod
+    def get_method_name(cls):
         method = cls.__name__.lower()
         if method.endswith("authenticator"):
             method = method[: -len("authenticator")]
-        assert method not in Authenticator.AUTHENTICATION_METHODS, f"A Authenticator for {method} is already registered"
+        return method
+
+    def __init_subclass__(cls):
+        """Registers subclasses automatically"""
+        method = cls.get_method_name()
+        assert (
+            method not in Authenticator.AUTHENTICATION_METHODS
+        ), f"An Authenticator for {method} is already registered"
 
         Authenticator.AUTHENTICATION_METHODS[method] = cls

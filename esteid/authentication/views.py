@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 class AuthenticationViewMixin(SessionViewMixin):
-    # this comes from the `url()` definition as in `View.as_view(authentication_method='...')`
+    # these come from the `url()` definition as in `View.as_view(authentication_method='...')`, either one is enough
     authentication_method: str = None
+    authenticator: Type[Authenticator] = None
 
     def on_auth_success(self, request, data: AuthenticationResult):
         """
@@ -43,6 +44,8 @@ class AuthenticationViewMixin(SessionViewMixin):
         pass
 
     def select_authenticator_class(self) -> Type["Authenticator"]:
+        if self.authenticator is not None:
+            return self.authenticator
         return Authenticator.select_authenticator(self.authentication_method)
 
     def start_session(self, request: "RequestType", *args, **kwargs):

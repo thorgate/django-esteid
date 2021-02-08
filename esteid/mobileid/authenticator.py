@@ -61,7 +61,7 @@ class MobileIdAuthenticator(Authenticator):
         service = TranslatedMobileIDService.get_instance()
 
         # raises ActionInProgress if not received a final result
-        auth_result = service.status(session_id, digest=base64.b64decode(hash_value_b64))
+        auth_result = service.status(session_id, hash_value=base64.b64decode(hash_value_b64))
 
         cert_holder_info = CertificateHolderInfo.from_certificate(auth_result.certificate)
 
