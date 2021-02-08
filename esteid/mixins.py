@@ -52,7 +52,6 @@ class SessionViewMixin:
         pass
 
     def handle_errors(self, e: Exception, stage="start"):
-        logger.error("WTF")
         if isinstance(e, EsteidError):
             if isinstance(e, CanceledByUser):
                 self.handle_user_cancel()

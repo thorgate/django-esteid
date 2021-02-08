@@ -107,6 +107,13 @@ def static_signature():
 
 @pytest.fixture()
 def static_certificate():
+    """
+    The certificate is issued to this subject:
+        "country": "EE",
+        "id_code": "11702020200",
+        "given_name": "HELLO",
+        "surname": "SMART-ID",
+    """
     return base64.b64decode(
         b"MIIHojCCBYqgAwIBAgIQV054KJa3Z/ZYkvh96o3PtzANBgkqhkiG9w0BAQsFADBnMQswCQYDVQQGEwJFRTEiMCAGA"
         b"1UECgwZQVMgU2VydGlmaXRzZWVyaW1pc2tlc2t1czEXMBUGA1UEYQwOTlRSRUUtMTA3NDcwMTMxGzAZBgNVBAMMEl"
