@@ -15,7 +15,7 @@ AuthenticateResult = namedtuple(
     [
         "session_id",
         "hash_type",
-        "digest",
+        "hash_value",
         "verification_code",
         "hash_value_b64",
     ],
@@ -24,8 +24,6 @@ AuthenticateResult = namedtuple(
 AuthenticateStatusResult = namedtuple(
     "AuthenticateStatusResult",
     [
-        "signature",
-        "signature_algorithm",
         "certificate",  # DER-encoded certificate
         "certificate_b64",  # Base64-encoded DER-encoded certificate
     ],

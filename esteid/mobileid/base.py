@@ -131,20 +131,20 @@ class MobileIDService(BaseSKService):
         assert "sessionID" in result, "No session id in {result}".format(result=result)
         return AuthenticateResult(
             session_id=result["sessionID"],
-            digest=hash_value,
+            hash_value=hash_value,
             hash_value_b64=hash_value_b64,
             hash_type=hash_type,
             verification_code=get_verification_code(hash_value),
         )
 
-    def status(self, session_id: str, digest: bytes, timeout: int = 10000):
+    def status(self, session_id: str, hash_value: bytes, timeout: int = 10000):
         """
         Retrieve auth session result from Mobile-ID backend
 
         see https://github.com/SK-EID/MID#33-status-of-signing-and-authentication
 
         :param session_id: session ID, from auth result
-        :param digest: hash value that was used to initiate auth
+        :param hash_value: hash value that was used to initiate auth
         :param int timeout: Request long poll timeout value in milliseconds (Note: server uses a default
                          if client does not send it)
         :rtype: AuthenticateStatusResult
@@ -163,14 +163,12 @@ class MobileIDService(BaseSKService):
         cert_value = base64.b64decode(cert_value_b64)
 
         try:
-            pyasice.verify(cert_value, signature_value, digest, signature_algorithm[:6], prehashed=True)
+            pyasice.verify(cert_value, signature_value, hash_value, signature_algorithm[:6], prehashed=True)
         except pyasice.SignatureVerificationError as e:
             raise SignatureVerificationError from e
 
         return AuthenticateStatusResult(
             certificate=cert_value,
-            signature=signature_value,
-            signature_algorithm=signature_algorithm,
             certificate_b64=cert_value_b64,
         )
 

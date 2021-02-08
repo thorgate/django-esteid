@@ -259,11 +259,16 @@ class Signer:
             raise EsteidError(f"Failed to load signer: method `{signing_method}` not registered") from e
         return signer_class
 
-    def __init_subclass__(cls):
-        """Registers subclasses automatically"""
+    @classmethod
+    def get_method_name(cls):
         method = cls.__name__.lower()
         if method.endswith("signer"):
             method = method[:-6]
+        return method
+
+    def __init_subclass__(cls):
+        """Registers subclasses automatically"""
+        method = cls.get_method_name()
         assert method not in Signer.SIGNING_METHODS, f"A Signer for {method} is already registered"
 
         Signer.SIGNING_METHODS[method] = cls

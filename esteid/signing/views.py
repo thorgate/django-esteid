@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class SignViewMixin(SessionViewMixin):
-    # this comes from the `url()` definition as in `View.as_view(signing_method='...')`
+    # these come from the `url()` definition as in `View.as_view(signing_method='...')`, either one is enough
+    signer_class: Type[Signer] = None
     signing_method: str = None
 
     def get_container(self, *args, **kwargs) -> Union[str, BinaryIO, pyasice.Container]:
@@ -98,6 +99,8 @@ class SignViewMixin(SessionViewMixin):
             raise AlreadySignedByUser
 
     def select_signer_class(self) -> Type["Signer"]:
+        if self.signer_class is not None:
+            return self.signer_class
         return Signer.select_signer(self.signing_method)
 
     def start_session(self, request: "RequestType", *args, **kwargs):

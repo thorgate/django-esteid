@@ -45,7 +45,7 @@ def run_authentication_flow(demo_mid_api, id_number, phone_number, hash_type=HAS
     # All fields must be set
     assert res.session_id
     assert res.hash_type == hash_type
-    assert res.digest
+    assert res.hash_value
 
     status_res = None  # type: AuthenticateStatusResult
 
@@ -55,7 +55,7 @@ def run_authentication_flow(demo_mid_api, id_number, phone_number, hash_type=HAS
     end_time = time() + 15
     while status_res is None and time() < end_time:
         try:
-            status_res = demo_mid_api.status(res.session_id, res.digest)
+            status_res = demo_mid_api.status(res.session_id, res.hash_value)
         except ActionInProgress:
             sleep(1.0)
 
@@ -89,7 +89,7 @@ def test_mobileid_authentication(demo_mid_api, hash_type, MID_DEMO_PIN_EE_OK, MI
                 assert isinstance(res, AuthenticateResult)
                 assert res.session_id == "FAKE"
                 assert res.hash_type == hash_type
-                assert res.digest == generate_hash(hash_type, raw_data)
+                assert res.hash_value == generate_hash(hash_type, raw_data)
                 assert res.verification_code == verification_codes[hash_type]
 
 
@@ -102,7 +102,7 @@ def test_mobileid_authentication_400(demo_mid_api, MID_DEMO_PHONE_EE_OK, MID_DEM
 
 def test_mobileid_status(demo_mid_api, static_certificate, mid_auth_result, mid_auth_status_response):
     with patch.object(demo_mid_api, "invoke", return_value=mid_auth_status_response):
-        res = demo_mid_api.status(mid_auth_result.session_id, mid_auth_result.digest)
+        res = demo_mid_api.status(mid_auth_result.session_id, mid_auth_result.hash_value)
 
         assert isinstance(res, AuthenticateStatusResult)
 
@@ -114,7 +114,7 @@ def test_mobileid_status_signature_verification_error(demo_mid_api, mid_auth_sta
         with patch.object(pyasice, "verify") as mock_verify:
             mock_verify.side_effect = pyasice.SignatureVerificationError
             with pytest.raises(SignatureVerificationError):
-                demo_mid_api.status(mid_auth_result.session_id, mid_auth_result.digest)
+                demo_mid_api.status(mid_auth_result.session_id, mid_auth_result.hash_value)
 
 
 def test_mobileid_status_state_running(demo_mid_api):
@@ -124,7 +124,7 @@ def test_mobileid_status_state_running(demo_mid_api):
 
     with patch.object(demo_mid_api, "invoke", return_value=response_data):
         with pytest.raises(ActionInProgress) as exc_info:
-            demo_mid_api.status(session_id="FAKE", digest=b"")
+            demo_mid_api.status(session_id="FAKE", hash_value=b"")
 
         # session_id should be in the message
         assert "FAKE" in str(exc_info.value)
@@ -147,7 +147,7 @@ def test_mobileid_status_end_result(demo_mid_api, end_result_code, exc):
 
     with patch.object(demo_mid_api, "invoke", return_value=response_data):
         with pytest.raises(exc):
-            demo_mid_api.status(session_id="FAKE", digest=b"")
+            demo_mid_api.status(session_id="FAKE", hash_value=b"")
 
 
 def test_mobileid_status_unexpected_end_result(demo_mid_api):
@@ -158,7 +158,7 @@ def test_mobileid_status_unexpected_end_result(demo_mid_api):
 
     with patch.object(demo_mid_api, "invoke", return_value=response_data):
         with pytest.raises(MobileIDError) as exc_info:
-            demo_mid_api.status(session_id="FAKE", digest=b"")
+            demo_mid_api.status(session_id="FAKE", hash_value=b"")
 
         assert "$RESULT$" in str(exc_info.value)
 
@@ -175,7 +175,7 @@ def test_mobileid_status_errors(demo_mid_api, status, exc):
     with requests_mock.mock() as m:
         m.get(demo_mid_api.api_url(session_status_url), exc=exc)
         with pytest.raises(exc):
-            demo_mid_api.status(session_id="FAKE", digest=b"")
+            demo_mid_api.status(session_id="FAKE", hash_value=b"")
 
 
 @pytest.mark.slow

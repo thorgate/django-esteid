@@ -1,6 +1,5 @@
 from django.conf.urls import url
 
-from esteid.authentication import Authenticator
 from esteid.mobileid import MobileIdAuthenticator  # noqa
 from esteid.signing import Signer
 from esteid.smartid import SmartIdAuthenticator  # noqa
@@ -23,17 +22,21 @@ urlpatterns += [
 # Authentication
 
 urlpatterns += [
-    url(f"^authenticate/{method}/", AuthTestView.as_view(authentication_method=method), name=f"auth-{method}")
-    for method in Authenticator.AUTHENTICATION_METHODS
+    url(
+        f"^authenticate/{auth_class.get_method_name()}/",
+        AuthTestView.as_view(authenticator=auth_class),
+        name=f"auth-{auth_class.get_method_name()}",
+    )
+    for auth_class in [MobileIdAuthenticator, SmartIdAuthenticator]
 ]
 
 urlpatterns += [
     url(
-        f"^authenticate-rest/{method}/",
-        AuthTestRestView.as_view(authentication_method=method),
-        name=f"auth-rest-{method}",
+        f"^authenticate-rest/{auth_class.get_method_name()}/",
+        AuthTestRestView.as_view(authenticator=auth_class),
+        name=f"auth-rest-{auth_class.get_method_name()}",
     )
-    for method in Authenticator.AUTHENTICATION_METHODS
+    for auth_class in [MobileIdAuthenticator, SmartIdAuthenticator]
 ]
 
 urlpatterns += [
