@@ -1,3 +1,4 @@
+# pragma: no cover
 import logging
 import warnings
 
@@ -15,6 +16,7 @@ except ImportError:  # Django < 1.10
     # Works perfectly for everyone using MIDDLEWARE_CLASSES
     MiddlewareMixin = object
 
+warnings.warn("This module is deprecated. Please use the new authentication API", DeprecationWarning)
 
 logger = logging.getLogger(__name__)
 

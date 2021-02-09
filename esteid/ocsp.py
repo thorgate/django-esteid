@@ -1,3 +1,4 @@
+# pragma: no cover
 import logging
 import os
 import subprocess

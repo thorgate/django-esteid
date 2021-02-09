@@ -1,5 +1,7 @@
+# pragma: no cover
 import base64
 import logging
+import warnings
 from tempfile import NamedTemporaryFile
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -17,6 +19,8 @@ from .actions import (
 )
 from .generic import ApiView, GenericDigitalSignViewMixin, SignStatusViewMixin
 from .types import DataFile
+
+warnings.warn("This module is deprecated. Please use the new API", DeprecationWarning)
 
 
 logger = logging.getLogger(__name__)
