@@ -44,9 +44,11 @@ class Authenticator:
         """
         Initiate the authentication process.
 
-        Potentially can result in an immediate authentication.
-        If authentication happens immediately, returns an AuthenticationResult.
-        Otherwise, raises an ActionInProgress error with the corresponding data such as verification code.
+        If the init request succeeded, raises an ActionInProgress error
+        with the corresponding data such as verification code.
+
+        Note: For a theoretical case when authentication happens immediately, we leave an opportunity
+        that this method returns AuthenticationResult.
         """
         raise NotImplementedError
 
@@ -54,7 +56,7 @@ class Authenticator:
         """
         Polls status of the authentication process.
 
-        If authentication happens, returns an AuthenticationResult.
+        If authentication succeeded, returns an AuthenticationResult.
         Otherwise, raises an ActionInProgress error with the corresponding data such as verification code.
         """
         raise NotImplementedError

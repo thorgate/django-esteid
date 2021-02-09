@@ -43,6 +43,10 @@ class AuthenticationViewMixin(SessionViewMixin):
         """
         pass
 
+    def success_response(self, request, data: AuthenticationResult):
+        """Customizable response on success"""
+        return JsonResponse({**data, "status": self.Status.SUCCESS})
+
     def select_authenticator_class(self) -> Type["Authenticator"]:
         if self.authenticator is not None:
             return self.authenticator
@@ -51,8 +55,6 @@ class AuthenticationViewMixin(SessionViewMixin):
     def start_session(self, request: "RequestType", *args, **kwargs):
         """
         Initiates an authentication session.
-
-        Potentially, can result in an immediate authentication.
         """
 
         auth_class = self.select_authenticator_class()
@@ -62,18 +64,20 @@ class AuthenticationViewMixin(SessionViewMixin):
 
         try:
             result = authenticator.authenticate()
+
         except ActionInProgress as e:
             do_cleanup = False
             # return SUCCESS to indicate that the upstream service successfully accepted the request
             return JsonResponse({"status": self.Status.SUCCESS, **e.data}, status=e.status)
 
+        else:
+            # Handle a theoretical case of immediate authentication
+            self.on_auth_success(request, result)
+            return JsonResponse({**result, "status": self.Status.SUCCESS})
+
         finally:
             if do_cleanup:
                 authenticator.cleanup()
-
-        self.on_auth_success(request, result)
-
-        return JsonResponse({**result, "status": self.Status.SUCCESS})
 
     def finish_session(self, request: "RequestType", *args, **kwargs):
         """
@@ -91,13 +95,13 @@ class AuthenticationViewMixin(SessionViewMixin):
             do_cleanup = False
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
 
+        else:
+            self.on_auth_success(request, result)
+            return self.success_response(request, result)
+
         finally:
             if do_cleanup:
                 authenticator.cleanup()
-
-        self.on_auth_success(request, result)
-
-        return JsonResponse({**result, "status": self.Status.SUCCESS})
 
 
 class AuthenticationViewRestMixin(AuthenticationViewMixin):

@@ -1,6 +1,7 @@
 import binascii
 import json
 import logging
+from http import HTTPStatus
 from pathlib import Path
 
 from django.http import HttpRequest, HttpResponse
@@ -15,7 +16,7 @@ from pyasice.ocsp import OCSP
 
 from esteid import settings
 from esteid.authentication.types import AuthenticationResult
-from esteid.exceptions import EsteidError, InvalidParameter
+from esteid.exceptions import EsteidError, InvalidParameter, InvalidParameters
 from esteid.types import CertificateHolderInfo
 
 
@@ -25,6 +26,9 @@ logger = logging.getLogger(__name__)
 class BaseIdCardAuthenticationView(View):
     """
     Receives client authentication data from the webserver through headers.
+
+    The view is supposed to be called through an iframe, and returns an HTML "page"
+    specially crafted to pass the response to the parent page via `window.postMessage()`.
 
     It's mandatory to pass down the client certificate in one of the following manners:
     * the `X-Client-Cert` header - the preferred option for nginx
@@ -39,6 +43,8 @@ class BaseIdCardAuthenticationView(View):
     CERTIFICATE_HEADER_NAME = "HTTP_X_CLIENT_CERT"
     CERTIFICATE_ENV_NAME = "HTTP_SSL_CLIENT_CERT"
 
+    # Templates can be overridden, but they need to return some stuff to the parent frame.
+    # First take a look at the `success_response()` method
     TEMPLATE_SUCCESS = "iframe.html"
     TEMPLATE_FAILURE = "iframe-error.html"
     TEMPLATE_DIRECTORY = Path(__file__).parent / "templates"
@@ -50,6 +56,14 @@ class BaseIdCardAuthenticationView(View):
         A hook to execute when authentication and OCSP validation were successful.
         """
         pass
+
+    def success_response(self, request: HttpRequest, auth_result: AuthenticationResult) -> dict:
+        """
+        Returns a dict of data to pass to the context of a success template.
+
+        Can be customized to include additional data or remove undesired entries.
+        """
+        return auth_result
 
     def authenticate(self, headers: dict) -> AuthenticationResult:
         """
@@ -90,39 +104,44 @@ class BaseIdCardAuthenticationView(View):
         )
 
     def get(self, request: HttpRequest, *args, **kwargs):
+        error = None
+        auth_result = None
         try:
             auth_result = self.authenticate(request.META)
             self.validate_certificate_ocsp(self._certificate_handle)
         except EsteidError as e:
-            logger.exception("Authentication error")
-            template_file = self.TEMPLATE_FAILURE
-            errors = e.get_user_error()
+            if not isinstance(e, InvalidParameters):
+                logger.exception("Authentication error")
+
+            error = e.get_user_error()
             http_status = e.status
-            context = {"error": errors, "error_json": json.dumps(errors)}
         except pyasice.ocsp.OCSPError:
             logger.exception("OCSP validation error")
-            template_file = self.TEMPLATE_FAILURE
-            errors = {
+            error = {
                 "error": "OCSPError",
                 "message": "Certificate validation failed",
             }
-            http_status = 409
-            context = {"error": errors, "error_json": json.dumps(errors)}
+            http_status = HTTPStatus.CONFLICT
         except Exception:
-            logger.exception("Internal server error")
-            template_file = self.TEMPLATE_FAILURE
-            errors = {
+            logger.exception("Internal error during authentication")
+            error = {
                 "error": "InternalError",
                 "message": "Internal Error. Please contact the administrator",
             }
-            http_status = 409
-            context = {"error": errors, "error_json": json.dumps(errors)}
+            http_status = HTTPStatus.INTERNAL_SERVER_ERROR
         else:
-            template_file = self.TEMPLATE_SUCCESS
-            context = {"auth_result": auth_result, "auth_result_json": json.dumps(auth_result)}
             http_status = 200
 
+        if error:
+            template_file = self.TEMPLATE_FAILURE
+            context = {"error": error, "error_json": json.dumps(error)}
+        else:
+            assert auth_result
             self.on_auth_success(request, auth_result)
+
+            template_file = self.TEMPLATE_SUCCESS
+            data = self.success_response(request, auth_result)
+            context = {"auth_result": data, "auth_result_json": json.dumps(data)}
 
         with open(self.TEMPLATE_DIRECTORY / template_file) as f:
             template = Template(f.read())
