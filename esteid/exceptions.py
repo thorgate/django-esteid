@@ -166,7 +166,7 @@ class InvalidIdCode(InvalidParameter):
         super().__init__(message, param=param, **kwargs)
 
 
-class UserNotRegistered(EsteidError):
+class UserNotRegistered(InvalidParameters):
     """User not registered in the service."""
 
     status = HTTPStatus.CONFLICT
@@ -174,7 +174,7 @@ class UserNotRegistered(EsteidError):
     default_message = _("User not registered in the service.")
 
 
-class CanceledByUser(EsteidError):
+class CanceledByUser(InvalidParameters):
     """User canceled the operation."""
 
     status = HTTPStatus.CONFLICT
@@ -182,7 +182,7 @@ class CanceledByUser(EsteidError):
     default_message = _("The signing operation was canceled by the user.")
 
 
-class UserTimeout(EsteidError):
+class UserTimeout(InvalidParameters):
     """Failed to get PIN code from user within the interval specified by the service.
 
     For Mobile ID, this is about 2 minutes.
