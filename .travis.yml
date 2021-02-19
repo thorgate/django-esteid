@@ -1,12 +1,14 @@
 language: python
 
 os: linux
-dist: xenial
+dist: bionic
 
 jobs:
   include:
     # also check tox.ini
     - python: 3.6
+      # ensure xenial also passes checks
+      dist: xenial
       env:
         - DJANGO=1.11
 
@@ -28,8 +30,6 @@ jobs:
         - DJANGO=2.0
 
     - python: 3.8
-      # ensure bionic also passes checks
-      dist: bionic
       env:
         - DJANGO=3.0
 
