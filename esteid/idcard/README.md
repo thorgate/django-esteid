@@ -72,13 +72,17 @@ The process thus should consist of the following steps:
   or a `hwcrypto` library call (as in the process of signing with ID card), the user is taken to a specifically configured
   domain (e.g. `auth.example.com`) where they are asked for the ID Card's PIN code and 
   proceed to allow the site to access the certificate;
-* the certificate is validated via OCSP;
+* the certificate is validated via OCSP (see below as to why);
 * the certificate or data obtained from it is saved to the session;
 * user is redirected to the protected page on the `example.com` site.
 
 The process above is by and large impractical. One improvement that could be made to it is to use an iframe instead of
 a redirect; this provides for a smooth procedure, but additional measures must be taken, such as adding appropriate
 `Content-Security-Policy` headers.
+
+Another alternative, in case there is no need to use user's authentication data on the frontend,
+is to direct the client to a separate domain as mentioned above, which would redirect back on success or else
+to an error page.
 
 ### Notes
 
@@ -91,3 +95,7 @@ a redirect; this provides for a smooth procedure, but additional measures must b
 * The ID card authentication certificate is cached by the browser, 
   and there is apparently no way to manage or work around this cache from the application.
   The multi-domain approach (i.e. each new authentication happens on a different domain) didn't help.
+
+* User certificate validation is done via OCSP in the django application, rather than using 
+  Certificate Revocation Lists (CRLs) on the nginx, because of a problem with one of the root certificates: 
+  http://mailman.nginx.org/pipermail/nginx-devel/2017-March/009609.html, https://trac.nginx.org/nginx/ticket/1094.
