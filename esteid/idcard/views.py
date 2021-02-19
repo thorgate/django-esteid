@@ -146,7 +146,7 @@ class BaseIdCardAuthenticationView(View):
         with open(self.TEMPLATE_DIRECTORY / template_file) as f:
             template = Template(f.read())
 
-        context['iframe_target_origin'] = settings.ID_CARD_FRAME_TARGET_ORIGIN
+        context["iframe_target_origin"] = settings.ID_CARD_FRAME_TARGET_ORIGIN
         context = RequestContext(request, context)
         return HttpResponse(template.render(context), content_type="text/html; charset=utf-8", status=http_status)
 
