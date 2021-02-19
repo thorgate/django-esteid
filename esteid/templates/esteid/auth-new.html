@@ -171,6 +171,19 @@
                 <p>
                     Please follow the instructions to complete the authentication process.
                 </p>
+                {# *** THIS IS NECESSARY ONLY FOR TESTING LOCALLY, BECAUSE OF THE SELF-SIGNED CERTIFICATE. *** #}
+                {# *** BEGIN *** #}
+                <hr>
+                <h3>Testing locally?</h3>
+                <p>
+                    If you haven't done it yet, open the link <br>
+                    <a href="#" id="auth-host"></a> <br>
+                    in a new tab and confirm security exception.
+                </p>
+                <p>
+                    <button onclick="securityException = true; authWithIDCard()">OK, DONE</button>
+                </p>
+                {# *** END ***  #}
             </div>
         </div>
     </div>
@@ -279,11 +292,72 @@
         }
     }
 
-    const IFRAME_HOST = 'https://auth.127.0.0.1.xip.io:8443'
+    {# *** TESTING ONLY *** #}
+    let securityException = false
+    {# *** In real apps, use some other algorithm to build the auth host name *** #}
+    const IFRAME_HOST = 'https://${RANDOM}.auth.127.0.0.1.xip.io:8443'.replace(
+        "${RANDOM}", Math.ceil(Number.MAX_SAFE_INTEGER * Math.random())
+    )
+
+    const idUrl = IFRAME_HOST + '{% url 'auth-idcard' %}'
+
     const SITE_HOST = 'https://127.0.0.1.xip.io:8443'
 
+    function onAuthComplete(data) {
+        $('#success-modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        $('#given-name').text(data.given_name)
+        $('#surname').text(data.surname)
+    }
+
+    function authWithIDCard (e) {
+        e && e.preventDefault()
+
+        $('#id-modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        {# NECESSARY FOR TESTING ONLY #}
+        if (!securityException) { return }
+
+        var parentElement = document.getElementById('idCardAuthWrapper')
+
+        var idcardAuthFrame = document.createElement("iframe")
+        idcardAuthFrame.id = "idCardAuthFrame"
+        idcardAuthFrame.src = idUrl
+        idcardAuthFrame.width = 1
+        idcardAuthFrame.height = 1
+        idcardAuthFrame.onload = () => console.log("LOADED")
+        parentElement.appendChild(idcardAuthFrame)
+
+        function handleMessageFromIFrame(evt) {
+            if(evt.origin.startsWith(IFRAME_HOST) || evt.origin.startsWith(SITE_HOST)) {
+                console.log('idcardAuthFrame sent Data:', evt.data);
+                if (evt.data.error) {
+                    alert(evt.data.error + ": " + evt.data.message)
+                } else {
+                    onAuthComplete(evt.data)
+                }
+            } else {
+                console.error('Unexpected origin', evt.origin, 'Tried to send Data', evt.data);
+                alert("Something went wrong")
+            }
+            $('#id-modal').modal('hide')
+            parentElement.removeChild(idcardAuthFrame)
+            // remove the listener anyway.
+            window.removeEventListener('message', handleMessageFromIFrame, false)
+        }
+        window.addEventListener('message', handleMessageFromIFrame, false);
+    }
+
     $(function () {
-        var idUrl = IFRAME_HOST + '{% url 'auth-idcard' %}'
+        var authHostLink = document.getElementById('auth-host')
+        authHostLink.innerText = IFRAME_HOST
+        authHostLink.setAttribute('href', IFRAME_HOST)
 
         var manager = new Esteid.IdentificationManager({
             language: Esteid.Languages.ET,
@@ -296,16 +370,6 @@
 
             csrfToken: '{{ csrf_token }}'
         })
-
-        function onAuthComplete(data) {
-            $('#success-modal').modal({
-                backdrop: 'static',
-                keyboard: false
-            })
-
-            $('#given-name').text(data.given_name)
-            $('#surname').text(data.surname)
-        }
 
         $('#sign-mid').on('click', function (e) {
             e.preventDefault()
@@ -426,42 +490,7 @@
             )
         }
 
-        $('#sign-id').on('click', function (e) {
-            e.preventDefault()
-
-            $('#id-modal').modal({
-                backdrop: 'static',
-                keyboard: false
-            })
-            var parentElement = document.getElementById('idCardAuthWrapper')
-
-            var idcardAuthFrame = document.createElement("iframe")
-            idcardAuthFrame.id = "idCardAuthFrame"
-            idcardAuthFrame.src = idUrl
-            idcardAuthFrame.width = 1
-            idcardAuthFrame.height = 1
-            idcardAuthFrame.onload = () => console.log("LOADED")
-            parentElement.appendChild(idcardAuthFrame)
-
-            function handleMessageFromIFrame(evt) {
-                if(evt.origin.startsWith(IFRAME_HOST) || evt.origin.startsWith(SITE_HOST)) {
-                    console.log('idcardAuthFrame sent Data:', evt.data);
-                    if (evt.data.error) {
-                        alert(evt.data.error + ": " + evt.data.message)
-                    } else {
-                        onAuthComplete(evt.data)
-                    }
-                } else {
-                    console.error('Unexpected origin', evt.origin, 'Tried to send Data', evt.data);
-                    alert("Something went wrong")
-                }
-                $('#id-modal').modal('hide')
-                parentElement.removeChild(idcardAuthFrame)
-                // remove the listener anyway.
-                window.removeEventListener('message', handleMessageFromIFrame, false)
-            }
-            window.addEventListener('message', handleMessageFromIFrame, false);
-        })
+        $('#sign-id').on('click', authWithIDCard)
 
         $('#get-document').on('click', function () {
             setTimeout(function () {

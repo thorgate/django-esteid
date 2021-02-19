@@ -62,6 +62,7 @@ via session or other means.
 There is a caveat: browsers keep a certificate in cache for an unspecified period of time,
 and a new request for PIN may not be triggered even once the authenticated ID card is removed or replaced.
 This is not possible to control by the web server. 
+One way around it is to use unique subdomains for every new authentication request.
 
 Let's describe the key points of the ID card authentication process, based on the usual routine common for
 SmartID and MobileID. 
@@ -70,7 +71,7 @@ The process thus should consist of the following steps:
 * While visiting the site (assuming `example.com` for this matter), the user clicks on a link to start the authentication process;
 * Instead of issuing a _start_ request to the backend (as in the usual routine), 
   or a `hwcrypto` library call (as in the process of signing with ID card), the user is taken to a specifically configured
-  domain (e.g. `auth.example.com`) where they are asked for the ID Card's PIN code and 
+  domain (e.g. `UNIQUE.auth.example.com`) where they are asked for the ID Card's PIN code and 
   proceed to allow the site to access the certificate;
 * the certificate is validated via OCSP (see below as to why);
 * the certificate or data obtained from it is saved to the session;
