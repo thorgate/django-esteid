@@ -10,6 +10,8 @@ from esteid.types import PredictableDict
 from esteid.validators import id_code_ee_is_valid
 
 
+PHONE_NUMBER_REGEXP = settings.MOBILE_ID_PHONE_NUMBER_REGEXP
+
 AuthenticateResult = namedtuple(
     "AuthenticateResult",
     [
@@ -49,9 +51,6 @@ SignStatusResult = namedtuple(
 )
 
 
-PHONE_NUMBER_REGEXP = re.compile(r"^\+37[02]\d{7,8}$")  # Mobile ID supports Estonian and Lithuanian phones
-
-
 class UserInput(PredictableDict):
     phone_number: str
     id_code: str
@@ -60,9 +59,13 @@ class UserInput(PredictableDict):
     def is_valid(self, raise_exception=True):
         result = super().is_valid(raise_exception=raise_exception)
         if result:
-            if not (self.phone_number and re.match(PHONE_NUMBER_REGEXP, self.phone_number)):
+            if not self.phone_number or PHONE_NUMBER_REGEXP and not re.match(PHONE_NUMBER_REGEXP, self.phone_number):
+                if not raise_exception:
+                    return False
                 raise InvalidParameter(param="phone_number")
             if not id_code_ee_is_valid(self.id_code):
+                if not raise_exception:
+                    return False
                 raise InvalidIdCode
             if not (self.get("language") and self.language in Languages.ALL):
                 self.language = settings.MOBILE_ID_DEFAULT_LANGUAGE

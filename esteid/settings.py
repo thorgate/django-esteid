@@ -1,6 +1,8 @@
 """
 This module contains all configuration settings for django-esteid.
 """
+import re
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
@@ -28,6 +30,20 @@ MOBILE_ID_TEST_MODE = getattr(settings, "MOBILE_ID_TEST_MODE", ESTEID_DEMO)
 MOBILE_ID_SERVICE_NAME = getattr(settings, "MOBILE_ID_SERVICE_NAME", None)
 MOBILE_ID_SERVICE_UUID = getattr(settings, "MOBILE_ID_SERVICE_UUID", None)
 MOBILE_ID_API_ROOT = getattr(settings, "MOBILE_ID_API_ROOT", None)
+
+# Mobile phone number sanity check: optional, a regexp pattern. If not set or None, defaults to a simple regexp.
+# To disable checks, set it to empty string.
+_MOBILE_ID_PHONE_NUMBER_REGEXP = getattr(settings, "MOBILE_ID_PHONE_NUMBER_REGEXP", None)
+if _MOBILE_ID_PHONE_NUMBER_REGEXP is None:
+    # Mobile ID supports Estonian and Lithuanian phones
+    _MOBILE_ID_PHONE_NUMBER_REGEXP = re.compile(r"^\+37[02]\d{7,8}$")
+elif _MOBILE_ID_PHONE_NUMBER_REGEXP:
+    try:
+        _MOBILE_ID_PHONE_NUMBER_REGEXP = re.compile(_MOBILE_ID_PHONE_NUMBER_REGEXP)
+    except ValueError as e:
+        raise ImproperlyConfigured("MOBILE_ID_PHONE_NUMBER_REGEXP must be a valid regular expression") from e
+
+MOBILE_ID_PHONE_NUMBER_REGEXP = _MOBILE_ID_PHONE_NUMBER_REGEXP
 
 _MOBILE_ID_DEFAULT_LANGUAGE = getattr(settings, "MOBILE_ID_DEFAULT_LANGUAGE", None)
 
