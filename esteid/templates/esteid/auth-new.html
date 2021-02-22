@@ -1,0 +1,505 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>ESTEID Test Page</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <!-- simple spinner from loading.io -->
+    <style type="text/css">
+        .lds-dual-ring {
+            /* display: inline-block; */
+            display: none;
+            width: 80px;
+            height: 80px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 64px;
+            height: 64px;
+            margin: 8px;
+            border-radius: 50%;
+            border: 6px solid #333333;
+            border-color: #333333 transparent #333333 transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>Esteid Test page</h1>
+    <p>
+        This is a test page for <b>digital authentication</b>.
+    </p>
+
+    <p style="font-size: larger">
+        To test out signing, please <a href="{% url "sk_test_new" %}">go to this page</a>.
+    </p>
+
+    <h4>Services settings</h4>
+    <ul>
+        <li><b>Use DEMO:</b> {{ ESTEID_DEMO|yesno }}</li>
+        <li><b>ID Card:</b> {{ ID_CARD_ENABLED|yesno }}</li>
+        <li><b>Mobile ID:</b> {{ MOBILE_ID_ENABLED|yesno }}, demo: {{ MOBILE_ID_TEST_MODE|yesno }}</li>
+        <li><b>SMART ID:</b> {{ SMART_ID_ENABLED|yesno }}, demo: {{ SMART_ID_TEST_MODE|yesno }}</li>
+    </ul>
+
+    <h4>Notes on Services</h4>
+    <ul>
+        {% if MOBILE_ID_TEST_MODE %}
+            <li>
+                Mobile ID authentication is done with Demo Mobile ID service, you can only use the
+                <a href="https://github.com/SK-EID/MID/wiki/Test-number-for-automated-testing-in-DEMO" target="_blank">demo
+                    test numbers</a>.
+            </li>
+        {% endif %}
+        {% if ESTEID_DEMO %}
+            <li>
+                ID Card authentication can be done with real ID cards.
+            </li>
+        {% endif %}
+        <li>
+            ID Card authentication requires the <b>chrome-token-signing</b> plugin for chrome or firefox.
+        </li>
+        <li>
+            ID Card authentication requires HTTPS. Please refer to the README.
+        </li>
+        {% if SMART_ID_TEST_MODE %}
+            <li>
+                Authentication with SmartID can be tested with the test ID codes found on the
+                <a href="https://github.com/SK-EID/smart-id-documentation/wiki/Environment-technical-parameters"
+                   target="_blank">SmartID wiki page</a>.
+            </li>
+            <li>
+                Authentication with <em>SmartID demo app</em> (where you can receive verification codes and enter PINs)
+                requires setting up a demo SmartID account. Please refer to the README.
+            </li>
+        {% endif %}
+    </ul>
+
+    <hr />
+
+    <h3>Choose authentication method</h3>
+
+    {% if ID_CARD_ENABLED %}
+        <a href="#" id="sign-id"><img alt="ID Card" src="{% static 'images/esteid/id-kaart-logo.gif' %}"></a>
+    {% endif %}
+    {% if MOBILE_ID_ENABLED %}
+        <a href="#" id="sign-mid"><img alt="Mobile ID" src="{% static 'images/esteid/mid-logo.gif' %}"></a>
+    {% endif %}
+    {% if SMART_ID_ENABLED %}
+        <a href="#" id="sign-smartid"><img alt="Smart ID"
+                                           src="{% static 'images/esteid/smartID-logo-btn.png' %}"></a>
+    {% endif %}
+
+    <hr />
+
+</div>
+
+<div class="modal fade" id="mid-modal">
+    <div class="modal-dialog">
+        <form name="mobileId">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Authentication with MobileID</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="phoneNrInput">Demo Phone nr:</label>
+                        <input type="text" name="phone_nr" id="phoneNrInput" class="form-control"
+                               value="{{ request.session.ddoc_test_phone_number | default:'+37200000766' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="idCodeInput">Demo ID code:</label>
+                        <input type="text" name="id_code" id="idCodeInput" class="form-control"
+                               value="{{ request.session.ddoc_test_id_code | default:'60001019906' }}" />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Authenticate</button>
+                    <div class="lds-dual-ring"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="challenge-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">MID Step 2</h4>
+            </div>
+
+            <div class="modal-body">
+                <p>
+                    Please enter the following code into your mobile to proceed with
+                    the signing process: <b id="challenge-code">KOOD</b>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="id-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Authentication with ID Card</h4>
+            </div>
+
+            <div class="modal-body">
+                <p>
+                    Please follow the instructions to complete the authentication process.
+                </p>
+                {# *** THIS IS NECESSARY ONLY FOR TESTING LOCALLY, BECAUSE OF THE SELF-SIGNED CERTIFICATE. *** #}
+                {# *** BEGIN *** #}
+                <hr>
+                <h3>Testing locally?</h3>
+                <p>
+                    If you haven't done it yet, open the link <br>
+                    <a href="#" id="auth-host"></a> <br>
+                    in a new tab and confirm security exception.
+                </p>
+                <p>
+                    <button onclick="securityException = true; authWithIDCard()">OK, DONE</button>
+                </p>
+                {# *** END ***  #}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="idCardAuthWrapper" />
+
+<div class="modal fade" id="smartid-modal">
+    <div class="modal-dialog">
+        <form name="smartId">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Authentication with SmartID</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="idCodeInput">Your ID code:</label>
+                        <input type="text" name="id_code" id="idCodeInput" class="form-control"
+                               value="{{ request.session.smartid_test_id_code | default:'10101010005' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="countryInput">Country:</label>
+                        <select name="country" id="countryInput" class="form-control">
+                            <option value="">-- Not selected -- (defaults to Estonia)</option>
+                            <option value="EE">Estonia</option>
+                            <option value="LV">Latvia</option>
+                            <option value="LT">Lithuania</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Authenticate</button>
+                    <div class="lds-dual-ring"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="verification-code-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="smartid-step">Verification code</h4>
+            </div>
+
+            <div class="modal-body">
+                <p>
+                    Make sure you are seeing this verification code on your device:
+                    <b id="smartid-verification-code">KOOD</b>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="success-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Authentication complete</h4>
+            </div>
+
+            <div class="modal-body">
+                <p>
+                    Greetings, <i id="given-name"></i> <i id="surname"></i>!
+                </p>
+
+                <a href="#" onclick="window.location.reload(); return false">OK</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+<script type="text/javascript" src="{% static 'esteid-new/hwcrypto.js' %}"></script>
+<script type="text/javascript" src="{% static 'esteid-new/Esteid.main.js' %}"></script>
+
+<script type="text/javascript">
+    function startSpinner(form) {
+        $("button", form).hide()
+        $(".lds-dual-ring", form).css("display", "inline-block")
+    }
+
+    function stopSpinner(form) {
+        $("button", form).show()
+        $(".lds-dual-ring", form).css("display", "none")
+    }
+
+    function onError(res) {
+        $('#verification-code-modal').modal("hide")
+        $('#challenge-modal').modal('hide')
+
+        console.log("Error:", res)
+        if (res && res.message) {
+            alert(res.message)
+        } else {
+            alert('Something went wrong, please try again')
+        }
+    }
+
+    {# *** TESTING ONLY *** #}
+    let securityException = false
+    {# *** In real apps, use some other algorithm to build the auth host name *** #}
+    const IFRAME_HOST = 'https://${RANDOM}.auth.127.0.0.1.xip.io:8443'.replace(
+        "${RANDOM}", Math.ceil(Number.MAX_SAFE_INTEGER * Math.random())
+    )
+
+    const idUrl = IFRAME_HOST + '{% url 'auth-idcard' %}'
+
+    const SITE_HOST = 'https://127.0.0.1.xip.io:8443'
+
+    function onAuthComplete(data) {
+        $('#success-modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        $('#given-name').text(data.given_name)
+        $('#surname').text(data.surname)
+    }
+
+    function authWithIDCard (e) {
+        e && e.preventDefault()
+
+        $('#id-modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        })
+
+        {# NECESSARY FOR TESTING ONLY #}
+        if (!securityException) { return }
+
+        var parentElement = document.getElementById('idCardAuthWrapper')
+
+        var idcardAuthFrame = document.createElement("iframe")
+        idcardAuthFrame.id = "idCardAuthFrame"
+        idcardAuthFrame.src = idUrl
+        idcardAuthFrame.width = 1
+        idcardAuthFrame.height = 1
+        idcardAuthFrame.onload = () => console.log("LOADED")
+        parentElement.appendChild(idcardAuthFrame)
+
+        function handleMessageFromIFrame(evt) {
+            if(evt.origin.startsWith(IFRAME_HOST) || evt.origin.startsWith(SITE_HOST)) {
+                console.log('idcardAuthFrame sent Data:', evt.data);
+                if (evt.data.error) {
+                    alert(evt.data.error + ": " + evt.data.message)
+                } else {
+                    onAuthComplete(evt.data)
+                }
+            } else {
+                console.error('Unexpected origin', evt.origin, 'Tried to send Data', evt.data);
+                alert("Something went wrong")
+            }
+            $('#id-modal').modal('hide')
+            parentElement.removeChild(idcardAuthFrame)
+            // remove the listener anyway.
+            window.removeEventListener('message', handleMessageFromIFrame, false)
+        }
+        window.addEventListener('message', handleMessageFromIFrame, false);
+    }
+
+    $(function () {
+        var authHostLink = document.getElementById('auth-host')
+        authHostLink.innerText = IFRAME_HOST
+        authHostLink.setAttribute('href', IFRAME_HOST)
+
+        var manager = new Esteid.IdentificationManager({
+            language: Esteid.Languages.ET,
+
+            idUrl, {# This is not used: Id Card authentication doesn't involve manager #}
+
+            mobileIdUrl: '{% url 'auth-mobileid' %}',
+
+            smartIdUrl: '{% url 'auth-smartid' %}',
+
+            csrfToken: '{{ csrf_token }}'
+        })
+
+        $('#sign-mid').on('click', function (e) {
+            e.preventDefault()
+
+            $('#mid-modal').modal()
+        })
+
+        var mobileIdForm = document.forms.mobileId
+        mobileIdForm.onsubmit = function (e) {
+            e.preventDefault()
+            var phoneNr = mobileIdForm.phone_nr.value
+            var idCode = mobileIdForm.id_code.value
+
+            if (!phoneNr) {
+                alert('Please enter a phone number')
+                return
+            }
+            if (!idCode) {
+                alert('Please enter an ID code')
+                return
+            }
+
+            console.log('MID: signing with phoneNr', phoneNr, 'and id code', idCode)
+
+            startSpinner(mobileIdForm)
+
+            // Call IdentificationManager.sign which calls the backend endpoint to start mobileId signing process
+            manager.signWithMobileId({
+                phoneNumber: phoneNr,
+                idCode: idCode,
+            })
+
+                .then(function (response) {
+                    console.log('MID: got verification code', response.verification_code)
+
+                    // Got response, show challenge modal
+                    $('#challenge-code').text(response.verification_code)
+                    $('#challenge-modal').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    })
+
+                    $('#mid-modal').modal('hide')
+
+                    manager.midStatus().then(
+                        function (data) {
+                            $('#challenge-modal').modal('hide')
+                            onAuthComplete(data)
+                        },
+                        onError
+                    ).finally(
+                        () => stopSpinner(mobileIdForm)
+                    )
+                }, onError)
+                .finally(
+                    () => stopSpinner(mobileIdForm)
+                )
+        }
+
+        $('#sign-smartid').on('click', function (e) {
+            e.preventDefault()
+
+            $('#smartid-modal').modal()
+        })
+
+        var smartIdForm = document.forms.smartId
+        smartIdForm.onsubmit = function (e) {
+            console.log("Signing with Smart ID")
+            var timeoutForVerificationCode = 3000  // delay polling to let user to enter verification code
+
+            function onAuthInitSuccess(response) {
+                // Got a successful auth-start request...
+                console.log('SmartID: auth verification code', response.verification_code)
+                $('#verification-code-modal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                })
+
+                $('#smartid-step').text('Authentication')
+                $('#smartid-verification-code').text(response.verification_code)
+
+                // ...next phase: start signing
+                // we don't want to start polling immediately because user will need to enter verification code
+                setTimeout(function () {
+                    manager.smartidStatus().then(
+                        (data) => {
+                            $('#smartid-modal').modal("hide")
+                            onAuthComplete(data)
+                        },
+                        onError
+                    ).finally(
+                        () => stopSpinner(smartIdForm)
+                    )
+                }, timeoutForVerificationCode)
+            }
+
+            e.preventDefault()
+            var idCode = smartIdForm.id_code.value
+            var country = smartIdForm.country.value
+
+            if (!idCode) {
+                alert('Please enter an ID code')
+                return
+            }
+
+            console.log('SmartID: signing with id code', idCode, 'and country', country)
+
+            startSpinner(smartIdForm)
+
+            manager.signWithSmartId({
+                idCode,
+                country,
+            }).then(
+                onAuthInitSuccess,
+                onError
+            ).finally(
+                () => stopSpinner(smartIdForm)
+            )
+        }
+
+        $('#sign-id').on('click', authWithIDCard)
+
+        $('#get-document').on('click', function () {
+            setTimeout(function () {
+                window.location.reload()
+            }, 2000)
+        })
+    })
+
+</script>
+
+</body>
+</html>

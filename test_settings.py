@@ -9,6 +9,8 @@ ID_CARD_ENABLED = True
 MOBILE_ID_ENABLED = True
 SMART_ID_ENABLED = True
 
+ID_CARD_FRAME_TARGET_ORIGIN = "https://127.0.0.1.xip.io:8443"
+
 # ***** End of Esteid service settings ******
 
 DEBUG = True

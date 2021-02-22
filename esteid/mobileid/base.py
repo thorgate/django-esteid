@@ -9,7 +9,8 @@ from ..constants import HASH_ALGORITHMS, HASH_SHA256, Languages
 from ..exceptions import CanceledByUser
 from ..exceptions import EsteidError as MobileIDError
 from ..exceptions import InvalidIdCode, SignatureVerificationError, UpstreamServiceError, UserNotRegistered, UserTimeout
-from ..util import generate_hash, id_code_ee_is_valid, secure_random
+from ..util import generate_hash, secure_random
+from ..validators import id_code_ee_is_valid
 from .constants import EndResults
 from .types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
 from .utils import get_verification_code
@@ -108,7 +109,7 @@ class MobileIDService(BaseSKService):
 
         random_bytes = secure_random(64)
         hash_value = generate_hash(hash_type, random_bytes)
-        hash_value_b64 = base64.b64encode(hash_value)
+        hash_value_b64 = base64.b64encode(hash_value).decode("utf-8")
 
         endpoint = self.Actions.AUTH
 
@@ -119,7 +120,7 @@ class MobileIDService(BaseSKService):
                 "nationalIdentityNumber": id_code,
                 "phoneNumber": phone_number,
                 "hashType": hash_type,
-                "hash": hash_value_b64.decode("utf-8"),
+                "hash": hash_value_b64,
                 "language": language,
                 # Casting to str to ensure translations are resolved
                 "displayText": message,  # NOTE: hard 20-char limit
@@ -130,19 +131,20 @@ class MobileIDService(BaseSKService):
         assert "sessionID" in result, "No session id in {result}".format(result=result)
         return AuthenticateResult(
             session_id=result["sessionID"],
-            digest=hash_value,
+            hash_value=hash_value,
+            hash_value_b64=hash_value_b64,
             hash_type=hash_type,
             verification_code=get_verification_code(hash_value),
         )
 
-    def status(self, session_id: str, digest: bytes, timeout: int = 10000):
+    def status(self, session_id: str, hash_value: bytes, timeout: int = 10000):
         """
         Retrieve auth session result from Mobile-ID backend
 
         see https://github.com/SK-EID/MID#33-status-of-signing-and-authentication
 
         :param session_id: session ID, from auth result
-        :param digest: hash value that was used to initiate auth
+        :param hash_value: hash value that was used to initiate auth
         :param int timeout: Request long poll timeout value in milliseconds (Note: server uses a default
                          if client does not send it)
         :rtype: AuthenticateStatusResult
@@ -157,17 +159,17 @@ class MobileIDService(BaseSKService):
         assert signature_algorithm[:6].upper() in HASH_ALGORITHMS
 
         # cert: Certificate value, DER+Base64 encoded
-        cert_value = base64.b64decode(data["cert"])
+        cert_value_b64 = data["cert"]
+        cert_value = base64.b64decode(cert_value_b64)
 
         try:
-            pyasice.verify(cert_value, signature_value, digest, signature_algorithm[:6], prehashed=True)
+            pyasice.verify(cert_value, signature_value, hash_value, signature_algorithm[:6], prehashed=True)
         except pyasice.SignatureVerificationError as e:
             raise SignatureVerificationError from e
 
         return AuthenticateStatusResult(
             certificate=cert_value,
-            signature=signature_value,
-            signature_algorithm=signature_algorithm,
+            certificate_b64=cert_value_b64,
         )
 
     def sign(
@@ -290,14 +292,15 @@ class MobileIDService(BaseSKService):
         if end_result != EndResults.OK:
             if end_result == EndResults.TIMEOUT:
                 raise UserTimeout
-            elif end_result == EndResults.USER_CANCELLED:
+            if end_result == EndResults.USER_CANCELLED:
                 raise CanceledByUser
-            elif end_result == EndResults.NOT_MID_CLIENT:
+            if end_result == EndResults.NOT_MID_CLIENT:
                 raise UserNotRegistered
             # Fail hard, if endResult is something unknown to us
             if end_result not in EndResults.ALL:
                 raise MobileIDError(f"Unexpected result '{end_result}' reported")
 
-            raise UpstreamServiceError(f"Service returned {end_result}", service=self.NAME)
+            # pylint can't identify self.NAME
+            raise UpstreamServiceError(f"Service returned {end_result}", service=self.NAME)  # pylint: disable=no-member
 
         return data

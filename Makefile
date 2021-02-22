@@ -37,6 +37,7 @@ lint:  ## Run python linters
 	black --check .
 	isort --check-only --project=$(PROJECT) .
 	flake8 $(PROJECT)
+	pylint $(PROJECT)
 
 .PHONY:
 test:  ## Run all python tests in the current virtual env

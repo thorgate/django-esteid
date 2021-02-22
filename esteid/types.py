@@ -112,23 +112,11 @@ class Signer(FromDictMixin):
         For a closer look at where the attributes come from:
         asn1crypto.x509.NameType
         """
-        if isinstance(cert, bytes):
-            cert = load_certificate(cert)
-        cert: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
-        subject = cert.subject.native
-
-        # ID codes usually given as PNO{EE,LT,LV}-XXXXXX.
-        # LV ID codes contain a dash so we need to be careful about it.
-        id_code = subject["serial_number"]
-        if id_code.startswith("PNO"):
-            prefix, id_code = id_code.split("-", 1)
-
-        given_name = subject["given_name"]
-        surname = subject["surname"]
+        cert_holder_info = CertificateHolderInfo.from_certificate(cert)
         return cls(
-            certificate=Certificate.from_certificate(cert),
-            full_name=f"{given_name} {surname}",
-            id_code=id_code,
+            certificate=Certificate.from_certificate(cert_holder_info.asn1_certificate),
+            full_name=f"{cert_holder_info.given_name} {cert_holder_info.surname}",
+            id_code=cert_holder_info.id_code,
         )
 
 
@@ -242,3 +230,97 @@ class DataFile:
         self.content = content
 
         self.info = info
+
+
+class PredictableDict(dict):
+    """
+    Allows attribute-style access to values of a dict.
+
+    Define necessary attributes as type annotations on your subclass:
+
+        class Z(PredictableDict):
+            required_attr: str
+            optional_attr: Optional[str]
+
+    and you will get nice attribute-style access with type hints.
+
+    Validate the presence of all required attributes and type-check all attributes with:
+
+        Z(required_attr="test").is_valid()
+
+    Subclasses inherit annotated attributes and can override them, just like normal class attributes.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    def is_valid(self, raise_exception=True):
+        for attr_name, attr_type in self._get_annotations().items():
+            # type -> (type, )
+            # Union[T, S] -> U.__args__ == (T, S)
+            valid_types = getattr(attr_type, "__args__", (attr_type,))
+
+            try:
+                val = self[attr_name]
+            except KeyError as e:
+                # No error for optional fields.
+                if type(None) in valid_types:
+                    # Optional[T] == Union[T, NoneType]
+                    continue
+
+                if not raise_exception:
+                    return False
+                raise ValueError(f"Missing required key {attr_name}") from e
+
+            if type(val) not in valid_types:
+                if not raise_exception:
+                    return False
+                raise ValueError(f"Wrong type {type(val)} for key {attr_name}")
+
+        return True
+
+    @classmethod
+    def _get_annotations(cls):
+        """Collects annotations from all parent classes according to inheritance rules."""
+        annotations = {}
+        for klass in reversed(cls.__mro__):
+            overrides = getattr(klass, "__annotations__", None)
+            if overrides:
+                annotations.update(overrides)
+        return annotations
+
+
+class CertificateHolderInfo(PredictableDict):
+    given_name: str
+    surname: str
+    id_code: str
+    country: str
+    asn1_certificate: "Asn1CryptoCertificate"
+
+    @classmethod
+    def from_certificate(cls, cert: "Union[bytes, Asn1CryptoCertificate, OsCryptoCertificate]"):
+        """
+        Get personal info from an oscrypto/asn1crypto Certificate object
+
+        For a closer look at where the attributes come from:
+        asn1crypto.x509.NameType
+        """
+        if isinstance(cert, bytes):
+            cert = load_certificate(cert)
+        cert: "Asn1CryptoCertificate" = getattr(cert, "asn1", cert)
+        subject = cert.subject.native
+
+        # ID codes usually given as PNO{EE,LT,LV}-XXXXXX.
+        # LV ID codes contain a dash so we need to be careful about it.
+        id_code = subject["serial_number"]
+        if id_code.startswith("PNO"):
+            prefix, id_code = id_code.split("-", 1)  # pylint: disable=unused-variable
+
+        return cls(
+            country=subject["country_name"],
+            id_code=id_code,
+            given_name=subject["given_name"],
+            surname=subject["surname"],
+            asn1_certificate=cert,
+        )

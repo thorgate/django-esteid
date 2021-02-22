@@ -94,23 +94,23 @@ class BaseSKService:
                 logger.exception("API authentication failure at %s: %s", req.url, e.response.text)
                 raise InvalidCredentials from e
 
-            elif status_code == 400:
+            if status_code == 400:
                 logger.exception("Bad Request to %s. Response:\n%s", req.url, e.response.text)
                 raise BadRequest from e
 
-            elif status_code == 480:
+            if status_code == 480:
                 logger.exception("Service reported Unsupported Client at %s. Response:\n%s", req.url, e.response.text)
                 raise UnsupportedClientImplementation(service=self.NAME) from e
 
             # 580 System is under maintenance, retry later.
             # see https://github.com/SK-EID/smart-id-documentation#413-http-status-code-usage
             # (Note: Though not documented, Mobile ID also returns this occasionally.)
-            elif status_code == 580:
+            if status_code == 580:
                 logger.exception("Service %s on maintenance.", self.NAME)
                 raise OfflineError("Maintenance", service=self.NAME) from e
 
             # Raise proxy errors as OfflineError
-            elif status_code in [502, 503, 504]:
+            if status_code in [502, 503, 504]:
                 logger.exception("Service %s not available (HTTP %s).", req.url, status_code)
                 raise OfflineError(f"Proxy error: {status_code}", service=self.NAME) from e
 
@@ -120,7 +120,7 @@ class BaseSKService:
 
         try:
             return response.json()
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             logger.exception("Failed to parse %s response as JSON:\n%s", req.url, response.content)
             raise UpstreamServiceError("Failed to parse response as JSON", service=self.NAME) from e
 
@@ -146,7 +146,7 @@ class BaseSKService:
         except UpstreamServiceError as e:
             cause = getattr(e, "__cause__", None)
             if isinstance(cause, requests.HTTPError):
-                response = cause.response
+                response = cause.response  # pylint: disable=no-member
                 if response.status_code == 404:
                     raise SessionDoesNotExist(session_id) from e
 

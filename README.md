@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/thorgate/django-esteid.svg?branch=master)](https://travis-ci.org/thorgate/django-esteid)
 [![Coverage Status](https://coveralls.io/repos/github/thorgate/django-esteid/badge.svg?branch=master)](https://coveralls.io/github/thorgate/django-esteid?branch=master)
 
-Django-esteid is a package that provides Esteid based authentication for your Django applications.
+Django-esteid is a package that provides Esteid based authentication and signing for your Django applications.
 
 ## Quickstart
 
@@ -20,9 +20,9 @@ Add `esteid` to installed apps:
         # ...
     ]
 
-There is currently no integration reference (work is in progress), but please take a look 
-at the [test page](./esteid/templates/esteid/test-new.html) for some insight, 
-and read the [testing](#testing) section below.
+Please refer to the more detailed guides on [signing](esteid/signing) and [authentication](esteid/authentication).    
+
+Be sure to read the [testing](#testing) section below.
 
 Static files such as the services' logos and helper JS are also shipped with this library. 
 
@@ -34,7 +34,7 @@ Detailed docs are [here](esteid/smartid/README.md).
 
 Detailed docs are [here](esteid/mobileid/README.md).
 
-### Id Card
+### ID Card
 
 Detailed docs are [here](esteid/idcard/README.md).
 
@@ -48,6 +48,8 @@ You can
 This way you can easily manage the necessary services displayed on the auth/signing page.
 
 ## Testing
+
+For a guide to authentication testing, please refer to [the authentication readme](./esteid/authentication/README.md).
 
 There is a possibility to test the signing flow with ID card, SmartID 
 and Mobile ID (the demo services) with the test views coming with the library.
@@ -78,10 +80,10 @@ You can also register a demo SmartID account and use a demo SmartID app to enter
 
 ### ID card
 
-ID card signing requires SSL to work, even in a testing enviorment.  
+ID card signing requires SSL to work, even in a testing environment.  
 Note that the signature will not be valid neither with the real certificates, nor with the test ones. 
 
-To perform signing with ID card, you would need the `chrome-token-signing` package installed.
+To perform signing with ID card, you would need the `chrome-token-signing` browser plugin installed.
 `apt-get install chrome-token-signing`
 
 #### Testing with ssl
@@ -96,7 +98,7 @@ If you need to create your own cert using openssl:
 openssl req -x509 -out localhost.crt -keyout localhost.key \
   -newkey rsa:2048 -nodes -sha256 \
   -subj '/CN=localhost' -extensions EXT -config <( \
-   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name=dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
 ```
 Then start the HTTPS webserver as follows: 
 

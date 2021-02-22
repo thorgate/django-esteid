@@ -1,41 +1,17 @@
 import logging
-from typing import List, Optional
+from typing import List
 
 import pyasice
 from pyasice import Container, XmlSignature
 
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameters
 from esteid.signing import DataFile, Signer
-from esteid.signing.types import InterimSessionData, PredictableDict
 
-from .base import validate_id_code
-from .constants import Countries
 from .i18n import TranslatedSmartIDService
+from .types import SmartIdSessionData, UserInput
 
 
 logger = logging.getLogger(__name__)
-
-
-class UserInput(PredictableDict):
-    id_code: str
-    country: Optional[str]
-
-    def is_valid(self, raise_exception=True):
-        """
-        Raises InvalidIdCode or ValueError
-        """
-        result = super().is_valid(raise_exception=raise_exception)
-        if result:
-            if not (self.get("country") and self.country in Countries.ALL):
-                self.country = Countries.ESTONIA
-
-            validate_id_code(self.id_code, self.country)
-
-        return result
-
-
-class SmartIdSessionData(InterimSessionData):
-    session_id: str
 
 
 class SmartIdSigner(Signer):

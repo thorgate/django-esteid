@@ -3,6 +3,7 @@ import os
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
 
 import esteid.flowtest.urls
 
@@ -27,6 +28,7 @@ if settings.DEBUG or settings.ROOT_URLCONF == __name__:
         url("^$", SKTestView.as_view(), name="sk_test"),
         # NOTE: compare the template test-new.html to test.html locally to see JS changes.
         url(r"^new/", SKTestView.as_view(template_name="esteid/test-new.html"), name="sk_test_new"),
+        url(r"^new-auth/", TemplateView.as_view(template_name="esteid/auth-new.html"), name="sk_test_auth_new"),
         url(r"^download/", TestDownloadContainerView.as_view(), name="download_signed_container"),
         url(r"^id/start/", TestIdCardSignView.as_view(), name="test_id_start"),
         url(r"^id/finish/", TestIdCardFinishView.as_view(), name="test_id_finish"),

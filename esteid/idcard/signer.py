@@ -9,7 +9,7 @@ import pyasice
 
 from esteid.exceptions import InvalidParameter, SignatureVerificationError
 from esteid.signing import DataFile, Signer
-from esteid.types import Signer as SignerInfo
+from esteid.types import CertificateHolderInfo
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ class IdCardSigner(Signer):
         except AttributeError as e:
             raise AttributeError("Attribute id_code not available: certificate not provided") from e
 
-        signer_info = SignerInfo.from_certificate(certificate_handle)
-        return signer_info.id_code
+        cert_holder_info = CertificateHolderInfo.from_certificate(certificate_handle)
+        return cert_holder_info.id_code
 
     def setup(self, initial_data: dict = None):
         """

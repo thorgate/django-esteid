@@ -10,7 +10,7 @@ import pyasice
 from pyasice import Container, XmlSignature
 
 from esteid import settings
-from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists, UpstreamServiceError
+from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 
 from .types import DataFile, InterimSessionData
 
@@ -54,7 +54,7 @@ class Signer:
     _SESSION_KEY = f"{__name__}.session"
 
     # timeout in seconds, after which a fresh session can be started even if old session data is present.
-    SESSION_VALIDITY_TIMEOUT = 1  # 60 * 2
+    SESSION_VALIDITY_TIMEOUT = 60 * 2
 
     # the signing party's ID code, public attribute/property for use in checks etc.
     id_code: str
@@ -119,10 +119,18 @@ class Signer:
 
     def load_session_data(self, session) -> InterimSessionData:
         try:
-            session_data = self.SessionData(session[self._SESSION_KEY])
-        except (KeyError, TypeError):
+            session_data = session[self._SESSION_KEY]
+        except KeyError:
+            session_data = {}
+
+        try:
+            session_data = self.SessionData(session_data)
+        except TypeError:
             session_data = self.SessionData()
-        self.session_data = session_data
+            self._cleanup_session(session)
+
+        # Not doing session data validation here, because
+        # an instance of another type may need different data
         return session_data
 
     def __init__(self, session, initial=False):
@@ -140,8 +148,11 @@ class Signer:
                 except AttributeError:
                     timestamp = 0
 
-                if not timestamp or time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
                     raise SigningSessionExists("Another signing session already in progress")
+
+                # session expired => create a fresh data store
+                session_data = self.SessionData()
 
                 # clear the old session data. This incurs no DB overhead:
                 # Django issues the actual DB query only in the process_response phase.
@@ -154,7 +165,12 @@ class Signer:
                 session_data.is_valid()
             except ValueError as e:
                 raise SigningSessionDoesNotExist("Invalid signing session") from e
+
+            if time() > session_data.timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                raise SigningSessionDoesNotExist("This signing session has expired")
+
         self.session = session
+        self.session_data = session_data
 
     def cleanup(self):
         """
@@ -230,8 +246,8 @@ class Signer:
                 tsa_url=settings.TSA_URL,
             )
         except pyasice.Error as e:
-            logger.exception("Signature confirmation service error")
-            raise UpstreamServiceError("Signature confirmation service error") from e
+            logger.exception("Signature confirmation error")
+            raise EsteidError("Signature confirmation error") from e
 
     # "Magic" registration of subclasses
 
@@ -243,11 +259,16 @@ class Signer:
             raise EsteidError(f"Failed to load signer: method `{signing_method}` not registered") from e
         return signer_class
 
-    def __init_subclass__(cls):
-        """Registers subclasses automatically"""
+    @classmethod
+    def get_method_name(cls):
         method = cls.__name__.lower()
         if method.endswith("signer"):
             method = method[:-6]
+        return method
+
+    def __init_subclass__(cls):
+        """Registers subclasses automatically"""
+        method = cls.get_method_name()
         assert method not in Signer.SIGNING_METHODS, f"A Signer for {method} is already registered"
 
         Signer.SIGNING_METHODS[method] = cls

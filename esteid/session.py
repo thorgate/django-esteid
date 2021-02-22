@@ -1,9 +1,14 @@
+# pragma: no cover
 import os
+import warnings
 from typing import List
 
 from pyasice import Container
 
 from esteid.types import DataFile
+
+
+warnings.warn("This module is deprecated. Please use the new API", DeprecationWarning)
 
 
 SESSION_KEY = "__esteid_session"

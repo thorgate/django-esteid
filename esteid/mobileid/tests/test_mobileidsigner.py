@@ -1,6 +1,7 @@
 import base64
 import os
 from tempfile import NamedTemporaryFile
+from time import time
 from unittest.mock import patch
 
 import pytest
@@ -27,7 +28,7 @@ def mobileid_session_data():
         "temp_signature_file": f.name,
         "temp_container_file": "...",
         "session_id": "...",
-        "timestamp": 1,
+        "timestamp": int(time()),
     }
     os.remove(f.name)
 
@@ -97,7 +98,7 @@ def test_mobileidsigner_setup(data, error):
                 "temp_signature_file": "a",
                 "temp_container_file": "b",
                 "session_id": "c",
-                "timestamp": 1,
+                "timestamp": int(time()),
             },
             None,
             id="Good session data",

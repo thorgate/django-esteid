@@ -175,14 +175,12 @@ def test_authentication_flow_lt(demo_api, SMARTID_DEMO_ID_CODE_LT):
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
 
-def run_sign_flow(demo_api: SmartIDService, id_number=None, country=None, doc_num=None, signed_data=None, timeout=60):
+def run_sign_flow(demo_api: SmartIDService, doc_num=None, signed_data=None, timeout=60):
     """Run full sign flow w/ a hash algorithm
 
     id_number from https://github.com/SK-EID/smart-id-documentation/wiki/Environment-technical-parameters
 
     :param demo_api:
-    :param str id_number:
-    :param str country:
     :param str doc_num: alternatively to id_number+country
     :param bytes signed_data: content to sign
     :param int timeout: how long to wait for a result. NOTE: if user input is expected, ensure at least 1 minute
@@ -190,10 +188,8 @@ def run_sign_flow(demo_api: SmartIDService, id_number=None, country=None, doc_nu
     """
     if signed_data is None:
         signed_data = b"Test"
-    if doc_num is not None:
-        res = demo_api.sign_by_document_number(doc_num, signed_data)
-    else:
-        res = demo_api.sign(id_number, country, signed_data)
+
+    res = demo_api.sign_by_document_number(doc_num, signed_data)
     assert isinstance(res, SignResult)
 
     # All fields must be set
@@ -225,11 +221,8 @@ def test_sign_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     data = b"Hello World!"
     mime_type = "text/plain"
 
-    # Authenticate user
-    auth_result = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA)
-
     # Select user's certificate
-    subject_cert, _ = demo_api.select_signing_certificate(document_number=auth_result.document_number)
+    subject_cert, document_number = demo_api.select_signing_certificate(SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA)
 
     # Generate a XAdES signature
     xs: XmlSignature = (
@@ -240,7 +233,7 @@ def test_sign_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     )
 
     # Sign the XAdES structure
-    sign_result = run_sign_flow(demo_api, doc_num=auth_result.document_number, signed_data=xs.signed_data())
+    sign_result = run_sign_flow(demo_api, doc_num=document_number, signed_data=xs.signed_data())
     xs.set_signature_value(sign_result.signature)
 
     # prove that all went right

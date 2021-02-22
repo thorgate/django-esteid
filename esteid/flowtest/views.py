@@ -1,15 +1,18 @@
 import base64
 from tempfile import NamedTemporaryFile
 
-from django.views.generic import DetailView
+from django.views.generic import DetailView, View
 from rest_framework.views import APIView
 
 from pyasice import Container
 
+from esteid.authentication import AuthenticationViewDjangoMixin, AuthenticationViewRestMixin
 from esteid.signing import DataFile, SignViewDjangoMixin, SignViewRestMixin
 
 # Register our signers
+from ..authentication.types import AuthenticationResult
 from ..idcard import IdCardSigner  # noqa
+from ..idcard import BaseIdCardAuthenticationView
 from ..mobileid import MobileIdSigner  # noqa
 from ..smartid import SmartIdSigner  # noqa
 from .signer import MyPostSigner, MySigner  # noqa
@@ -42,3 +45,18 @@ class SigningTestView(BaseMethods, SignViewDjangoMixin, DetailView):
 
 class SigningTestRestView(BaseMethods, SignViewRestMixin, APIView):
     pass
+
+
+class IDCardAuthTestView(BaseIdCardAuthenticationView):
+    def on_auth_success(self, request, auth_result: AuthenticationResult):
+        pass
+
+
+class AuthTestView(AuthenticationViewDjangoMixin, View):
+    def on_auth_success(self, request, data: AuthenticationResult):
+        pass
+
+
+class AuthTestRestView(AuthenticationViewRestMixin, APIView):
+    def on_auth_success(self, request, data: AuthenticationResult):
+        pass
