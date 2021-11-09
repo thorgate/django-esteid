@@ -131,7 +131,7 @@ def test_all_hash_algorithms(demo_api, hash_type, SMARTID_DEMO_ID_CODE_EE):
     """
     status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA, hash_type)
 
-    assert status_res.document_number == "PNOEE-10101010005-Z1B2-Q"
+    assert status_res.document_number == "PNOEE-30303039914-5QSV-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
@@ -144,7 +144,7 @@ def test_authentication_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     """
     status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA)
 
-    assert status_res.document_number == f"PNOEE-{SMARTID_DEMO_ID_CODE_EE}-Z1B2-Q"
+    assert status_res.document_number == f"PNOEE-{SMARTID_DEMO_ID_CODE_EE}-5QSV-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
@@ -157,7 +157,7 @@ def test_authentication_flow_lv(demo_api, SMARTID_DEMO_ID_CODE_LV):
     """
     status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_LV, Countries.LATVIA)
 
-    assert status_res.document_number == f"PNOLV-{SMARTID_DEMO_ID_CODE_LV}-SGT7-Q"
+    assert status_res.document_number == f"PNOLV-{SMARTID_DEMO_ID_CODE_LV}-0DJ2-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
@@ -170,7 +170,7 @@ def test_authentication_flow_lt(demo_api, SMARTID_DEMO_ID_CODE_LT):
     """
     status_res = run_authentication_flow(demo_api, SMARTID_DEMO_ID_CODE_LT, Countries.LITHUANIA)
 
-    assert status_res.document_number == f"PNOLT-{SMARTID_DEMO_ID_CODE_LT}-Z52N-Q"
+    assert status_res.document_number == f"PNOLT-{SMARTID_DEMO_ID_CODE_LT}-PBZK-Q"
     assert status_res.certificate
     assert status_res.certificate_level == CERTIFICATE_LEVEL_QUALIFIED
 
@@ -258,6 +258,7 @@ def test_sign_flow_ee(demo_api, SMARTID_DEMO_ID_CODE_EE):
     bdoc_file = Container()
     bdoc_file.add_file(file_name, data, mime_type)
     bdoc_file.add_signature(xs)
+    bdoc_file._write_manifest()
 
     bdoc_file.verify_container()
     bdoc_file.verify_signatures()

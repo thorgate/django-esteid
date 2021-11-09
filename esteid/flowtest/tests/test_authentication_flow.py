@@ -75,7 +75,7 @@ def mobileid_auth_status_response(static_certificate):
 
 @pytest.fixture()
 def smartid_data():
-    return {"id_code": "10101010005", "country": "EE"}
+    return {"id_code": "30303039914", "country": "EE"}
 
 
 @pytest.fixture()

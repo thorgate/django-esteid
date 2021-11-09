@@ -23,17 +23,17 @@ def i18n_demo_api():
 
 @pytest.fixture
 def SMARTID_DEMO_ID_CODE_EE():
-    return "10101010005"
+    return "30303039914"
 
 
 @pytest.fixture
 def SMARTID_DEMO_ID_CODE_LT():
-    return "10101010005"
+    return "30303039914"
 
 
 @pytest.fixture
 def SMARTID_DEMO_ID_CODE_LV():
-    return "010101-10006"
+    return "030303-10012"
 
 
 @pytest.fixture
