@@ -42,40 +42,40 @@ class OCSPVerifier(object):
             return 4
 
         # Save cert to a temporary file
-        cert_file = NamedTemporaryFile(delete=False)
-        cert_file.write(force_bytes(self.certificate.replace("\t", "")))
-        cert_file.close()
+        with NamedTemporaryFile(delete=False) as cert_file:
+            cert_file.write(force_bytes(self.certificate.replace("\t", "")))
+            cert_file.close()
 
-        # Run openssl ocsp verify command
-        args = [
-            "openssl",
-            "ocsp",
-            "-issuer %s" % issuer_cert_filename,
-            "-cert %s" % cert_file.name,
-            "-url %s" % self.ocsp_url,
-            "-VAfile %s" % self.va_file_path,
-        ]
+            # Run openssl ocsp verify command
+            args = [
+                "openssl",
+                "ocsp",
+                f"-issuer {issuer_cert_filename}",
+                f"-cert {cert_file.name}",
+                f"-url {self.ocsp_url}",
+                f"-VAfile {self.va_file_path}",
+            ]
 
-        try:
-            output = subprocess.check_output(" ".join(args), stderr=subprocess.STDOUT, shell=True)
-            output = force_text(output)
+            try:
+                output = subprocess.check_output(" ".join(args), stderr=subprocess.STDOUT, shell=True)
+                output = force_text(output)
 
-            if ": good" in output:
-                result = 0
+                if ": good" in output:
+                    result = 0
 
-            elif ": revoked" in output:
-                result = 6
+                elif ": revoked" in output:
+                    result = 6
 
-            else:
-                logger.info("openssl ocsp: unknown output: %s", output)
-                result = 7
+                else:
+                    logger.info("openssl ocsp: unknown output: %s", output)
+                    result = 7
 
-        except subprocess.CalledProcessError as e:
-            logger.error("openssl ocsp: failed with output: %s", e.output)
-            result = 5
+            except subprocess.CalledProcessError as e:
+                logger.error("openssl ocsp: failed with output: %s", e.output)
+                result = 5
 
-        # delete temporary file
-        os.unlink(cert_file.name)
+            # delete temporary file
+            os.unlink(cert_file.name)
 
         return result
 

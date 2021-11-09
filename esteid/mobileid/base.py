@@ -64,11 +64,7 @@ class MobileIDService(BaseSKService):
         if status == "OK":
             return base64.b64decode(result["cert"])
         if status == "NOT_FOUND":
-            raise UserNotRegistered(
-                "User with phone number {phone} and ID code {id_code} not found".format(
-                    phone=phone_number, id_code=id_code
-                )
-            )
+            raise UserNotRegistered(f"User with phone number {phone_number} and ID code {id_code} not found")
         raise MobileIDError("Unknown response format")
 
     def authenticate(
@@ -128,7 +124,7 @@ class MobileIDService(BaseSKService):
             },
         )
 
-        assert "sessionID" in result, "No session id in {result}".format(result=result)
+        assert "sessionID" in result, f"No session id in {result}"
         return AuthenticateResult(
             session_id=result["sessionID"],
             hash_value=hash_value,

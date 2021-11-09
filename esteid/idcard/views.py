@@ -143,7 +143,7 @@ class BaseIdCardAuthenticationView(View):
             data = self.success_response(request, auth_result)
             context = {"auth_result": data, "auth_result_json": json.dumps(data)}
 
-        with open(self.TEMPLATE_DIRECTORY / template_file) as f:
+        with open(self.TEMPLATE_DIRECTORY / template_file, encoding="utf-8") as f:
             template = Template(f.read())
 
         context["iframe_target_origin"] = settings.ID_CARD_FRAME_TARGET_ORIGIN

@@ -80,7 +80,7 @@ class SKTestView(TemplateView):
 
                 idx = 1
                 while file_name in files.keys():
-                    file_name = "%d_%s" % (idx, file_name)
+                    file_name = f"{idx}_{file_name}"
                     idx += 1
 
                 files[file_name] = dict(

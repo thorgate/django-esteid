@@ -17,5 +17,6 @@ def get_verification_code(hash_value):
     based on https://github.com/SK-EID/smart-id-documentation#612-computing-the-verification-code
     """
     digest = hashlib.sha256(hash_value).digest()
+    raw_value = struct.unpack(">H", digest[-2:])[0] % 10000
 
-    return "{:04}".format(struct.unpack(">H", digest[-2:])[0] % 10000)
+    return f"{raw_value:04}"

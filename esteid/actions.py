@@ -176,7 +176,7 @@ class IdCardFinishAction(BaseAction):
 
 class SignCompleteAction(BaseAction):
     @classmethod
-    def do_action(cls, view, action_kwargs):
+    def do_action(cls, view, params):
         """Return the signed container"""
         raise NotImplementedError
 

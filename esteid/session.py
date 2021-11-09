@@ -1,7 +1,8 @@
 # pragma: no cover
 import os
 import warnings
-from typing import List
+from io import BytesIO
+from typing import List, Union
 
 from pyasice import Container
 
@@ -52,11 +53,14 @@ def delete_esteid_session(request):
             pass
 
 
-def open_container(container_path: str = None, files_to_sign: List[DataFile] = None):
+def open_container(container_path: Union[str, BytesIO] = None, files_to_sign: List[DataFile] = None):
     """Open an existing BDoc container, or create a container with files to sign"""
     if container_path:
         # Take files from an existing container, ignore files_to_sign
-        container = Container.open(container_path)
+        if isinstance(container_path, str):
+            container = Container.open(container_path)
+        else:
+            container = Container(container_path)
     elif files_to_sign:
         container = Container()
         for data_file in files_to_sign:

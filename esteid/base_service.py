@@ -60,7 +60,7 @@ class BaseSKService:
         }
 
     def api_url(self, endpoint):
-        return "{api_root}{endpoint}".format(api_root=self.api_root, endpoint=endpoint)
+        return f"{self.api_root}{endpoint}"
 
     def invoke(self, endpoint, method="GET", query=None, data=None):
         query = query or {}

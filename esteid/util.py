@@ -80,7 +80,7 @@ def get_typed_list_validator(klass):
             raise TypeError("Value MUST be a list")
 
         if not all(isinstance(x, klass) for x in value):
-            raise TypeError("Value MUST be a list of {}".format(klass))
+            raise TypeError(f"Value MUST be a list of {klass}")
 
     return _get_typed_list_validator
 
@@ -141,6 +141,6 @@ def parse_rfc_dn(dn):
             res[c_key] = part[1]
 
         elif c_key:
-            res[c_key] = "{0},{1}".format(res[c_key], part)
+            res[c_key] = f"{res[c_key]},{part}"
 
     return res
