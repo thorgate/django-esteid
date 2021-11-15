@@ -21,4 +21,4 @@ jobs:
       - name: Set poetry token
         run: poetry config http-basic.pypi __token__ ${{ secrets.POETRY_TOKEN }}
       - name: Publish to pypi
-        run: poetry publish
+        run: poetry publish --build
