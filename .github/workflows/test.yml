@@ -50,5 +50,7 @@ jobs:
       - name: Publish coverage
         run: pip install coveralls && coveralls
         if: ${{ matrix.COVERALLS == '1' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
 
 # TODO: Deploy part too!
