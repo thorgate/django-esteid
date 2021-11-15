@@ -9,6 +9,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 import pyasice
 
 from esteid.compat import container_info
+from esteid.session import open_container
 from esteid.types import Certificate, DataFileInfo, SignedDocInfo, Signer
 
 
@@ -34,20 +35,34 @@ def test_signeddocinfo_from_dict(signed_doc_dict):
     ]
 
 
+def assert_container(container_data):
+    assert container_data.format == "BDOC"
+    assert container_data.version == "2.1"
+    assert container_data.mime_type == pyasice.Container.MIME_TYPE
+
+    assert len(container_data.signature_info) == 1
+    assert container_data.signature_info[0].signing_time
+    assert container_data.signature_info[0].signer.id_code == "60001019906"
+
+    assert len(container_data.data_file_info) == 1
+    assert container_data.data_file_info[0].filename == "test.txt"
+
+
 def test_signeddocinfo_from_container(signed_container_file):
     with pyasice.Container(signed_container_file) as container:
         data = container_info(container)
 
-    assert data.format == "BDOC"
-    assert data.version == "2.1"
-    assert data.mime_type == pyasice.Container.MIME_TYPE
+    assert_container(data)
 
-    assert len(data.signature_info) == 1
-    assert data.signature_info[0].signing_time
-    assert data.signature_info[0].signer.id_code == "60001019906"
 
-    assert len(data.data_file_info) == 1
-    assert data.data_file_info[0].filename == "test.txt"
+def test_open_container_file(signed_container_file, signed_container_path):
+    # Can pass a file handle
+    container = open_container(signed_container_file)
+    assert_container(container_info(container))
+
+    # Can pass a file path too
+    container = open_container(str(signed_container_path.absolute()))
+    assert_container(container_info(container))
 
 
 @pytest.mark.parametrize("cert_type", ["bytes", "asn1", "oscrypto"])

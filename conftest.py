@@ -149,9 +149,14 @@ def static_certificate():
 
 
 @pytest.fixture()
-def signed_container_file():
+def signed_container_path():
+    return Path(__file__).parent / "esteid" / "tests" / "files" / "signed-test-mobileid-ee.asice"
+
+
+@pytest.fixture()
+def signed_container_file(signed_container_path):
     """A real container signed via the Demo MobileID service with a test account"""
-    with open(Path(__file__).parent / "esteid" / "tests" / "files" / "signed-test-mobileid-ee.asice", "rb") as f:
+    with open(signed_container_path, "rb") as f:
         yield f
 
 

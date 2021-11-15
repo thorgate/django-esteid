@@ -65,7 +65,7 @@ class BaseIdCardMiddleware(MiddlewareMixin):
     }
 
     def process_request(self, request):
-        assert self.DN_HEADER_NAME, "%s doesn't set DN_HEADER_NAME attribute" % self.__class__.__name__
+        assert self.DN_HEADER_NAME, f"{self.__class__.__name__} doesn't set DN_HEADER_NAME attribute"
 
         # Get the subject DN from header
         client_dn = request.META.get(self.DN_HEADER_NAME, None)

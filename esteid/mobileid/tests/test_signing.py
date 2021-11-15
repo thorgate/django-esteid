@@ -96,6 +96,7 @@ def test_mobileid_sign_flow_ee(demo_mid_api, MID_DEMO_PHONE_EE_OK, MID_DEMO_PIN_
     with Container() as bdoc_file:
         bdoc_file.add_file(file_name, data, mime_type)
         bdoc_file.add_signature(xs)
+        bdoc_file._write_manifest()
 
         bdoc_file.verify_container()
         bdoc_file.verify_signatures()

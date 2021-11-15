@@ -22,4 +22,5 @@ def get_verification_code(hash_value):
     leading_6_bits = leading_byte >> 2
     trailing_7_bits = trailing_byte & 0x7F
 
-    return "{:04d}".format((leading_6_bits << 7) + trailing_7_bits)
+    raw_value = (leading_6_bits << 7) + trailing_7_bits
+    return f"{raw_value:04d}"
