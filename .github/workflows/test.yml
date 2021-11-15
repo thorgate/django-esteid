@@ -36,8 +36,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+      - name: Add poetry
+        uses: abatilo/actions-poetry@v2.0.0
       - uses: actions/checkout@v2
-      - name: Install tox-gh
+      - name: Install tox
         run: python -m pip install tox
       - name: Run ci
         run: tox
