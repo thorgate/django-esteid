@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-esteid"
-version = "3.2rc1"
+version = "3.2"
 description = "Django-esteid is a package that provides Esteid based authentication for your Django applications."
 readme = "README.md"
 license = "BSD"
@@ -62,6 +62,7 @@ include = [
 exclude = [
     "esteid/__pycache__",
     "esteid/tests",
+    "esteid/**/tests",
 ]
 
 [tool.poetry.dependencies]

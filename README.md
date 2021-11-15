@@ -1,7 +1,7 @@
 # django-esteid
 
 [![pypi Status](https://badge.fury.io/py/django-esteid.png)](https://badge.fury.io/py/django-esteid)
-[![Build Status](https://travis-ci.org/thorgate/django-esteid.svg?branch=master)](https://travis-ci.org/thorgate/django-esteid)
+[![CI](https://github.com/thorgate/django-esteid/actions/workflows/test.yml/badge.svg)](https://github.com/thorgate/django-esteid/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/thorgate/django-esteid/badge.svg?branch=master)](https://coveralls.io/github/thorgate/django-esteid?branch=master)
 
 Django-esteid is a package that provides Esteid based authentication and signing for your Django applications.
