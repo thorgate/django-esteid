@@ -6,9 +6,10 @@ jobs:
     strategy:
       matrix:
        include:
-         - python: "3.6"
-           DJANGO: "1.11"
-           os: ubuntu-16.07
+         # Can't enable this as it requires a custom runner.
+         #- python: "3.6"
+         #  DJANGO: "1.11"
+         #  os: ubuntu-16.07
 
          - python: "3.6"
            DJANGO: "2.0"
