@@ -2,7 +2,7 @@ name: CI deploy
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   build:
