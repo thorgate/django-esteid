@@ -11,15 +11,15 @@ jobs:
            os: ubuntu-16.07
 
          - python: 3.6
-           DJANGO: 2.0
+           DJANGO: "2.0"
            os: ubuntu-latest
 
          - python: 3.6
-           DJANGO: 3.0
+           DJANGO: "3.0"
            os: ubuntu-latest
 
          - python: 3.7
-           DJANGO: 2.1
+           DJANGO: "2.1"
            COVERALLS: 1
            os: ubuntu-latest
 
