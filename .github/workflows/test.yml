@@ -1,0 +1,47 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+       include:
+         - python: 3.6
+           DJANGO: 1.11
+           os: ubuntu-16.07
+
+         - python: 3.6
+           DJANGO: 2.0
+           os: ubuntu-latest
+
+         - python: 3.6
+           DJANGO: 3.0
+           os: ubuntu-latest
+
+         - python: 3.7
+           DJANGO: 2.1
+           COVERALLS: 1
+           os: ubuntu-latest
+
+         - python: 3.8
+           DJANGO: 2.0
+           os: ubuntu-latest
+
+         - python: 3.8
+           DJANGO: 3.0
+           os: ubuntu-latest
+    steps:
+      - name: Setup python for test ${{ matrix.python }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/checkout@v2
+      - name: Install tox-gh
+        run: python -m pip install tox
+      - name: Run ci
+        run: tox
+      - name: Publish coverage
+        run: >
+          [[ $COVERALLS -eq 1 ]] && pip install coveralls && coveralls
+
+# TODO: Deploy part too!
