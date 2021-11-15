@@ -43,7 +43,7 @@ jobs:
         env:
           TOXENV: "py${{ matrix.python }}-django${{ matrix.DJANGO }}"
       - name: Publish coverage
-        run: >
-          [[ $COVERALLS -eq 1 ]] && pip install coveralls && coveralls
+        run: pip install coveralls && coveralls
+        if: ${{ matrix.COVERALLS == '1' }}
 
 # TODO: Deploy part too!
