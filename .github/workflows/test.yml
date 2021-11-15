@@ -48,9 +48,7 @@ jobs:
         env:
           TOXENV: "py${{ matrix.python }}-django${{ matrix.DJANGO }}"
       - name: Publish coverage
-        run: pip install coveralls && coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.COVERALLS_TOKEN }}
         if: ${{ matrix.COVERALLS == '1' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
-
-# TODO: Deploy part too!
