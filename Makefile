@@ -1,6 +1,4 @@
 PROJECT := esteid
-VENV := ./.venv
-export PATH := $(VENV)/bin:$(PATH)
 LOCALES := en et lt ru
 
 .PHONY:
@@ -8,13 +6,6 @@ help:  ## Show this help.
 	@echo "Usage: make TARGET."
 	@echo "** Available TARGETs: **"
 	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
-
-.PHONY:
-venv: .venv  ## Create virtualenv in $(VENV)
-
-.venv:  ## Create virtualenv in ./venv or $(VENV)
-	python -m venv --prompt=django-esteid $(VENV)
-	pip install -r requirements-dev.txt
 
 .PHONY:
 clean: clean-build clean-pyc  ## Clean build artifacts and pyc files

@@ -1,3 +1,99 @@
+[tool.poetry]
+name = "django-esteid"
+version = "3.2rc1"
+description = "Django-esteid is a package that provides Esteid based authentication for your Django applications."
+readme = "README.md"
+license = "BSD"
+authors = [
+    "Thorgate <info@thorgate.eu>",
+    "Jürno Ader <jyrno@thorgate.eu>",
+    "Yuri Shatrov <yuriy@thorgate.eu>",
+]
+maintainers = [
+    "Jyrno Ader <jyrno42@gmail.com>",
+    "Jorgen Ader <jorgen.ader@gmail.com>",
+]
+repository = "https://github.com/thorgate/django-esteid"
+homepage = "https://github.com/thorgate/django-esteid"
+keywords=[
+    "esteid",
+    "django",
+    "smartid",
+    "mobile-id",
+    "idcard",
+    "asice"
+]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+]
+packages = [
+    { include = "esteid" },
+]
+include = [
+    "pyasice/templates/*.xml",
+    "AUTHORS.md",
+    "LICENSE",
+    "README.md",
+    "requirements-base.txt",
+    "requirements.txt",
+    "esteid/**/*.html",
+    "esteid/**/*.xml",
+    "esteid/**/*.png",
+    "esteid/**/*.gif",
+    "esteid/**/*.js",
+    "esteid/**/*.css",
+    "esteid/**/*.jpg",
+    "esteid/**/*.jpeg",
+    "esteid/**/*.svg",
+    "esteid/**/*.pem",
+    "esteid/**/*.po",
+    "esteid/**/*.mo",
+
+]
+exclude = [
+    "esteid/__pycache__",
+    "esteid/tests",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.2"
+
+Django = ">=1.11,!=2.1.0,!=2.1.1"
+attrs = ">=19.2.0"
+esteid-certificates = "==1.0.*"
+pyasice = "==1.0.*,>=1.0.1"
+requests = ">=2.20"
+
+[tool.poetry.dev-dependencies]
+
+djangorestframework = ">=3.9"
+django-sslserver = "*"
+black = "==21.10b0"
+coverage = ">=4.5.4"
+coveralls = ">=1.8.2"
+flake8 = "*"
+isort = "==5.6.*"
+pylint = "==2.11.*"
+pyopenssl = ">=18.0.0"
+pytest-cov = ">=2.8.1"
+pytest-django = ">=3.5.1"
+pytest = ">=4.6.5"
+requests-mock = "*"
+tox = ">=1.7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 120
 target-version = ['py36']

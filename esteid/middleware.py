@@ -100,11 +100,11 @@ class BaseIdCardMiddleware(MiddlewareMixin):
                     setattr(request, "id_err", 4000 + response)
 
     def prepare_certificate(self, certificate):
-        """ Use this in case the certificate value in HTTP header needs formatting. """
+        """Use this in case the certificate value in HTTP header needs formatting."""
         return certificate
 
     def parse_client_dn(self, dn):
-        """ Use either parse_legacy_dn or parse_rfc_dn depending on the format your proxy server users. """
+        """Use either parse_legacy_dn or parse_rfc_dn depending on the format your proxy server users."""
         return parse_legacy_dn(dn)
 
     @classmethod
@@ -170,7 +170,7 @@ class NginxIdCardMiddleware(BaseIdCardMiddleware):
 
 
 class IdCardMiddleware(NginxIdCardMiddleware):
-    """ Deprecated - use ApacheIdCardMiddleware or NginxIdCardMiddleware """
+    """Deprecated - use ApacheIdCardMiddleware or NginxIdCardMiddleware"""
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
