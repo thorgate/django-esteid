@@ -74,7 +74,7 @@ esteid-certificates = "==1.0.*"
 pyasice = "==1.0.*,>=1.0.1"
 requests = ">=2.20"
 
-"backports.zoneinfo" = {version = "*", python = "<3.9"}
+"backports.zoneinfo" = {version = "0.2.1", python = "<3.9"}
 
 [tool.poetry.dev-dependencies]
 
