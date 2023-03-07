@@ -28,6 +28,7 @@ jobs:
 
          - python: "3.11"
            DJANGO: "4.1"
+           COVERALLS: 1
            os: ubuntu-latest
     steps:
       - name: Setup python for test ${{ matrix.python }}
