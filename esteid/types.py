@@ -44,12 +44,12 @@ class CertificateIssuer(FromDictMixin):
 @attr.s
 class Certificate(FromDictMixin):
     issuer = attr.ib()
-    issuer_country = attr.ib()
     issuer_serial = attr.ib()
     subject = attr.ib()
-    subject_country = attr.ib()
     valid_from: datetime = attr.ib(converter=convert_time)
     valid_to: datetime = attr.ib(converter=convert_time)
+    issuer_country = attr.ib(default=None)
+    subject_country = attr.ib(default=None)
 
     policies = attr.ib(
         default=attr.Factory(list),
