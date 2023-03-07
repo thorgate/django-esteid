@@ -31,6 +31,22 @@ jobs:
          - python: "3.8"
            DJANGO: "3.0"
            os: ubuntu-latest
+
+         - python: "3.9"
+           DJANGO: "4.0"
+           os: ubuntu-latest
+
+         - python: "3.9"
+           DJANGO: "4.1"
+           os: ubuntu-latest
+
+         - python: "3.11"
+           DJANGO: "4.0"
+           os: ubuntu-latest
+
+         - python: "3.11"
+           DJANGO: "4.1"
+           os: ubuntu-latest
     steps:
       - name: Setup python for test ${{ matrix.python }}
         uses: actions/setup-python@v2
