@@ -45,7 +45,6 @@ def test_signer_select():
 
 
 def test_signer_init__initial_true(test_session_data):
-
     # Empty session: OK
     session = {}
     signer = Signer(session, initial=True)
@@ -84,7 +83,6 @@ def test_signer_init__initial_true(test_session_data):
 
 
 def test_signer_init__initial_false(test_session_data):
-
     # Wrong data: empty session
     session = {}
     with pytest.raises(SigningSessionDoesNotExist):

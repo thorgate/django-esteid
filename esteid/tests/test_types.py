@@ -81,9 +81,11 @@ def test_certificate_from_cert(static_certificate, cert_type):
         "Organization Identifier: NTREE-10747013, "
         "Organization: AS Sertifitseerimiskeskus, Country: EE"
     )
+    assert cert_data.issuer_country == "EE"
     assert cert_data.valid_from.isoformat() == "2017-02-02T09:14:37+00:00"
     assert cert_data.valid_to.isoformat() == "2022-02-01T21:59:59+00:00"
     assert cert_data.subject == "SMART-ID,HELLO,PNOEE-11702020200"
+    assert cert_data.subject_country == "EE"
 
 
 @pytest.mark.parametrize("cert_type", ["bytes", "asn1", "oscrypto"])

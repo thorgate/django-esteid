@@ -35,6 +35,7 @@ def signed_doc_dict():
                         "issuer": "C=EE/O=AS Sertifitseerimiskeskus/CN=TEST of EE Certification Centre Root CA/"
                         "emailAddress=pki@sk.ee",
                         "issuer_serial": "138983222239407220571566848351990841243",
+                        "issuer_country": "EE",
                         "policies": [
                             {
                                 "description": "Ainult testimiseks. Only for testing.",
@@ -44,6 +45,7 @@ def signed_doc_dict():
                         ],
                         "subject": "C=EE/O=AS Sertifitseerimiskeskus/OU=OCSP/CN=TEST of SK OCSP RESPONDER 2011/"
                         "emailAddress=pki@sk.ee",
+                        "subject_country": "EE",
                         "valid_from": "2011-03-07T13:22:45Z",
                         "valid_to": "2024-09-07T12:22:45Z",
                     },
@@ -56,6 +58,7 @@ def signed_doc_dict():
                     "certificate": {
                         "issuer": "C=EE/O=AS Sertifitseerimiskeskus/CN=TEST of ESTEID-SK 2011/emailAddress=pki@sk.ee",
                         "issuer_serial": "61232248526689391803484677403602728985",
+                        "issuer_country": "EE",
                         "policies": [
                             {
                                 "description": "Ainult testimiseks. Only for testing.",
@@ -65,6 +68,7 @@ def signed_doc_dict():
                         ],
                         "subject": "C=EE/O=ESTEID (MOBIIL-ID)/OU=digital signature/CN=TESTNUMBER,SEITSMES,14212128025"
                         "/SN=TESTNUMBER/GN=SEITSMES/serialNumber=14212128025",
+                        "subject_country": "EE",
                         "valid_from": "2015-04-06T09:45:41Z",
                         "valid_to": "2016-12-31T21:59:59Z",
                     },

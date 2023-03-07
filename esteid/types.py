@@ -37,12 +37,19 @@ class CertificatePolicy(FromDictMixin):
 
 
 @attr.s
+class CertificateIssuer(FromDictMixin):
+    pass
+
+
+@attr.s
 class Certificate(FromDictMixin):
     issuer = attr.ib()
     issuer_serial = attr.ib()
     subject = attr.ib()
     valid_from: datetime = attr.ib(converter=convert_time)
     valid_to: datetime = attr.ib(converter=convert_time)
+    issuer_country = attr.ib(default=None)
+    subject_country = attr.ib(default=None)
 
     policies = attr.ib(
         default=attr.Factory(list),
@@ -68,8 +75,10 @@ class Certificate(FromDictMixin):
 
         return cls(
             issuer=issuer.human_friendly,
+            issuer_country=issuer.native["country_name"],
             issuer_serial=str(serial),
             subject=personal["common_name"],
+            subject_country=personal["country_name"],
             valid_from=valid_from.replace(microsecond=0).astimezone(pytz.utc),
             valid_to=valid_to.replace(microsecond=0).astimezone(pytz.utc),
         )

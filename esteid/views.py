@@ -83,11 +83,11 @@ class SKTestView(TemplateView):
                     file_name = f"{idx}_{file_name}"
                     idx += 1
 
-                files[file_name] = dict(
-                    content=base64.b64encode(file.read()).decode(),
-                    content_type=file.content_type,
-                    size=file.size,
-                )
+                files[file_name] = {
+                    "content": base64.b64encode(file.read()).decode(),
+                    "content_type": file.content_type,
+                    "size": file.size,
+                }
 
         request.session["__ddoc_files"] = files
 
@@ -190,7 +190,7 @@ class TestIdCardFinishView(TestSignStatusViewMixin, ApiView):
     ACTION_CLASS = IdCardFinishAction
 
     def build_action_kwargs(self, request):
-        return dict(signature_value=request.POST["signature_value"])
+        return {"signature_value": request.POST["signature_value"]}
 
 
 class AuthenticationView(TemplateView):

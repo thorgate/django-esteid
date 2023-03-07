@@ -5,7 +5,7 @@ import subprocess
 import warnings
 from tempfile import NamedTemporaryFile
 
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from esteid_certificates import get_certificate_file_name, UnknownCertificateError
 
 
@@ -58,7 +58,7 @@ class OCSPVerifier(object):
 
             try:
                 output = subprocess.check_output(" ".join(args), stderr=subprocess.STDOUT, shell=True)
-                output = force_text(output)
+                output = force_str(output)
 
                 if ": good" in output:
                     result = 0

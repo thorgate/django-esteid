@@ -283,7 +283,6 @@ class MobileIdSignAction(BaseAction):
 class MobileIdStatusAction(BaseAction):
     @classmethod
     def do_action(cls, view: "GenericDigitalSignViewMixin", params: dict = None):
-
         request = view.request
         session_data = get_esteid_session(request)
         if not session_data:
