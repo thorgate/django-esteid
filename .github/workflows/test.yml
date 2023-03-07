@@ -6,13 +6,8 @@ jobs:
     strategy:
       matrix:
        include:
-         - python: "3.7"
-           DJANGO: "2.1"
-           COVERALLS: 1
-           os: ubuntu-latest
-
          - python: "3.8"
-           DJANGO: "2.0"
+           DJANGO: "2.1"
            os: ubuntu-latest
 
          - python: "3.8"

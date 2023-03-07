@@ -38,7 +38,6 @@ def convert_status(status):
 def camel_2_py(the_dict):
     new_dict = {}
     for key, val in the_dict.items():
-
         if len(re.sub(r"([A-Z])", r" \1", key).split()) == len(key):
             parts = [key.lower()]
 

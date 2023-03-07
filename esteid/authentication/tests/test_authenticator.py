@@ -41,7 +41,6 @@ def test_authenticator_select():
 
 
 def test_authenticator_init__initial_true(test_session_data):
-
     # Empty session: OK
     session = {}
     authenticator = Authenticator(session, initial=True)
@@ -80,7 +79,6 @@ def test_authenticator_init__initial_true(test_session_data):
 
 
 def test_authenticator_init__initial_false(test_session_data):
-
     # Wrong data: empty
     session = {}
     with pytest.raises(SigningSessionDoesNotExist):

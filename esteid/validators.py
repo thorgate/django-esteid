@@ -17,10 +17,10 @@ def id_code_ee_is_valid(id_code: str) -> bool:
     """
     if isinstance(id_code, str) and bool(re.match(ID_CODE_EE_REGEXP, id_code)):
         step1_factors = "1234567891"
-        checksum = sum([int(i) * int(d) for i, d in zip(step1_factors, id_code[:10])]) % 11
+        checksum = sum(int(i) * int(d) for i, d in zip(step1_factors, id_code[:10])) % 11
         if checksum == 10:
             step2_factors = "3456789123"
-            checksum = sum([int(i) * int(d) for i, d in zip(step2_factors, id_code[:10])]) % 11
+            checksum = sum(int(i) * int(d) for i, d in zip(step2_factors, id_code[:10])) % 11
             if checksum == 10:
                 checksum = 0
         if int(id_code[-1]) == checksum:
@@ -38,7 +38,7 @@ def id_code_lv_is_valid(id_code: str) -> bool:
     if isinstance(id_code, str) and bool(re.match(ID_CODE_LV_REGEXP, id_code)):
         id_code = id_code.replace("-", "")
         factors = [1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
-        checksum = (1101 - sum([i * int(d) for i, d in zip(factors, id_code[:10])])) % 11 % 10
+        checksum = (1101 - sum(i * int(d) for i, d in zip(factors, id_code[:10]))) % 11 % 10
         if int(id_code[-1]) == checksum:
             return True
     return False
