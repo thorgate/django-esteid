@@ -37,11 +37,6 @@ class CertificatePolicy(FromDictMixin):
 
 
 @attr.s
-class CertificateIssuer(FromDictMixin):
-    pass
-
-
-@attr.s
 class Certificate(FromDictMixin):
     issuer = attr.ib()
     issuer_serial = attr.ib()
