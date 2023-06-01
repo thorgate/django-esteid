@@ -1,4 +1,5 @@
 # pragma: no cover
+import base64
 import binascii
 import logging
 import typing
@@ -48,7 +49,7 @@ class IdCardPrepareAction(BaseAction):
 
         :param view:
         :param params:
-        :param certificate: HEX-encoded certificate from the ID card
+        :param certificate: DER-encoded certificate from the ID card
         :return:
         """
         request = view.request
@@ -63,7 +64,13 @@ class IdCardPrepareAction(BaseAction):
                 "code": "BAD_CERTIFICATE",
             }
 
-        certificate = binascii.a2b_hex(certificate)
+        try:
+            certificate = base64.b64decode(certificate)
+        except binascii.Error:
+            return {
+                "success": False,
+                "code": "BAD_CERTIFICATE",
+            }
 
         files = view.get_files()
         container_path = view.get_bdoc_container_file()
@@ -97,7 +104,7 @@ class IdCardPrepareAction(BaseAction):
 
         return {
             "success": True,
-            "digest": binascii.b2a_hex(signed_digest).decode(),
+            "digest": digest_hash_b64,
         }
 
 
@@ -110,7 +117,7 @@ class IdCardFinishAction(BaseAction):
 
         :param view:
         :param params:
-        :param signature_value: a HEX encoded signature, as received from `hwcrypto.js`
+        :param signature_value: a DER encoded signature, as received from `web-eid.js`
         :return:
         """
         request = view.request
@@ -129,10 +136,17 @@ class IdCardFinishAction(BaseAction):
                     "code": "BAD_SIGNATURE",
                 }
 
-        logger.debug("Signature HEX: %s", signature_value)
+        logger.debug("Signature B64: %s", signature_value)
 
         signed_hash_b64 = session_data["signed_hash"]
-        signature_value = binascii.a2b_hex(signature_value)
+
+        try:
+            signature_value = base64.b64decode(signature_value)
+        except binascii.Error as e:
+            return {
+                "success": False,
+                "code": "BAD_SIGNATURE",
+            }
 
         temp_signature_file = session_data["temp_signature_file"]
         temp_container_file = session_data["temp_container_file"]

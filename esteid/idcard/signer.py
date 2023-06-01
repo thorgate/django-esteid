@@ -1,3 +1,4 @@
+import base64
 import binascii
 import logging
 from typing import List
@@ -40,10 +41,10 @@ class IdCardSigner(Signer):
             raise InvalidParameter("Missing required parameter 'certificate'", param="certificate") from e
 
         try:
-            certificate = binascii.a2b_hex(certificate_hex)
-        except (TypeError, ValueError) as e:
+            certificate = base64.b64decode(certificate_hex)
+        except binascii.Error as e:
             raise InvalidParameter(
-                "Failed to decode parameter `certificate` from hex-encoding", param="certificate"
+                "Failed to decode parameter `certificate` from DER encoding", param="certificate"
             ) from e
 
         try:
@@ -65,8 +66,8 @@ class IdCardSigner(Signer):
         self.save_session_data(digest=signed_digest, container=container, xml_sig=xml_sig)
 
         return {
-            # hex-encoded digest to be consumed by the hwcrypto.js library
-            "digest": binascii.b2a_hex(signed_digest).decode(),
+            # hex-encoded digest to be consumed by the web-eid.js library
+            "digest": base64.b64encode(signed_digest).decode("utf-8"),
         }
 
     def finalize(self, data: dict = None) -> pyasice.Container:
@@ -76,10 +77,10 @@ class IdCardSigner(Signer):
             raise InvalidParameter("Missing required parameter 'signature_value'", param="signature_value") from e
 
         try:
-            signature_value = binascii.a2b_hex(signature_value)
-        except (TypeError, ValueError) as e:
+            signature_value = base64.b64decode(signature_value)
+        except binascii.Error as e:
             raise InvalidParameter(
-                "Failed to decode parameter `signature_value` from hex-encoding", param="signature_value"
+                "Failed to decode parameter `signature_value` from DER encoding", param="signature_value"
             ) from e
 
         temp_signature_file = self.session_data.temp_signature_file

@@ -6,7 +6,7 @@
 
 1. Fetch the user certificate from the ID Card
 
-   On the frontend, query the the `hwcrypto.js` API that interacts with the ID card,
+   On the frontend, query the the `web-eid.js` API that interacts with the ID card,
    to obtain the certificate that would be required for the initial XAdEs structure.  
 
 1. Initialization request to the backend 
@@ -20,7 +20,7 @@
    
 1. Signature generation (frontend) 
 
-   The frontend passes the value for signing to the `hwcrypto.js` API, 
+   The frontend passes the value for signing to the `web-eid.js` API, 
    and passes on the obtained signature to the backend. 
    
 1. Finalization of the container (backend) 
@@ -49,6 +49,8 @@ non-existent `service`, it's advised that all those "actions" be scrapped in fav
 
 ## Authentication with ID Card
 
+*TODO: Update this section based on the new id-card authentication flow*
+
 ### Process Outline
 
 The request to the client to enter PIN is initialized by a specifically configured web server,
@@ -70,7 +72,7 @@ SmartID and MobileID.
 The process thus should consist of the following steps:
 * While visiting the site (assuming `example.com` for this matter), the user clicks on a link to start the authentication process;
 * Instead of issuing a _start_ request to the backend (as in the usual routine), 
-  or a `hwcrypto` library call (as in the process of signing with ID card), the user is taken to a specifically configured
+  or a `web-eid` library call (as in the process of signing with ID card), the user is taken to a specifically configured
   domain (e.g. `UNIQUE.auth.example.com`) where they are asked for the ID Card's PIN code and 
   proceed to allow the site to access the certificate;
 * the certificate is validated via OCSP (see below as to why);

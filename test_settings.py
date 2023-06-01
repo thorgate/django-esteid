@@ -13,6 +13,12 @@ ID_CARD_FRAME_TARGET_ORIGIN = "https://127.0.0.1.xip.io:8443"
 
 # ***** End of Esteid service settings ******
 
+LANGUAGE_CODE = "en"
+LANGUAGES = [
+    ('en', 'English'),
+    ('et', 'English'),
+]
+
 DEBUG = True
 
 SECRET_KEY = "q^es5sedujo$g@%-d4tl9ws@z+#m1mab&sdr_5)r&a80_+kd@+"
