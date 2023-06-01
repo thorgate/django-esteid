@@ -104,7 +104,7 @@ class IdCardPrepareAction(BaseAction):
 
         return {
             "success": True,
-            "digest": digest_hash_b64,
+            "digest": base64.b64encode(signed_digest).decode(),
         }
 
 
