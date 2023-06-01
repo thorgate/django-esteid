@@ -345,7 +345,12 @@
       body: formData
     }).then(
       (response) => {
-        return response.json();
+        return response.json().then((data2) => {
+          return {
+            data: data2,
+            ok: response.ok
+          };
+        });
       },
       (err) => {
         console.log(err);
