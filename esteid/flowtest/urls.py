@@ -1,6 +1,6 @@
 try:
     from django.urls import re_path
-except ImportError:
+except ImportError:  # noqa
     from django.conf.urls import url as re_path
 
 from esteid.mobileid import MobileIdAuthenticator  # noqa

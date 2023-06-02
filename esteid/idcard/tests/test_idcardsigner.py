@@ -1,5 +1,4 @@
 import base64
-import binascii
 import os
 from tempfile import NamedTemporaryFile
 from time import time

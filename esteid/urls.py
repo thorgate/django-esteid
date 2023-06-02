@@ -9,7 +9,7 @@ import esteid.flowtest.urls
 
 try:
     from django.urls import include, re_path
-except ImportError:
+except ImportError:  # noqa
     from django.conf.urls import include, url as re_path
 
 from .views import (
