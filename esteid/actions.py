@@ -142,7 +142,7 @@ class IdCardFinishAction(BaseAction):
 
         try:
             signature_value = base64.b64decode(signature_value)
-        except binascii.Error as e:
+        except binascii.Error:
             return {
                 "success": False,
                 "code": "BAD_SIGNATURE",

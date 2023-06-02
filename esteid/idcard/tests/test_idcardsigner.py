@@ -1,3 +1,4 @@
+import base64
 import binascii
 import os
 from tempfile import NamedTemporaryFile
@@ -39,7 +40,7 @@ def idcard_session_data():
 
 def test_idcardsigner_certificate(static_certificate):
     signer = IdCardSigner({}, initial=True)
-    signer.setup({"certificate": binascii.b2a_hex(static_certificate)})
+    signer.setup({"certificate": base64.b64encode(static_certificate)})
 
     assert signer.id_code == "11702020200"
 
@@ -50,11 +51,11 @@ def test_idcardsigner_certificate(static_certificate):
         signer.setup({"certificate": b"something not hex-encoded"})
 
     with pytest.raises(InvalidParameter, match="supported certificate format"):
-        signer.setup({"certificate": binascii.b2a_hex(b"this is not a certificate")})
+        signer.setup({"certificate": base64.b64encode(b"this is not a certificate")})
 
 
 def test_idcardsigner_prepare(idcardsigner, static_certificate):
-    idcardsigner.setup({"certificate": binascii.b2a_hex(static_certificate)})
+    idcardsigner.setup({"certificate": base64.b64encode(static_certificate)})
 
     result = idcardsigner.prepare(None, [])
 
@@ -72,7 +73,7 @@ def test_idcardsigner_prepare(idcardsigner, static_certificate):
         xml_sig=xml_sig,
     )
 
-    assert result == {"digest": binascii.b2a_hex(xml_sig.digest()).decode()}
+    assert result == {"digest": base64.b64encode(xml_sig.digest()).decode()}
 
 
 @patch.object(signer_module, "pyasice")
@@ -82,7 +83,7 @@ def test_idcardsigner_finalize(pyasice_mock, idcard_session_data):
     xml_sig_mock = pyasice_mock.XmlSignature()
 
     with patch.object(idcardsigner, "finalize_xml_signature"):
-        result = idcardsigner.finalize({"signature_value": binascii.b2a_hex(signature_value).decode()})
+        result = idcardsigner.finalize({"signature_value": base64.b64encode(signature_value)})
 
         pyasice_mock.verify.assert_called_once_with(
             xml_sig_mock.get_certificate_value(), signature_value, idcard_session_data.digest, prehashed=True
