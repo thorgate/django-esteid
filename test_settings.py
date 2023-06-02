@@ -15,8 +15,8 @@ ID_CARD_FRAME_TARGET_ORIGIN = "https://127.0.0.1.xip.io:8443"
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [
-    ('en', 'English'),
-    ('et', 'English'),
+    ("en", "English"),
+    ("et", "English"),
 ]
 
 DEBUG = True
