@@ -277,7 +277,11 @@ class PredictableDict(dict):
                     return False
                 raise ValueError(f"Missing required key {attr_name}") from e
 
-            if type(val) not in valid_types and not (get_origin(attr_type) == Literal and val in valid_types):
+            if type(val) not in valid_types:
+                if get_origin(attr_type) == Literal and val in valid_types:  # pylint: disable=comparison-with-callable
+                    # literal type needs special handling
+                    continue
+
                 if not raise_exception:
                     return False
                 raise ValueError(f"Wrong type {type(val)} for key {attr_name}")

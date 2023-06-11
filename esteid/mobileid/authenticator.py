@@ -54,7 +54,7 @@ class MobileIdAuthenticator(Authenticator):
             }
         )
 
-    def poll(self) -> AuthenticationResult:
+    def poll(self, initial_data: dict = None) -> AuthenticationResult:
         session_id = self.session_data.session_id
         hash_value_b64 = self.session_data.hash_value_b64
 

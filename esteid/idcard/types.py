@@ -76,11 +76,10 @@ class LibraryAuthenticateResponse(PredictableDict):
     def signature_bytes(self):
         return base64.b64decode(self.signature)
 
-    """
-    Validates that the signature of the authentication token is valid
-    """
-
     def validate_signature(self, certificate, origin: str, challenge_nonce: bytes):
+        """
+        Validates that the signature of the authentication token is valid
+        """
         require_not_empty(challenge_nonce, "challenge_nonce")
 
         hash_algorithm = HASH_ALGORITHM_MAPPING[self.algorithm]

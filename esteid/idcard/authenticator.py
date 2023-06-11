@@ -1,12 +1,11 @@
 import base64
-import binascii
 import logging
 import uuid
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import load_der_x509_certificate, NameOID
 from esteid_certificates import get_certificate
-from oscrypto.asymmetric import load_certificate
+from oscrypto.asymmetric import Certificate as OsCryptoCertificate
 
 from pyasice.ocsp import OCSP
 
@@ -18,9 +17,6 @@ from ..exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, Inva
 from ..types import CertificateHolderInfo
 from ..util import generate_hash, secure_random
 from .types import LibraryAuthenticateResponse
-
-
-# from .types import UserInput
 
 
 logger = logging.getLogger(__name__)
@@ -61,7 +57,7 @@ class IdCardAuthenticator(Authenticator):
             }
         )
 
-    def poll(self, initial_data: dict) -> AuthenticationResult:
+    def poll(self, initial_data: dict = None) -> AuthenticationResult:
         hash_value_b64 = self.session_data.hash_value_b64
 
         if not isinstance(initial_data, dict):
@@ -78,8 +74,6 @@ class IdCardAuthenticator(Authenticator):
             raise InvalidParameters("Invalid parameters") from e
 
         certificate = load_der_x509_certificate(auth_response.certificate_bytes, default_backend())
-
-        print("origin", self.origin)
 
         # This method:
         #
