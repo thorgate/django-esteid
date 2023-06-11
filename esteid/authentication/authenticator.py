@@ -52,7 +52,7 @@ class Authenticator:
         """
         raise NotImplementedError
 
-    def poll(self) -> AuthenticationResult:
+    def poll(self, initial_data: dict = None) -> AuthenticationResult:
         """
         Polls status of the authentication process.
 
@@ -98,7 +98,7 @@ class Authenticator:
         # an instance of another type may need different data
         return session_data
 
-    def __init__(self, session, initial=False):
+    def __init__(self, session, initial=False, origin=None):
         """
         Initializes the necessary session data.
 
@@ -135,6 +135,7 @@ class Authenticator:
 
         self.session = session
         self.session_data = session_data
+        self.origin = origin
 
     def cleanup(self):
         """
@@ -143,20 +144,20 @@ class Authenticator:
         return self._cleanup_session(self.session)
 
     @classmethod
-    def start_session(cls, session, initial_data) -> "Authenticator":
+    def start_session(cls, session, initial_data, origin) -> "Authenticator":
         """
         Initializes a fresh authentication session.
         """
-        signer = cls(session, initial=True)
+        signer = cls(session, initial=True, origin=origin)
         signer.setup(initial_data)
         return signer
 
     @classmethod
-    def load_session(cls, session) -> "Authenticator":
+    def load_session(cls, session, origin) -> "Authenticator":
         """
         Continues (loads) an existing authentication session from the `session` object
         """
-        return cls(session, initial=False)
+        return cls(session, initial=False, origin=origin)
 
     @classmethod
     def _cleanup_session(cls, session):

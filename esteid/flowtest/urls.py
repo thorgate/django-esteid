@@ -1,3 +1,6 @@
+from ..idcard.authenticator import IdCardAuthenticator
+
+
 try:
     from django.urls import re_path
 except ImportError:  # noqa
@@ -7,7 +10,7 @@ from esteid.mobileid import MobileIdAuthenticator  # noqa
 from esteid.signing import Signer
 from esteid.smartid import SmartIdAuthenticator  # noqa
 
-from .views import AuthTestRestView, AuthTestView, IDCardAuthTestView, SigningTestRestView, SigningTestView
+from .views import AuthTestRestView, AuthTestView, SigningTestRestView, SigningTestView
 
 
 # Signing
@@ -30,7 +33,7 @@ urlpatterns += [
         AuthTestView.as_view(authenticator=auth_class),
         name=f"auth-{auth_class.get_method_name()}",
     )
-    for auth_class in [MobileIdAuthenticator, SmartIdAuthenticator]
+    for auth_class in [IdCardAuthenticator, MobileIdAuthenticator, SmartIdAuthenticator]
 ]
 
 urlpatterns += [
@@ -39,10 +42,5 @@ urlpatterns += [
         AuthTestRestView.as_view(authenticator=auth_class),
         name=f"auth-rest-{auth_class.get_method_name()}",
     )
-    for auth_class in [MobileIdAuthenticator, SmartIdAuthenticator]
-]
-
-urlpatterns += [
-    # See idcard/README.md as to why this view is special.
-    re_path("^authenticate-id-card/", IDCardAuthTestView.as_view(), name="auth-idcard")
+    for auth_class in [IdCardAuthenticator, MobileIdAuthenticator, SmartIdAuthenticator]
 ]

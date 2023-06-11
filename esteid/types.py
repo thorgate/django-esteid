@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, TYPE_CHECKING, Union
+from typing import get_origin, List, Literal, TYPE_CHECKING, Union
 
 import attr
 import pytz
@@ -277,7 +277,7 @@ class PredictableDict(dict):
                     return False
                 raise ValueError(f"Missing required key {attr_name}") from e
 
-            if type(val) not in valid_types:
+            if type(val) not in valid_types and not (get_origin(attr_type) == Literal and val in valid_types):
                 if not raise_exception:
                     return False
                 raise ValueError(f"Wrong type {type(val)} for key {attr_name}")

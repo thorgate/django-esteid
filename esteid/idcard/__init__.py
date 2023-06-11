@@ -1,4 +1,5 @@
-__all__ = ["BaseIdCardAuthenticationView", "IdCardSigner"]
+__all__ = ["IdCardAuthenticator", "IdCardSigner", "LibraryAuthenticateResponse"]
 
+from .authenticator import IdCardAuthenticator
 from .signer import IdCardSigner
-from .views import BaseIdCardAuthenticationView
+from .types import LibraryAuthenticateResponse

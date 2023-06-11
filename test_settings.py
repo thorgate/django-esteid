@@ -9,8 +9,6 @@ ID_CARD_ENABLED = True
 MOBILE_ID_ENABLED = True
 SMART_ID_ENABLED = True
 
-ID_CARD_FRAME_TARGET_ORIGIN = "https://127.0.0.1.xip.io:8443"
-
 # ***** End of Esteid service settings ******
 
 LANGUAGE_CODE = "en"
@@ -98,3 +96,5 @@ LOGGING = {
         "django.security": {"handlers": [], "propagate": True},
     },
 }
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
