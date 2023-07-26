@@ -41,6 +41,7 @@ class SessionViewMixin:
         ERROR = "error"
         PENDING = "pending"
         SUCCESS = "success"
+        CANCELLED = "cancelled"
 
     start_session: Callable
     finish_session: Callable

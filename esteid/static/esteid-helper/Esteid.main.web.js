@@ -386,30 +386,45 @@
         ).then(({ ok, data }) => {
           if (ok && data.pending) {
             return this.idCardManager.initializeIdCard().then(() => {
-              return this.idCardManager.authenticate(data.nonce, options || {}).then((result) => {
-                return request(
-                  this.idUrl,
-                  {
-                    csrfmiddlewaretoken: this.csrfToken,
-                    ...result
-                  },
-                  "PATCH"
-                ).then(({ ok: ok2, data: data2 }) => {
-                  if (ok2 && data2.success) {
-                    yay(data2);
+              return this.idCardManager.authenticate(data.nonce, options || {}).then(
+                (result) => {
+                  return request(
+                    this.idUrl,
+                    {
+                      csrfmiddlewaretoken: this.csrfToken,
+                      ...result
+                    },
+                    "PATCH"
+                  ).then(({ ok: ok2, data: data2 }) => {
+                    if (ok2 && data2.success) {
+                      yay(data2);
+                    } else {
+                      nay(data2);
+                    }
+                  }, nay);
+                },
+                (error) => {
+                  if (error.code === "ERR_WEBEID_USER_CANCELLED") {
+                    return request(
+                      this.idUrl,
+                      {
+                        csrfmiddlewaretoken: this.csrfToken
+                      },
+                      "DELETE"
+                    ).then(() => {
+                      nay(error);
+                    }, nay);
                   } else {
-                    nay(data2);
+                    nay(error);
                   }
-                }, nay);
-              }, nay);
+                }
+              );
             }, nay);
           } else {
             nay(data);
           }
         });
       });
-    }
-    LOLauthenticateIdCard(nonce, options) {
     }
     getError(err) {
       return this.idCardManager.getError(err);

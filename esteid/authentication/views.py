@@ -109,11 +109,22 @@ class AuthenticationViewMixin(SessionViewMixin):
             if do_cleanup:
                 authenticator.cleanup()
 
+    def handle_delete_request(self, request):
+        authenticator_class = self.select_authenticator_class()
+        authenticator = authenticator_class.load_session(request.session, origin=get_origin(request))
+
+        authenticator.cleanup()
+
+
 
 class AuthenticationViewRestMixin(AuthenticationViewMixin):
     """
     To be used with rest-framework's APIView.
     """
+    def delete(self, request, *args, **kwargs):
+        self.handle_delete_request(request)
+
+        return JsonResponse({"status": self.Status.CANCELLED})
 
 
 class AuthenticationViewDjangoMixin(DjangoRestCompatibilityMixin, AuthenticationViewMixin):
@@ -122,3 +133,7 @@ class AuthenticationViewDjangoMixin(DjangoRestCompatibilityMixin, Authentication
 
     Adds `data` attribute to the request with the POST or JSON data.
     """
+    def delete(self, request, *args, **kwargs):
+        self.handle_delete_request(request)
+
+        return JsonResponse({"status": self.Status.CANCELLED})
