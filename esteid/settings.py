@@ -107,3 +107,5 @@ ESTEID_OCSP_RESPONDER_CERTIFICATE_PATH = getattr(settings, "ESTEID_OCSP_RESPONDE
 
 # Whether one signatory can sign the same container more than once. Default to allow for demo, disallow for live
 ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE = getattr(settings, "ESTEID_ALLOW_ONE_PARTY_SIGN_TWICE", ESTEID_DEMO)
+
+ESTEID_GET_REQUEST_SESSION = getattr(settings, "ESTEID_GET_REQUEST_SESSION", "esteid.util.default_get_request_session")

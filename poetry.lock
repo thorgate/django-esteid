@@ -891,13 +891,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pyasice"
-version = "1.0.4"
+version = "1.0.5"
 description = "Manipulate ASiC-E containers and XAdES/eIDAS signatures for Estonian e-identity services"
 optional = false
 python-versions = ">=3.6,<4.0"
 files = [
-    {file = "pyasice-1.0.4-py3-none-any.whl", hash = "sha256:73793f0e50387196027a69bc219c36cf690c03cef63cebf154a2745d8515dc4e"},
-    {file = "pyasice-1.0.4.tar.gz", hash = "sha256:1ae90fd8983fe9675999827082d47a71ed9f6d55346e7ddc6c3b3db9e951af7c"},
+    {file = "pyasice-1.0.5-py3-none-any.whl", hash = "sha256:408fb47e28ac6ad4c470d70972ed826d0866c95cfba4c29198bd2ab27d5cd36a"},
+    {file = "pyasice-1.0.5.tar.gz", hash = "sha256:f9a2ef1423e4d7888977ffbe405b334afa724991504026b64a6f5c03e40bef4b"},
 ]
 
 [package.dependencies]
@@ -1337,4 +1337,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.0"
-content-hash = "374d0ca82e0f9b69f19a264eda915094c0748a1e62fd24f56fa4aea9143e68e2"
+content-hash = "7f99c2d17e78459bb925184055ff83ffb75feb75b622a1c23e8783b1a738abba"

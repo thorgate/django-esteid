@@ -17,6 +17,7 @@ from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.smartid.i18n import TranslatedSmartIDService
 
 from .session import delete_esteid_session, get_esteid_session, open_container, update_esteid_session
+from .util import get_request_session_method
 from .validators import id_code_ee_is_valid
 
 
@@ -172,6 +173,7 @@ class IdCardFinishAction(BaseAction):
                 lt_ts=settings.ESTEID_USE_LT_TS,
                 ocsp_url=settings.OCSP_URL,
                 tsa_url=settings.TSA_URL,
+                get_session=get_request_session_method(),
             )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")
@@ -348,6 +350,7 @@ class MobileIdStatusAction(BaseAction):
                 lt_ts=settings.ESTEID_USE_LT_TS,
                 ocsp_url=settings.OCSP_URL,
                 tsa_url=settings.TSA_URL,
+                get_session=get_request_session_method(),
             )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")
@@ -504,6 +507,7 @@ class SmartIdStatusAction(BaseAction):
                 lt_ts=settings.ESTEID_USE_LT_TS,
                 ocsp_url=settings.OCSP_URL,
                 tsa_url=settings.TSA_URL,
+                get_session=get_request_session_method(),
             )
         except pyasice.Error:
             logger.exception("Signature confirmation service error")

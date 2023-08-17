@@ -4,9 +4,12 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 
+import requests
 from django.utils import timezone
+from django.utils.module_loading import import_string
 
 from esteid.constants import HASH_ALGORITHMS
+from esteid.settings import ESTEID_GET_REQUEST_SESSION
 
 
 def secure_random(n):
@@ -143,3 +146,15 @@ def parse_rfc_dn(dn):
             res[c_key] = f"{res[c_key]},{part}"
 
     return res
+
+
+def default_get_request_session():
+    return requests.Session()
+
+
+def get_request_session_method():
+    return import_string(ESTEID_GET_REQUEST_SESSION)
+
+
+def get_request_session_instance():
+    return get_request_session_method()()

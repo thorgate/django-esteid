@@ -116,11 +116,11 @@ class AuthenticationViewMixin(SessionViewMixin):
         authenticator.cleanup()
 
 
-
 class AuthenticationViewRestMixin(AuthenticationViewMixin):
     """
     To be used with rest-framework's APIView.
     """
+
     def delete(self, request, *args, **kwargs):
         self.handle_delete_request(request)
 
@@ -133,6 +133,7 @@ class AuthenticationViewDjangoMixin(DjangoRestCompatibilityMixin, Authentication
 
     Adds `data` attribute to the request with the POST or JSON data.
     """
+
     def delete(self, request, *args, **kwargs):
         self.handle_delete_request(request)
 

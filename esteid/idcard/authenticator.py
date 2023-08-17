@@ -15,7 +15,7 @@ from ..authentication.types import AuthenticationResult
 from ..constants import HASH_SHA256
 from ..exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from ..types import CertificateHolderInfo
-from ..util import generate_hash, secure_random
+from ..util import generate_hash, get_request_session_method, secure_random
 from .types import LibraryAuthenticateResponse
 
 
@@ -97,7 +97,7 @@ class IdCardAuthenticator(Authenticator):
 
         issuer_cert = get_certificate(issuer_common_name)
 
-        ocsp = OCSP(settings.OCSP_URL)
+        ocsp = OCSP(settings.OCSP_URL, get_session=get_request_session_method())
         ocsp.validate(auth_response.certificate_bytes, issuer_cert, auth_response.signature_bytes)
 
         # Finally we construct a holder info object from the certificate, so we can return the user's details in an
