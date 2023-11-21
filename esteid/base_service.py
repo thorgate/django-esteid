@@ -14,6 +14,7 @@ from .exceptions import (
     UnsupportedClientImplementation,
     UpstreamServiceError,
 )
+from .util import get_request_session_instance
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class BaseSKService:
         self.rp_name = rp_name
         self.api_root = api_root
 
-        self.session = requests.Session()
+        self.session = get_request_session_instance()
 
     def rp_params(self, data: dict):
         return {

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, TYPE_CHECKING, Union
+from typing import get_origin, List, Literal, TYPE_CHECKING, Union
 
 import attr
 import pytz
@@ -34,11 +34,6 @@ class CertificatePolicy(FromDictMixin):
     oid = attr.ib()
     url = attr.ib(default=None)
     description = attr.ib(default=None)
-
-
-@attr.s
-class CertificateIssuer(FromDictMixin):
-    pass
 
 
 @attr.s
@@ -283,6 +278,10 @@ class PredictableDict(dict):
                 raise ValueError(f"Missing required key {attr_name}") from e
 
             if type(val) not in valid_types:
+                if get_origin(attr_type) == Literal and val in valid_types:  # pylint: disable=comparison-with-callable
+                    # literal type needs special handling
+                    continue
+
                 if not raise_exception:
                     return False
                 raise ValueError(f"Wrong type {type(val)} for key {attr_name}")

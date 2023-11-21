@@ -6,7 +6,7 @@
 
 1. Fetch the user certificate from the ID Card
 
-   On the frontend, query the the `hwcrypto.js` API that interacts with the ID card,
+   On the frontend, query the the `web-eid.js` API that interacts with the ID card,
    to obtain the certificate that would be required for the initial XAdEs structure.  
 
 1. Initialization request to the backend 
@@ -20,7 +20,7 @@
    
 1. Signature generation (frontend) 
 
-   The frontend passes the value for signing to the `hwcrypto.js` API, 
+   The frontend passes the value for signing to the `web-eid.js` API, 
    and passes on the obtained signature to the backend. 
    
 1. Finalization of the container (backend) 
@@ -49,54 +49,23 @@ non-existent `service`, it's advised that all those "actions" be scrapped in fav
 
 ## Authentication with ID Card
 
-### Process Outline
+1. User clicks on a link to start the authentication process
+2. The backend generates a random nonce, stores it in the session and then returns it to the frontend
+    as a base64 string.
+3. The string is passed to web-eid.js API, which initiates the authentication process.
+4. web-eid.js combines the nonce with the site origin URl and takes hashes of both. The hashes are
+    then concatenated and hashed once more.
+   - Warning: Web-eid does not decode the base64 nonce here and uses it as is. This may be a bug in web-eid.js, link to issue below. 
+5. User is prompted for a PIN code.
+6. The combined hash is signed with the ID card and returned to the frontend.
+7. The web-eid.js API passes the signature, unverified certificate and some metadata to the backend.
+8. The backend verifies that the signature is valid by computing the hash the same way and then uses
+    the public key of the signer to verify it.
+9. The backend calls OCSP service to verify that the certificate is valid.
+10. The backend stores user information in the session (and usually logs people in).
 
-The request to the client to enter PIN is initialized by a specifically configured web server,
-with an option similar to `ssl_verify_client` on nginx.
+References:
 
-On nginx, it is only possible to protect an entire `server` section with this option, which means that
-in order to keep the site generally accessible to unauthenticated clients we need to set up a separate domain
-that would handle the ID card authentication process, and pass the client authentication data to the primary site
-via session or other means.
-
-There is a caveat: browsers keep a certificate in cache for an unspecified period of time,
-and a new request for PIN may not be triggered even once the authenticated ID card is removed or replaced.
-This is not possible to control by the web server. 
-One way around it is to use unique subdomains for every new authentication request.
-
-Let's describe the key points of the ID card authentication process, based on the usual routine common for
-SmartID and MobileID. 
-
-The process thus should consist of the following steps:
-* While visiting the site (assuming `example.com` for this matter), the user clicks on a link to start the authentication process;
-* Instead of issuing a _start_ request to the backend (as in the usual routine), 
-  or a `hwcrypto` library call (as in the process of signing with ID card), the user is taken to a specifically configured
-  domain (e.g. `UNIQUE.auth.example.com`) where they are asked for the ID Card's PIN code and 
-  proceed to allow the site to access the certificate;
-* the certificate is validated via OCSP (see below as to why);
-* the certificate or data obtained from it is saved to the session;
-* user is redirected to the protected page on the `example.com` site.
-
-The process above is by and large impractical. One improvement that could be made to it is to use an iframe instead of
-a redirect; this provides for a smooth procedure, but additional measures must be taken, such as adding appropriate
-`Content-Security-Policy` headers.
-
-Another alternative, in case there is no need to use user's authentication data on the frontend,
-is to direct the client to a separate domain as mentioned above, which would redirect back on success or else
-to an error page.
-
-### Notes
-
-* With an AJAX / `fetch` request, the browser (most likely the `chrome-token-signing` plugin) is not able to process
-  the response from the `auth.DOMAIN` server and shows an alert "Technical error".
-
-* There is apparently no way to access content inside the iframe from the parent window, 
-  even with CORS headers set. The only feasible way is to send `postMessage` to the parent window.
-
-* The ID card authentication certificate is cached by the browser, 
-  and there is apparently no way to manage or work around this cache from the application.
-  The multi-domain approach (i.e. each new authentication happens on a different domain) didn't help.
-
-* User certificate validation is done via OCSP in the django application, rather than using 
-  Certificate Revocation Lists (CRLs) on the nginx, because of a problem with one of the root certificates: 
-  http://mailman.nginx.org/pipermail/nginx-devel/2017-March/009609.html, https://trac.nginx.org/nginx/ticket/1094.
+- https://github.com/web-eid/
+- https://github.com/web-eid/web-eid-system-architecture-doc
+- https://github.com/web-eid/web-eid-system-architecture-doc/issues/5

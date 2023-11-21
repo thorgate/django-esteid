@@ -221,14 +221,14 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 
-<script type="text/javascript" src="{% static 'esteid-test/hwcrypto.js' %}"></script>
-<script type="text/javascript" src="{% static 'esteid-test/Esteid.main.js' %}"></script>
+<script type="text/javascript" src="{% static 'esteid-helper/web-eid.js' %}"></script>
+<script type="text/javascript" src="{% static 'esteid-helper/Esteid.main.web.js' %}"></script>
 
 <script type="text/javascript">
     $(function () {
         var csrf_token = '{{ csrf_token }}'
         var downloadUrl = '{% url 'download_signed_container' %}'
-        var manager = new Esteid.IdentificationManager({
+        var manager = new Esteid.LegacyIdentificationManager({
             language: Esteid.Languages.ET,
 
             idEndpoints: {
@@ -315,7 +315,7 @@
                     )
 
                 }, function (res) {
-                    if (res.message) {
+                    if (res && res.message) {
                         alert('MID Response[' + res.error_code + ']: ' + res.message)
                     } else {
                         alert('Something went wrong, please try again')
@@ -407,20 +407,20 @@
                 function (res) {
                     if (res instanceof Error) {
                         console.log(res.message, res)
-                        res = manager.getError(res.message)
+                        res = manager.getError(res)
 
                         alert(res.message)
 
                         console.error('[Error code: ' + res.returnCode + '; Error: ' + res.message + ']')
                         $('#id-modal').modal('hide')
                     } else {
-                        if (typeof res === 'string' || res.error_code) {
-                            var msg = res.message !== undefined ? res.message : res
+                        if (typeof res === 'string' || (res && res.error_code)) {
+                            var msg = res && res.message !== undefined ? res.message : res
 
                             alert(msg + ', please try again')
                             $('#id-modal').modal('hide')
                         } else {
-                            console.error(res.message !== undefined ? res.message : res)
+                            console.error(res && res.message !== undefined ? res.message : res)
                             alert('Something went wrong, please refresh the page and try again')
                         }
                     }

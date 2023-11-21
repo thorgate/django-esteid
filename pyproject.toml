@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-esteid"
-version = "3.3"
+version = "4.0.b5"
 description = "Django-esteid is a package that provides Esteid based authentication for your Django applications."
 readme = "README.md"
 license = "BSD"
@@ -71,7 +71,7 @@ python = "^3.8.0"
 Django = ">=1.11,!=2.1.0,!=2.1.1"
 attrs = ">=19.2.0"
 esteid-certificates = "==1.0.*"
-pyasice = "==1.0.*,>=1.0.1"
+pyasice = "==1.0.*,>=1.0.5"
 requests = ">=2.20"
 
 "backports.zoneinfo" = {version = "0.2.1", python = "<3.9"}
