@@ -98,3 +98,10 @@ LOGGING = {
 }
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+try:
+    from local_settings import *  # noqa
+
+except ImportError:
+    print("No local_settings.py settings file found. Using default settings.")
+    pass

@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 from time import time
 from typing import Dict, List, Type
 
+from esteid.util import get_request_session_method
 from esteid_certificates import get_certificate
 
 import pyasice
@@ -244,6 +245,7 @@ class Signer:
                 lt_ts=settings.ESTEID_USE_LT_TS,
                 ocsp_url=settings.OCSP_URL,
                 tsa_url=settings.TSA_URL,
+                get_session=get_request_session_method(),
             )
         except pyasice.Error as e:
             logger.exception("Signature confirmation error")

@@ -54,3 +54,5 @@ db.sqlite
 
 localhost.crt
 localhost.key
+
+local_settings.py
