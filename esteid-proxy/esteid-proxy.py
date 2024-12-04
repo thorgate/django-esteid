@@ -1,12 +1,13 @@
-from base64 import b64decode, b64encode
 import json
 import os
 import traceback
+from base64 import b64decode, b64encode
 from typing import Any, Dict
-from urllib.parse import parse_qs, unquote_plus, quote_plus
+from urllib.parse import parse_qs, quote_plus, unquote_plus
 
 import requests
 from requests import RequestException
+
 
 ALLOWED_URLS = os.environ["ALLOWED_URLS"].split(",")
 ANY_ALLOWED = "*" in ALLOWED_URLS
@@ -86,7 +87,9 @@ def handle_request(headers, data):
         return {"statusCode": 529, "body": "internal server error"}
 
 
-from fastapi import FastAPI, Request as FastAPIRequest, Response as FastAPIResponse
+from fastapi import FastAPI
+from fastapi import Request as FastAPIRequest
+from fastapi import Response as FastAPIResponse
 
 
 app = FastAPI()

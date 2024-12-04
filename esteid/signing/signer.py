@@ -4,7 +4,6 @@ from tempfile import NamedTemporaryFile
 from time import time
 from typing import Dict, List, Type
 
-from esteid.util import get_request_session_method
 from esteid_certificates import get_certificate
 
 import pyasice
@@ -12,6 +11,7 @@ from pyasice import Container, XmlSignature
 
 from esteid import settings
 from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
+from esteid.util import get_request_session_method
 
 from .types import DataFile, InterimSessionData
 
