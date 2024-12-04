@@ -2,6 +2,7 @@
 Compatibility utilities that provide signed container info
 in the same format as the DDS service did.
 """
+
 import base64
 import hashlib
 

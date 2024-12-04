@@ -11,6 +11,7 @@ class ProxiedSession(requests.Session):
 
     See esteid-proxy/README.md for more information
     """
+
     def send(self, request, **kwargs):
         # Use a proxy for the request, so we create a new one and put all the params inside the body
         PROXY_URL = "http://localhost:8001"
@@ -34,7 +35,7 @@ class ProxiedSession(requests.Session):
         result = super().send(new_request, **kwargs)
 
         print("RESULT", result.status_code)
-        
+
         return result
 
         data = result.json()

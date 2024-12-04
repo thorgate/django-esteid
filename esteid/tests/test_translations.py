@@ -1,6 +1,7 @@
 """
 Translations smoke test
 """
+
 import re
 from pathlib import Path
 

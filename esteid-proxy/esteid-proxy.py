@@ -53,7 +53,7 @@ def handle_request(headers, data):
         resp.raise_for_status()
 
         return FastAPIResponse(content=resp.content, status_code=resp.status_code, headers=resp.headers)
-                               
+
         #                        {
         #     "statusCode": resp.status_code,
         #     "body": resp.text,
@@ -62,13 +62,14 @@ def handle_request(headers, data):
     except RequestException as e:
         print("Connection failed.")
 
-        return FastAPIResponse(content=e.response.text, status_code=e.response.status_code, headers=dict(e.response.headers))
+        return FastAPIResponse(
+            content=e.response.text, status_code=e.response.status_code, headers=dict(e.response.headers)
+        )
 
         return {
             "statusCode": e.response.status_code,
             "body": e.response.text,
             "headers": dict(e.response.headers),
-
             # "body": json.dumps(
             #     {
             #         "status": ,
@@ -90,6 +91,7 @@ from fastapi import FastAPI, Request as FastAPIRequest, Response as FastAPIRespo
 
 app = FastAPI()
 
+
 @app.post("/")
 async def root(request: FastAPIRequest):
     print("Request received.")
@@ -98,4 +100,3 @@ async def root(request: FastAPIRequest):
     body = await request.json()
 
     return handle_request(headers, body)
-

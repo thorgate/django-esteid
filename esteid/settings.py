@@ -1,6 +1,7 @@
 """
 This module contains all configuration settings for django-esteid.
 """
+
 import re
 
 from django.conf import settings
