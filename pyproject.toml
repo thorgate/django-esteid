@@ -73,6 +73,7 @@ attrs = ">=19.2.0"
 esteid-certificates = "==1.0.*"
 pyasice = ">=1.2.0"
 requests = ">=2.20"
+pytz = ">=2018"
 
 "backports.zoneinfo" = {version = "0.2.1", python = "<3.9"}
 
