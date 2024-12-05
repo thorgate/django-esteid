@@ -23,7 +23,7 @@ ssh -L 8001:localhost:8001 user@server
 Add these to a `local_settings.py` file (create one if it doesn't exist) in the same directory as the `test_settings.py` file:
 
 ```python
-D_DEMO = False
+ESTEID_DEMO = False
 
 MOBILE_ID_SERVICE_NAME = "real service name"
 MOBILE_ID_SERVICE_UUID = "real service uuid"
