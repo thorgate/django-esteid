@@ -38,24 +38,6 @@ class ProxiedSession(requests.Session):
 
         return result
 
-        data = result.json()
-        full_body = json.loads(data["body"])
-        status_code = full_body["status"]
-
-        body = b64decode(full_body["body"])
-        headers = full_body["headers"]
-        reason = full_body["message"]
-
-        final_resp = requests.Response()
-        final_resp.status_code = status_code
-        final_resp.headers = headers
-        final_resp.reason = reason
-        final_resp._content = body
-        final_resp._content
-        final_resp.encoding = "utf-8"
-
-        return final_resp
-
 
 def proxied_get_request_session():
     return ProxiedSession()
