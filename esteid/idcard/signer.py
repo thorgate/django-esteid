@@ -35,6 +35,19 @@ class IdCardSigner(Signer):
         cert_holder_info = CertificateHolderInfo.from_certificate(certificate_handle)
         return cert_holder_info.id_code
 
+    @classmethod
+    def _load_from_base64(self, data: str):
+        try:
+            certificate_bin = base64.b64decode(data)
+        except binascii.Error:
+            raise ValueError("Invalid base64 string") from e
+        return load_certificate(certificate_bin)
+
+    @classmethod
+    def _load_from_hex(self, data: str):
+        certificate_bin = bytes(bytearray.fromhex(data))
+        return load_certificate(certificate_bin)
+
     def setup(self, initial_data: dict = None):
         """
         Receives a user certificate from the front end
@@ -50,32 +63,22 @@ class IdCardSigner(Signer):
             raise InvalidParameter("Missing required parameter 'certificate'", param="certificate") from e
 
         try:
-            certificate = base64.b64decode(certificate_hex)
-        except binascii.Error as e:
-            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
-                logger.exception(
-                    "Failed to decode parameter `certificate` from DER encoding. "
-                    "Certificate HEX representation: %r",
-                    certificate_hex,
-                )
-            raise InvalidParameter(
-                "Failed to decode parameter `certificate` from DER encoding", param="certificate"
-            ) from e
+            self._certificate_handle = self._load_from_hex(certificate_hex)
+        except ValueError:
+            try:
+                self._certificate_handle = self._load_from_base64(certificate_hex)
+            except ValueError:
+                if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                    logger.exception(
+                        "Failed to recognize `certificate` as a supported certificate format. "
+                        "Certificate representation: %r",
+                        certificate_hex,
+                    )
+                raise InvalidParameter(
+                    "Failed to recognize `certificate` as a supported certificate format", param="certificate"
+                ) from e
 
-        try:
-            self._certificate_handle = load_certificate(certificate)
-        except ValueError as e:
-            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
-                logger.exception(
-                    "Failed to recognize `certificate` as a supported certificate format. "
-                    "Certificate HEX representation: %r",
-                    certificate_hex,
-                )
-            raise InvalidParameter(
-                "Failed to recognize `certificate` as a supported certificate format", param="certificate"
-            ) from e
-
-        self.certificate = certificate
+        self.certificate = self._certificate_handle.asn1.dump()
 
     def prepare(self, container: pyasice.Container = None, files: List[DataFile] = None) -> dict:
         container = self.open_container(container, files)
