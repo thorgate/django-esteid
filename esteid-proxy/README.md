@@ -12,6 +12,13 @@ poetry install --no-root
 poetry run fastapi dev esteid-proxy.py --port 8001
 ```
 
+Alternatively, you can run the proxy in docker, using the makefile. This is useful on older servers
+that may not have python 3.8 available.
+
+```
+make
+```
+
 ## setup ssh tunnel
 
 ```bash
@@ -29,4 +36,5 @@ MOBILE_ID_SERVICE_NAME = "real service name"
 MOBILE_ID_SERVICE_UUID = "real service uuid"
 
 ESTEID_GET_REQUEST_SESSION = "proxy_session.proxied_get_request_session"
+ESTEID_PROXY_TOKEN = "token that the proxy server outputs if you run it with make, and which you must set explicitly otherwise"
 ```
