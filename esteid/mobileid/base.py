@@ -68,7 +68,13 @@ class MobileIDService(BaseSKService):
         raise MobileIDError("Unknown response format")
 
     def authenticate(
-        self, id_code: str, phone_number: str, message: str = None, language: str = None, hash_type: str = HASH_SHA256
+        self,
+        id_code: str,
+        phone_number: str,
+        message: str = None,
+        language: str = None,
+        hash_type: str = HASH_SHA256,
+        random_bytes=None,
     ):
         """Initiate an authentication session
 
@@ -84,6 +90,8 @@ class MobileIDService(BaseSKService):
         :param str message: Text to display for authentication consent dialog on the mobile device, NOTE: max 20 chars!
         :param str language: choices: ENG, EST, LIT, RUS. Defaults to ENG
         :param str hash_type: Hash algorithm to use when generating a random hash value (choices: HASH_ALGORITHMS)
+        :param bytes random_bytes: Optional. Random bytes to be used for the authentication. Should be generated with
+            os.urandom() or a similar secure random byte generator.
         :return: session ID
         :rtype: AuthenticateResult
         """
@@ -103,7 +111,7 @@ class MobileIDService(BaseSKService):
         if language not in Languages.ALL:
             language = settings.MOBILE_ID_DEFAULT_LANGUAGE
 
-        random_bytes = secure_random(64)
+        random_bytes = secure_random(64) if random_bytes is None else random_bytes
         hash_value = generate_hash(hash_type, random_bytes)
         hash_value_b64 = base64.b64encode(hash_value).decode("utf-8")
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-esteid"
-version = "4.1"
+version = "4.2"
 description = "Django-esteid is a package that provides Esteid based authentication for your Django applications."
 readme = "README.md"
 license = "BSD"

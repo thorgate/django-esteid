@@ -35,14 +35,17 @@ class IdCardAuthenticator(Authenticator):
 
         self.hash_type = initial_data.get("algorithm", HASH_SHA256) or HASH_SHA256
 
-    def authenticate(self):
+    def authenticate(self, random_bytes=None):
         """This is called by the front-end during the start of the authentication process
 
         The method generates a challenge nonce and returns it to the front-end to be used in the
         web-eid `authenticate` call.
+
+        :param random_bytes: bytes, optional. Random bytes to be used for the authentication. Should be generated with
+            os.urandom() or a similar secure random byte generator.
         """
 
-        random_bytes = secure_random(64)
+        random_bytes = secure_random(64) if random_bytes is None else random_bytes
         hash_value = generate_hash(self.hash_type, random_bytes)
         hash_value_b64 = base64.b64encode(hash_value).decode()
 

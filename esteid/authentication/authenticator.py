@@ -40,7 +40,7 @@ class Authenticator:
 
     # Abstract methods
 
-    def authenticate(self) -> Optional[AuthenticationResult]:
+    def authenticate(self, random_bytes=None) -> Optional[AuthenticationResult]:
         """
         Initiate the authentication process.
 
@@ -49,6 +49,9 @@ class Authenticator:
 
         Note: For a theoretical case when authentication happens immediately, we leave an opportunity
         that this method returns AuthenticationResult.
+
+        :param random_bytes: bytes, optional. Random bytes to be used for the authentication. Should be generated with
+            os.urandom() or a similar secure random byte generator.
         """
         raise NotImplementedError
 

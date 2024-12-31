@@ -37,10 +37,10 @@ class SmartIdAuthenticator(Authenticator):
         self.id_code = user_input.id_code
         self.country = user_input.country
 
-    def authenticate(self):
+    def authenticate(self, random_bytes=None):
         service = TranslatedSmartIDService.get_instance()
 
-        auth_initial_result = service.authenticate(self.id_code, self.country)
+        auth_initial_result = service.authenticate(self.id_code, self.country, random_bytes=random_bytes)
 
         self.save_session_data(
             session_id=auth_initial_result.session_id, hash_value_b64=auth_initial_result.hash_value_b64

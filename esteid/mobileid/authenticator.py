@@ -39,10 +39,12 @@ class MobileIdAuthenticator(Authenticator):
         self.phone_number = user_input.phone_number
         self.language = user_input.language
 
-    def authenticate(self):
+    def authenticate(self, random_bytes=None):
         service = TranslatedMobileIDService.get_instance()
 
-        auth_initial_result = service.authenticate(self.id_code, self.phone_number, language=self.language)
+        auth_initial_result = service.authenticate(
+            self.id_code, self.phone_number, language=self.language, random_bytes=random_bytes
+        )
 
         self.save_session_data(
             session_id=auth_initial_result.session_id, hash_value_b64=auth_initial_result.hash_value_b64

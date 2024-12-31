@@ -52,7 +52,13 @@ class SmartIDService(BaseSKService):
         SESSION_STATUS = "/session/{session_id}"
 
     def authenticate(
-        self, id_code, country, certificate_level=CERTIFICATE_LEVEL_QUALIFIED, message=None, hash_type=HASH_SHA256
+        self,
+        id_code,
+        country,
+        certificate_level=CERTIFICATE_LEVEL_QUALIFIED,
+        message=None,
+        hash_type=HASH_SHA256,
+        random_bytes=None,
     ):
         """Initiate an authentication session
 
@@ -63,6 +69,8 @@ class SmartIDService(BaseSKService):
         :param str certificate_level: Level of certificate requested (choices: CERTIFICATE_LEVELS)
         :param str message: Text to display for authentication consent dialog on the mobile device
         :param str hash_type: Hash algorithm to use when generating a random hash value (choices: HASH_ALGORITHMS)
+        :param bytes random_bytes: Random bytes to use for the hash value (optional). If not provided, will be generated
+
         :return AuthenticateResult: Result of the request
         """
         # Ensure required values are set
@@ -70,7 +78,7 @@ class SmartIDService(BaseSKService):
         assert certificate_level in CERTIFICATE_LEVELS
         assert hash_type in HASH_ALGORITHMS
 
-        random_bytes = secure_random(64)
+        random_bytes = secure_random(64) if random_bytes is None else random_bytes
         hash_value = generate_hash(hash_type, random_bytes)
         hash_value_b64 = base64.b64encode(hash_value).decode()
 
