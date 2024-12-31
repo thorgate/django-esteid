@@ -8,7 +8,6 @@ import requests_mock
 
 import pyasice
 
-from ..utils import get_verification_code
 from ...constants import HASH_ALGORITHMS, HASH_SHA256, HASH_SHA384, HASH_SHA512
 from ...exceptions import (
     ActionInProgress,
@@ -24,6 +23,7 @@ from .. import MobileIDError
 from ..base import MobileIDService
 from ..constants import EndResults
 from ..types import AuthenticateResult, AuthenticateStatusResult
+from ..utils import get_verification_code
 
 
 def run_authentication_flow(demo_mid_api, id_number, phone_number, hash_type=HASH_SHA256):
@@ -103,7 +103,9 @@ def test_authentication_manual_bytes(demo_mid_api, hash_type, MID_DEMO_PIN_EE_OK
     with patch.object(demo_mid_api, "invoke", return_value=response_data):
         expected_hash = generate_hash(hash_type, custom_random_data)
 
-        res = demo_mid_api.authenticate(MID_DEMO_PIN_EE_OK, MID_DEMO_PHONE_EE_OK, hash_type=hash_type, random_bytes=custom_random_data)
+        res = demo_mid_api.authenticate(
+            MID_DEMO_PIN_EE_OK, MID_DEMO_PHONE_EE_OK, hash_type=hash_type, random_bytes=custom_random_data
+        )
 
         assert isinstance(res, AuthenticateResult)
         assert res.session_id == "FAKE"

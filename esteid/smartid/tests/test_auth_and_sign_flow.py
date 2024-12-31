@@ -11,7 +11,6 @@ from pyasice.ocsp import OCSP
 from pyasice.tsa import TSA
 
 from esteid.constants import HASH_ALGORITHMS, HASH_SHA256, HASH_SHA384, HASH_SHA512, OCSP_DEMO_URL, TSA_DEMO_URL
-from ..utils import get_verification_code
 
 from ...exceptions import (
     ActionInProgress,
@@ -25,6 +24,7 @@ from ...util import generate_hash
 from ..base import SmartIDService
 from ..constants import CERTIFICATE_LEVEL_QUALIFIED, Countries
 from ..types import AuthenticateResult, AuthenticateStatusResult, SignResult, SignStatusResult
+from ..utils import get_verification_code
 
 
 @pytest.mark.parametrize("hash_type", HASH_ALGORITHMS)
@@ -68,7 +68,9 @@ def test_authentication_manual_bytes(demo_api, hash_type, SMARTID_DEMO_ID_CODE_E
     with patch.object(demo_api, "invoke", return_value=response_data):
         expected_hash = generate_hash(hash_type, custom_random_data)
 
-        res = demo_api.authenticate(SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA, hash_type=hash_type, random_bytes=custom_random_data)
+        res = demo_api.authenticate(
+            SMARTID_DEMO_ID_CODE_EE, Countries.ESTONIA, hash_type=hash_type, random_bytes=custom_random_data
+        )
 
         assert isinstance(res, AuthenticateResult)
         assert res.session_id == "FAKE"
