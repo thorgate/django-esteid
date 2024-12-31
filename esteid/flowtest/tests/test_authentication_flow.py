@@ -116,6 +116,7 @@ def test_auth_flow_smartid(
         TranslatedSmartIDService.get_instance().authenticate.assert_called_once_with(
             smartid_data["id_code"],
             smartid_data["country"],
+            random_bytes=None,
         )
 
         assert response.status_code == 202, f"Auth init request failed: {response.json()}"
