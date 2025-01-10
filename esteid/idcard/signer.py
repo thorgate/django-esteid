@@ -12,6 +12,8 @@ from esteid.exceptions import InvalidParameter, SignatureVerificationError
 from esteid.signing import DataFile, Signer
 from esteid.types import CertificateHolderInfo
 
+from .. import settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +28,25 @@ class IdCardSigner(Signer):
         try:
             certificate_handle = self._certificate_handle
         except AttributeError as e:
+            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                logger.exception("Attribute id_code not available: certificate not provided")
             raise AttributeError("Attribute id_code not available: certificate not provided") from e
 
         cert_holder_info = CertificateHolderInfo.from_certificate(certificate_handle)
         return cert_holder_info.id_code
+
+    @classmethod
+    def _load_from_base64(self, data: str):
+        try:
+            certificate_bin = base64.b64decode(data)
+        except binascii.Error:
+            raise ValueError("Invalid base64 string") from e
+        return load_certificate(certificate_bin)
+
+    @classmethod
+    def _load_from_hex(self, data: str):
+        certificate_bin = bytes(bytearray.fromhex(data))
+        return load_certificate(certificate_bin)
 
     def setup(self, initial_data: dict = None):
         """
@@ -38,23 +55,30 @@ class IdCardSigner(Signer):
         try:
             certificate_hex = initial_data["certificate"]
         except (TypeError, KeyError) as e:
+            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                logger.exception(
+                    "Missing required parameter 'certificate'. Data: %r",
+                    initial_data
+                )
             raise InvalidParameter("Missing required parameter 'certificate'", param="certificate") from e
 
         try:
-            certificate = base64.b64decode(certificate_hex)
-        except binascii.Error as e:
-            raise InvalidParameter(
-                "Failed to decode parameter `certificate` from DER encoding", param="certificate"
-            ) from e
+            self._certificate_handle = self._load_from_hex(certificate_hex)
+        except ValueError:
+            try:
+                self._certificate_handle = self._load_from_base64(certificate_hex)
+            except ValueError:
+                if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                    logger.exception(
+                        "Failed to recognize `certificate` as a supported certificate format. "
+                        "Certificate representation: %r",
+                        certificate_hex,
+                    )
+                raise InvalidParameter(
+                    "Failed to recognize `certificate` as a supported certificate format", param="certificate"
+                ) from e
 
-        try:
-            self._certificate_handle = load_certificate(certificate)
-        except ValueError as e:
-            raise InvalidParameter(
-                "Failed to recognize `certificate` as a supported certificate format", param="certificate"
-            ) from e
-
-        self.certificate = certificate
+        self.certificate = self._certificate_handle.asn1.dump()
 
     def prepare(self, container: pyasice.Container = None, files: List[DataFile] = None) -> dict:
         container = self.open_container(container, files)
@@ -74,11 +98,23 @@ class IdCardSigner(Signer):
         try:
             signature_value = data["signature_value"]
         except (TypeError, KeyError) as e:
+            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                logger.exception(
+                    "Missing required parameter 'signature_value'. "
+                    "Data: %r",
+                    data,
+                )
             raise InvalidParameter("Missing required parameter 'signature_value'", param="signature_value") from e
 
         try:
             signature_value = base64.b64decode(signature_value)
         except binascii.Error as e:
+            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                logger.exception(
+                    "Failed to decode parameter `signature_value` from DER encoding. "
+                    "Signature value: %r",
+                    signature_value,
+                )
             raise InvalidParameter(
                 "Failed to decode parameter `signature_value` from DER encoding", param="signature_value"
             ) from e
@@ -93,6 +129,10 @@ class IdCardSigner(Signer):
         try:
             pyasice.verify(xml_sig.get_certificate_value(), signature_value, digest, prehashed=True)
         except pyasice.SignatureVerificationError as e:
+            if settings.ESTEID_ID_CARD_VERBOSE_ERRORS:
+                logger.exception(
+                    "Signature verification error."
+                )
             raise SignatureVerificationError from e
 
         container = pyasice.Container.open(temp_container_file)

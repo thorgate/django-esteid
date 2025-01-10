@@ -1,5 +1,6 @@
 import json
 from base64 import b64decode, b64encode
+from django.conf import settings
 
 import requests
 
@@ -26,7 +27,7 @@ class ProxiedSession(requests.Session):
                 "body": b64encode(request.body).decode("utf-8") if request.body else None,
             },
             headers={
-                "proxy-token": "yolo",
+                "proxy-token": str(getattr(settings, "ESTEID_PROXY_TOKEN", "yolo")),
                 "Content-Type": "application/json",
             },
         )
