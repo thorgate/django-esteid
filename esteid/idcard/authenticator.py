@@ -11,7 +11,7 @@ from pyasice.ocsp import OCSP
 
 from .. import settings
 from ..authentication import Authenticator
-from ..authentication.types import AuthenticationResult
+from ..authentication.types import AuthenticationResult, SessionData, Status
 from ..constants import HASH_SHA256
 from ..exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from ..types import CertificateHolderInfo
@@ -49,10 +49,9 @@ class IdCardAuthenticator(Authenticator):
         hash_value = generate_hash(self.hash_type, random_bytes)
         hash_value_b64 = base64.b64encode(hash_value).decode()
 
-        self.save_session_data(
-            session_id=uuid.uuid4().hex,
-            hash_value_b64=hash_value_b64,
-        )
+        self.session_data.session_id = uuid.uuid4().hex
+        self.session_data.hash_value_b64 = hash_value_b64
+        self.save_session_data()
 
         raise ActionInProgress(
             data={

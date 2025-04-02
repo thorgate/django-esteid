@@ -41,10 +41,9 @@ class SmartIdAuthenticator(Authenticator):
         service = TranslatedSmartIDService.get_instance()
 
         auth_initial_result = service.authenticate(self.id_code, self.country, random_bytes=random_bytes)
-
-        self.save_session_data(
-            session_id=auth_initial_result.session_id, hash_value_b64=auth_initial_result.hash_value_b64
-        )
+        self.session_data.session_id = auth_initial_result.session_id
+        self.session_data.hash_value_b64 = auth_initial_result.hash_value_b64
+        self.save_session_data()
 
         raise ActionInProgress(
             data={

@@ -4,7 +4,7 @@ import logging
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 
 from ..authentication import Authenticator
-from ..authentication.types import AuthenticationResult
+from ..authentication.types import AuthenticationResult, SessionData, Status
 from ..types import CertificateHolderInfo
 from .i18n import TranslatedMobileIDService
 from .types import UserInput
@@ -46,9 +46,9 @@ class MobileIdAuthenticator(Authenticator):
             self.id_code, self.phone_number, language=self.language, random_bytes=random_bytes
         )
 
-        self.save_session_data(
-            session_id=auth_initial_result.session_id, hash_value_b64=auth_initial_result.hash_value_b64
-        )
+        self.session_data.session_id = auth_initial_result.session_id
+        self.session_data.hash_value_b64 = auth_initial_result.hash_value_b64
+        self.save_session_data()
 
         raise ActionInProgress(
             data={

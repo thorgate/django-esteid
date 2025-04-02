@@ -1,4 +1,13 @@
+import typing as t
 from esteid.types import PredictableDict
+
+
+class AuthenticationResult(PredictableDict):
+    country: str
+    id_code: str
+    given_name: str
+    surname: str
+    certificate_b64: str
 
 
 class SessionData(PredictableDict):
@@ -12,11 +21,12 @@ class SessionData(PredictableDict):
     timestamp: int
     session_id: str
     hash_value_b64: str
+    status: str
+    result: t.Optional[AuthenticationResult]
 
 
-class AuthenticationResult(PredictableDict):
-    country: str
-    id_code: str
-    given_name: str
-    surname: str
-    certificate_b64: str
+class Status:
+    ERROR = "error"
+    PENDING = "pending"
+    SUCCESS = "success"
+    CANCELLED = "cancelled"
