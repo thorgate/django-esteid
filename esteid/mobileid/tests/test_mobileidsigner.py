@@ -2,20 +2,28 @@ import base64
 import os
 from tempfile import NamedTemporaryFile
 from time import time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 from esteid.mobileid import MobileIdSigner
 from esteid.mobileid import signer as signer_module
 
+from ...authentication.types import Status
 from ...exceptions import InvalidIdCode, InvalidParameter, InvalidParameters, SigningSessionDoesNotExist
+from ..types import SignResult
 
 
 @pytest.fixture()
 def mobileidsigner():
     signer = MobileIdSigner({}, initial=True)
-    with patch.object(signer, "open_container"), patch.object(signer, "save_session_data"):
+    with patch.object(signer, "open_container") as open_container, patch.object(signer, "save_session_data"):
+        open_container().prepare_signature().signed_data = Mock(return_value=b"signature signature")
+        open_container().prepare_signature().dump = Mock(return_value=b"<xml xml xml>")
+        open_container().finalize().getbuffer = Mock(return_value=b"buffer buffer")
+        open_container().prepare_signature().reset_mock()
+        open_container().finalize().reset_mock()
+        open_container.reset_mock()
         yield signer
 
 
@@ -29,6 +37,7 @@ def mobileid_session_data():
         "temp_container_file": "...",
         "session_id": "...",
         "timestamp": int(time()),
+        "status": Status.SUCCESS,
     }
     os.remove(f.name)
 
@@ -36,6 +45,18 @@ def mobileid_session_data():
 @pytest.fixture()
 def mobileidservice():
     with patch.object(signer_module, "TranslatedMobileIDService") as service_cls:
+        service_cls.get_instance().sign = Mock(
+            return_value=SignResult(
+                "session_id",
+                b"digest",
+                1234,
+            )
+        )
+        service_cls.get_instance().get_certificate = Mock(
+            return_value=b"certificate certificate",
+        )
+        service_cls.get_instance().reset_mock()
+        service_cls.reset_mock()
         yield service_cls
 
 
@@ -99,6 +120,7 @@ def test_mobileidsigner_setup(data, error):
                 "temp_container_file": "b",
                 "session_id": "c",
                 "timestamp": int(time()),
+                "status": Status.SUCCESS,
             },
             None,
             id="Good session data",
@@ -141,12 +163,11 @@ def test_mobileidsigner_prepare(mobileidsigner, MID_DEMO_PHONE_EE_OK, MID_DEMO_P
 
     sign_session = service.sign(...)
 
-    mobileidsigner.save_session_data.assert_called_once_with(
-        digest=sign_session.digest,
-        container=container,
-        xml_sig=xml_sig,
-        session_id=sign_session.session_id,
-    )
+    mobileidsigner.save_session_data.assert_called_once_with()
+    assert mobileidsigner.session_data.digest == sign_session.digest
+    assert mobileidsigner.session_data.session_id == sign_session.session_id
+    assert mobileidsigner.session_data.temp_signature_file
+    assert mobileidsigner.session_data.temp_container_file
 
     assert result["verification_code"] == sign_session.verification_code
 

@@ -5,6 +5,7 @@ import pytest
 
 from django.core.files import File
 
+from ...authentication.types import Status
 from ..types import DataFile, InterimSessionData
 
 
@@ -36,12 +37,24 @@ def test_txt(tmp_path):
             id="empty dict",
         ),
         pytest.param(
-            {"digest_b64": "", "temp_signature_file": "", "temp_container_file": "", "timestamp": 0},
+            {
+                "digest_b64": "",
+                "temp_signature_file": "",
+                "temp_container_file": "",
+                "timestamp": 0,
+                "status": Status.PENDING,
+            },
             None,
             id="empty values",
         ),
         pytest.param(
-            {"digest_b64": "dGVzdA==", "temp_signature_file": "asdf", "temp_container_file": "asdf", "timestamp": 0},
+            {
+                "digest_b64": "dGVzdA==",
+                "temp_signature_file": "asdf",
+                "temp_container_file": "asdf",
+                "timestamp": 0,
+                "status": Status.PENDING,
+            },
             None,
             id="non-empty values",
         ),

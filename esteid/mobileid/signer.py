@@ -52,13 +52,10 @@ class MobileIdSigner(Signer):
         xml_sig = container.prepare_signature(certificate)
 
         sign_session = service.sign(self.id_code, self.phone_number, xml_sig.signed_data(), language=self.language)
-
-        self.save_session_data(
-            digest=sign_session.digest,
-            container=container,
-            xml_sig=xml_sig,
-            session_id=sign_session.session_id,
-        )
+        self.session_data.digest = sign_session.digest
+        self.session_data.session_id = sign_session.session_id
+        self.set_container(container=container, xml_sig=xml_sig)
+        self.save_session_data()
 
         return {
             "verification_code": sign_session.verification_code,
@@ -90,9 +87,3 @@ class MobileIdSigner(Signer):
         container.add_signature(xml_sig)
 
         return container
-
-    def save_session_data(self, *, digest: bytes, container: Container, xml_sig: XmlSignature, session_id: str):
-        data_obj = self.session_data
-        data_obj.session_id = session_id
-
-        super().save_session_data(digest=digest, container=container, xml_sig=xml_sig)

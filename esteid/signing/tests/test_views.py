@@ -16,6 +16,7 @@ from esteid.exceptions import (
     UpstreamServiceError,
     UserNotRegistered,
 )
+from esteid.signing.signer import Signer
 from esteid.types import Signer as SignerData
 
 from ..views import SignViewMixin
@@ -34,6 +35,8 @@ def signer_class():
     signer_class = Mock(name="signer class")
     signer_class.start_session.return_value = signer_class()
     signer_class.load_session.return_value = signer_class()
+    signer_class().session_data = Signer.clean_session_data()
+    signer_class.reset_mock()
     return signer_class
 
 

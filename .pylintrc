@@ -60,97 +60,24 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
-disable=apply-builtin,
-        backtick,
-        bad-inline-option,
-        bad-python3-import,
-        basestring-builtin,
-        buffer-builtin,
-        cmp-builtin,
-        cmp-method,
-        coerce-builtin,
-        coerce-method,
-        comprehension-escape,
-        delslice-method,
-        deprecated-itertools-function,
-        deprecated-operator-function,
+disable=bad-inline-option,
         deprecated-pragma,
-        deprecated-str-translate-call,
-        deprecated-string-function,
-        deprecated-sys-function,
-        deprecated-types-field,
-        deprecated-urllib-function,
-        dict-items-not-iterating,
-        dict-iter-method,
-        dict-keys-not-iterating,
-        dict-values-not-iterating,
-        dict-view-method,
-        div-method,
-        eq-without-hash,
-        exception-escape,
-        exception-message-attribute,
-        execfile-builtin,
-        file-builtin,
         file-ignored,
-        filter-builtin-not-iterating,
-        getslice-method,
-        hex-method,
-        idiv-method,
-        import-star-module-level,
-        indexing-exception,
-        input-builtin,
-        intern-builtin,
-        invalid-str-codec,
         locally-disabled,
-        long-builtin,
-        long-suffix,
-        map-builtin-not-iterating,
-        metaclass-assignment,
         missing-class-docstring,
         missing-function-docstring,
         missing-module-docstring,
-        next-method-called,
-        next-method-defined,
-        no-absolute-import,
-        non-ascii-bytes-literal,
-        nonzero-method,
-        oct-method,
-        old-division,
-        old-ne-operator,
-        old-octal-literal,
-        old-raise-syntax,
-        parameter-unpacking,
-        raising-string,
-        range-builtin-not-iterating,
         raw-checker-failed,
-        raw_input-builtin,
-        rdiv-method,
-        reduce-builtin,
-        reload-builtin,
-        round-builtin,
-        setslice-method,
-        standarderror-builtin,
         suppressed-message,
-        sys-max-int,
         too-few-public-methods,
-        unichr-builtin,
-        unicode-builtin,
-        unpacking-in-except,
         use-symbolic-message-instead,
         useless-suppression,
-        using-cmp-argument,
-        xrange-builtin,
-        xreadlines-attribute,
-        zip-builtin-not-iterating,
-        # aka Wrong hanging indentation: Pylint disagrees with black, as seen in https://github.com/psf/black/issues/48
-        C0330,
         # these below are supposed to be dealt with at some point...
         abstract-method,
         arguments-differ,
         broad-except,
         fixme,
         invalid-name,
-        no-self-use,
         protected-access,
         super-with-arguments,
         too-many-arguments,
@@ -379,13 +306,6 @@ max-line-length=120
 # Maximum number of lines in a module.
 max-module-lines=1000
 
-# List of optional constructs for which whitespace checking is disabled. `dict-
-# separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
-# `trailing-comma` allows a space between comma and closing bracket: (a, ).
-# `empty-line` allows space-only lines.
-no-space-check=trailing-comma,
-               dict-separator
-
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
 single-line-class-stmt=no
@@ -604,5 +524,5 @@ min-public-methods=2
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "BaseException, Exception".
-overgeneral-exceptions=BaseException,
-                       Exception
+overgeneral-exceptions=builtins.BaseException,
+                       builtins.Exception

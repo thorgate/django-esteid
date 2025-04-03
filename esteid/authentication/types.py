@@ -1,4 +1,6 @@
 import typing as t
+from http import HTTPStatus
+
 from esteid.types import PredictableDict
 
 
@@ -30,3 +32,12 @@ class Status:
     PENDING = "pending"
     SUCCESS = "success"
     CANCELLED = "cancelled"
+
+    @classmethod
+    def http_status_for_status(cls, status: str) -> HTTPStatus:
+        return {
+            cls.ERROR: HTTPStatus.GONE,
+            cls.PENDING: HTTPStatus.ACCEPTED,
+            cls.SUCCESS: HTTPStatus.OK,
+            cls.CANCELLED: HTTPStatus.CONFLICT,
+        }.get(status, HTTPStatus.INTERNAL_SERVER_ERROR)

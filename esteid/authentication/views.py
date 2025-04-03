@@ -1,10 +1,9 @@
 import logging
-from functools import cached_property
-from typing import Type, TYPE_CHECKING, Optional
+from typing import Optional, Type, TYPE_CHECKING
 
 from django.http import HttpRequest, JsonResponse
 
-from esteid.exceptions import ActionInProgress, SigningSessionDoesNotExist
+from esteid.exceptions import ActionInProgress
 from esteid.mixins import DjangoRestCompatibilityMixin, SessionViewMixin
 
 from .authenticator import Authenticator
@@ -67,8 +66,9 @@ class AuthenticationViewMixin(SessionViewMixin):
         try:
             return super().dispatch(request, *args, **kwargs)
         finally:
-            if self._authenticator_instance is not None and \
-                    self._authenticator_instance.session_data.is_valid(raise_exception=False):
+            if self._authenticator_instance is not None and self._authenticator_instance.session_data.is_valid(
+                raise_exception=False
+            ):
                 self._authenticator_instance.save_session_data()
 
     def handle_user_cancel(self):
@@ -88,7 +88,9 @@ class AuthenticationViewMixin(SessionViewMixin):
         """
 
         auth_class = self.select_authenticator_class()
-        self._authenticator_instance = auth_class.start_session(request.session, request.data, origin=get_origin(request))
+        self._authenticator_instance = auth_class.start_session(
+            request.session, request.data, origin=get_origin(request)
+        )
 
         try:
             self._authenticator_instance.session_data.result = self._authenticator_instance.authenticate(
@@ -97,11 +99,11 @@ class AuthenticationViewMixin(SessionViewMixin):
         except ActionInProgress as e:
             # return SUCCESS to indicate that the upstream service successfully accepted the request
             return JsonResponse({"status": self.Status.SUCCESS, **e.data}, status=e.status)
-        else:
-            # Handle a theoretical case of immediate authentication
-            self.on_auth_success(request, self._authenticator_instance.session_data.result)
-            self._authenticator_instance.session_data.status = self.Status.SUCCESS
-            return self.success_response(request, self._authenticator_instance.session_data.result)
+
+        # Handle a theoretical case of immediate authentication
+        self.on_auth_success(request, self._authenticator_instance.session_data.result)
+        self._authenticator_instance.session_data.status = self.Status.SUCCESS
+        return self.success_response(request, self._authenticator_instance.session_data.result)
 
     def finish_session(self, request: "RequestType", *args, **kwargs):
         """
@@ -110,22 +112,27 @@ class AuthenticationViewMixin(SessionViewMixin):
         authenticator_class = self.select_authenticator_class()
         self._authenticator_instance = authenticator_class.load_session(request.session, origin=get_origin(request))
 
-        if self._authenticator_instance.session_data.status != self.Status.PENDING \
-                and self._authenticator_instance.session_data.result is not None:
+        if (
+            self._authenticator_instance.session_data.status != self.Status.PENDING
+            and self._authenticator_instance.session_data.result is not None
+        ):
             # Return cached data, if available
-            return JsonResponse({
-                "status": self._authenticator_instance.session_data.status,
-                **self._authenticator_instance.session_data.result
-            })
+            return JsonResponse(
+                {
+                    "status": self._authenticator_instance.session_data.status,
+                    **self._authenticator_instance.session_data.result,
+                },
+                status=self.Status.http_status_for_status(self._authenticator_instance.session_data.status),
+            )
 
         try:
             self._authenticator_instance.session_data.result = self._authenticator_instance.poll(request.data)
         except ActionInProgress as e:
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
-        else:
-            self.on_auth_success(request, self._authenticator_instance.session_data.result)
-            self._authenticator_instance.session_data.status = self.Status.SUCCESS
-            return self.success_response(request, self._authenticator_instance.session_data.result)
+
+        self.on_auth_success(request, self._authenticator_instance.session_data.result)
+        self._authenticator_instance.session_data.status = self.Status.SUCCESS
+        return self.success_response(request, self._authenticator_instance.session_data.result)
 
     def handle_delete_request(self, request):
         authenticator_class = self.select_authenticator_class()

@@ -11,7 +11,7 @@ from pyasice.ocsp import OCSP
 
 from .. import settings
 from ..authentication import Authenticator
-from ..authentication.types import AuthenticationResult, SessionData, Status
+from ..authentication.types import AuthenticationResult
 from ..constants import HASH_SHA256
 from ..exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 from ..types import CertificateHolderInfo

@@ -4,7 +4,7 @@ import logging
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameter, InvalidParameters
 
 from ..authentication import Authenticator
-from ..authentication.types import AuthenticationResult, SessionData, Status
+from ..authentication.types import AuthenticationResult
 from ..types import CertificateHolderInfo
 from .i18n import TranslatedMobileIDService
 from .types import UserInput

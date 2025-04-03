@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from esteid.authentication.types import Status
 from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 from esteid.signing import Signer
 
@@ -14,6 +15,7 @@ def test_session_data():
         timestamp=11111,
         temp_container_file="temp_container_file",
         temp_signature_file="temp_signature_file",
+        status=Status.PENDING,
     )
 
 
@@ -49,7 +51,7 @@ def test_signer_init__initial_true(test_session_data):
     session = {}
     signer = Signer(session, initial=True)
 
-    assert signer.session_data == {}
+    assert signer.session_data == Signer.clean_session_data()
     assert signer.session is session
     assert session == {}
 
@@ -59,7 +61,7 @@ def test_signer_init__initial_true(test_session_data):
     session = {Signer._SESSION_KEY: wrong_data}
     signer = Signer(session, initial=True)
 
-    assert signer.session_data == {}
+    assert signer.session_data == Signer.clean_session_data()
     assert signer.session is session
     assert session == {}
 
@@ -67,19 +69,31 @@ def test_signer_init__initial_true(test_session_data):
     session = {Signer._SESSION_KEY: dict(test_session_data)}
     signer = Signer(session, initial=True)
 
-    assert signer.session_data == {}
+    assert signer.session_data == Signer.clean_session_data()
     assert signer.session is session
     assert session == {}
 
-    # Some (unvalidated) session data present, not expired => error
+    # Some (unvalidated) session data present, session is reset
     session = {Signer._SESSION_KEY: {"timestamp": int(time()), "key": "value"}}
+    signer = Signer(session, initial=True)
+    assert signer.session_data == Signer.clean_session_data()
+    assert signer.session is session
+    assert session == {}
+
+    # Correct session data present, not expired => error
+    session = {Signer._SESSION_KEY: {**test_session_data, "timestamp": int(time())}}
     with pytest.raises(SigningSessionExists):
         Signer(session, initial=True)
 
-    # Correct session data present, not expired => error
-    session = {Signer._SESSION_KEY: {**test_session_data, "timestamp": int(time()), "key": "value"}}
-    with pytest.raises(SigningSessionExists):
-        Signer(session, initial=True)
+    # Correct session data present, not expired but not pending anymore => success, session is reset
+    session_data = Signer.SessionData(**test_session_data)
+    session_data.status = Status.SUCCESS
+    session_data.timestamp = int(time())
+    session = {Signer._SESSION_KEY: session_data}
+    signer = Signer(session, initial=True)
+    assert signer.session_data == Signer.clean_session_data()
+    assert signer.session is session
+    assert session == {}
 
 
 def test_signer_init__initial_false(test_session_data):

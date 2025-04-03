@@ -63,7 +63,9 @@ class IdCardSigner(Signer):
         # Note: uses default digest algorithm (sha256)
         signed_digest = xml_sig.digest()
 
-        self.save_session_data(digest=signed_digest, container=container, xml_sig=xml_sig)
+        self.set_container(container=container, xml_sig=xml_sig)
+        self.session_data.digest = signed_digest
+        self.save_session_data()
 
         return {
             # hex-encoded digest to be consumed by the web-eid.js library

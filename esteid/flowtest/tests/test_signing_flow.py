@@ -11,6 +11,7 @@ from django.contrib.sessions.backends import db
 from django.test import Client
 from django.urls import reverse
 
+from esteid.authentication.types import Status
 from esteid.flowtest.views import SigningTestView
 from esteid.signing import Signer
 
@@ -56,7 +57,7 @@ def test_my_signing_flow(urlconf, content_type, datafiles):
             "status": SigningTestView.Status.SUCCESS,
         }
 
-        assert Signer._SESSION_KEY not in session, "Failed to clean up session"
+        assert session[Signer._SESSION_KEY]["status"] != Status.PENDING, "Failed to finalize session"
         assert not os.path.exists(temp_container_file), "Failed to clean up files"
 
 
@@ -101,5 +102,5 @@ def test_my_post_signing_flow(urlconf, content_type, datafiles):
         assert response.json() == {
             "status": SigningTestView.Status.SUCCESS,
         }
-        assert Signer._SESSION_KEY not in session, "Failed to clean up session"
+        assert session[Signer._SESSION_KEY]["status"] != Status.PENDING, "Failed to finalize session"
         assert not os.path.exists(temp_container_file), "Failed to clean up files"
