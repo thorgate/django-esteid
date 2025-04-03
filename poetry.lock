@@ -24,7 +24,7 @@ version = "1.5.1"
 description = "Fast ASN.1 parser and serializer with definitions for private keys, public keys, certificates, CRL, OCSP, CMS, PKCS#3, PKCS#7, PKCS#8, PKCS#12, PKCS#5, X.509 and TSP"
 optional = false
 python-versions = "*"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "asn1crypto-1.5.1-py2.py3-none-any.whl", hash = "sha256:db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67"},
     {file = "asn1crypto-1.5.1.tar.gz", hash = "sha256:13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c"},
@@ -913,14 +913,18 @@ version = "1.3.0"
 description = "TLS (SSL) sockets, key generation, encryption, decryption, signing, verification and KDFs using the OS crypto libraries. Does not require a compiler, and relies on the OS for patching. Works on Windows, OS X and Linux/BSD."
 optional = false
 python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "oscrypto-1.3.0-py2.py3-none-any.whl", hash = "sha256:2b2f1d2d42ec152ca90ccb5682f3e051fb55986e1b170ebde472b133713e7085"},
-    {file = "oscrypto-1.3.0.tar.gz", hash = "sha256:6f5fef59cb5b3708321db7cca56aed8ad7e662853351e7991fcf60ec606d47a4"},
-]
+groups = ["main", "dev"]
+files = []
+develop = false
 
 [package.dependencies]
 asn1crypto = ">=1.5.1"
+
+[package.source]
+type = "git"
+url = "https://github.com/wbond/oscrypto.git"
+reference = "d5f3437ed24257895ae1edd9e503cfb352e635a8"
+resolved_reference = "d5f3437ed24257895ae1edd9e503cfb352e635a8"
 
 [[package]]
 name = "packaging"
@@ -1459,4 +1463,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.8.0"
-content-hash = "5fbeb74e75b639061ff564029e7a8592032a95930e7b08b44d3ed0574d78df17"
+content-hash = "b865acc77831c80a21fbb34bd4cedfd2787fcc9905287741a05ff6bc198d05ce"

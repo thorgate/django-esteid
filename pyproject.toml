@@ -92,6 +92,9 @@ pytest-cov = ">=2.8.1"
 pytest-django = ">=3.5.1"
 pytest = ">=4.6.5"
 requests-mock = "*"
+# See https://github.com/wbond/oscrypto/issues/78
+oscrypto = { git = "https://github.com/wbond/oscrypto.git", rev = "d5f3437ed24257895ae1edd9e503cfb352e635a8" }
+
 tox = ">=1.7.0"
 
 [build-system]
