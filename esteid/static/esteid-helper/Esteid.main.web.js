@@ -241,22 +241,7 @@
       headers["X-CSRFToken"] = data.csrfmiddlewaretoken;
       body = JSON.stringify(data || {});
     }
-    try {
-      const response = await fetch(url, { method, headers, body });
-      const responseText = await response.text();
-      try {
-        const data2 = JSON.parse(responseText);
-        data2.success = data2.status === "success";
-        data2.pending = `${response.status}` === "202";
-        return {
-          data: data2,
-          ok: response.ok
-        };
-      } catch (err) {
-        console.log("Failed to parse response as JSON", responseText);
-        return {};
-      }
-    } catch (err) {
+    const onError = async (err) => {
       const retriesRemaining = retries - 1;
       if (retriesRemaining > 0) {
         console.log(`Error fetching ${url}: ${err}, waiting for 1000ms before retrying.`);
@@ -266,6 +251,28 @@
       }
       console.log(err);
       return {};
+    };
+    try {
+      const response = await fetch(url, { method, headers, body });
+      if (`${response.status}` !== "410") {
+        const responseText = await response.text();
+        try {
+          const data2 = JSON.parse(responseText);
+          data2.success = data2.status === "success";
+          data2.pending = `${response.status}` === "202";
+          return {
+            data: data2,
+            ok: response.ok
+          };
+        } catch (err) {
+          console.log("Failed to parse response as JSON", responseText);
+          return {};
+        }
+      } else {
+        return await onError(new Error("The session is gone, we need to try and refresh the page."));
+      }
+    } catch (err) {
+      return await onError(err);
     }
   };
   var IdentificationManager = class {

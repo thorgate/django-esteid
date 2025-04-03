@@ -1,6 +1,8 @@
 import logging
+from http import HTTPStatus
 from typing import Optional, Type, TYPE_CHECKING
 
+from django.contrib.auth import HASH_SESSION_KEY, login, SESSION_KEY
 from django.http import HttpRequest, JsonResponse
 
 from esteid.exceptions import ActionInProgress
@@ -53,6 +55,24 @@ class AuthenticationViewMixin(SessionViewMixin):
         """
         pass
 
+    @classmethod
+    def login(cls, request, user, backend=None):
+        # This should prevent session key rotation in login. Key rotation must be prevented, as in some cases
+        # the request where authentication actually happens will never be delivered to FE due to network error.
+        #
+        # esteid-helper retries in this case, but if session cookie was changed and lost there is nothing
+        # we can do.
+        #
+        # See condition in login()
+        if request.session.get(SESSION_KEY) is None:
+            request.session[SESSION_KEY] = user.pk
+            session_auth_hash = ""
+            if hasattr(user, "get_session_auth_hash"):
+                session_auth_hash = user.get_session_auth_hash()
+            if session_auth_hash:
+                request.session[HASH_SESSION_KEY] = session_auth_hash
+        login(request, user, backend)
+
     def success_response(self, request, data: AuthenticationResult):
         """Customizable response on success"""
         return JsonResponse({**data, "status": self.Status.SUCCESS})
@@ -64,12 +84,31 @@ class AuthenticationViewMixin(SessionViewMixin):
 
     def dispatch(self, request, *args, **kwargs):
         try:
+            if request.session.session_key is None:
+                return JsonResponse(
+                    {
+                        "status": self.Status.ERROR,
+                        "error": "DjangoSessionHasChanged",
+                        # This error message is unlikely to reach the end user and is more for a developer,
+                        # esteid-helper will retry on Gone status
+                        "message": "Unable to log you in, likely due to network error. Please try again",
+                        # If you are a developer reading this, you need to check login() method and possibly
+                        # override it to ensure that the session key doesn't get cycled.
+                        #
+                        # This happens when key is cycled but due to network error updated session cookie is
+                        # not delivered to the FE and FE keeps using the old session key.
+                    },
+                    status=HTTPStatus.GONE,
+                )
+        except AttributeError:
+            pass
+
+        try:
             return super().dispatch(request, *args, **kwargs)
         finally:
-            if self._authenticator_instance is not None and self._authenticator_instance.session_data.is_valid(
-                raise_exception=False
-            ):
-                self._authenticator_instance.save_session_data()
+            if self._authenticator_instance is not None:
+                if self._authenticator_instance.session_data.is_valid(raise_exception=False):
+                    self._authenticator_instance.save_session_data()
 
     def handle_user_cancel(self):
         if self._authenticator_instance is not None:
