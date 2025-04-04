@@ -17,6 +17,8 @@ class SmartIdAuthenticator(Authenticator):
     id_code: str
     country: str
 
+    DJANGO_SESSION_IS_NEEDED = True
+
     def setup(self, initial_data: dict = None):
         """
         Receives user input via POST: `id_code`, `country`

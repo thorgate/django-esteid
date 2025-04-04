@@ -31,6 +31,10 @@ class Authenticator:
 
     AUTHENTICATION_METHODS: Dict[str, Type["Authenticator"]] = {}
 
+    # For some authentication mechanisms that involve talking to the backend, django session needs
+    # needs to be set before the authentication process starts.
+    DJANGO_SESSION_IS_NEEDED = False
+
     _SESSION_KEY = f"{__name__}.session"
 
     # timeout in seconds, after which a fresh session can be started even if old session data is present.

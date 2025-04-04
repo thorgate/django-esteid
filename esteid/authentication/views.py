@@ -84,7 +84,7 @@ class AuthenticationViewMixin(SessionViewMixin):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            if request.session.session_key is None:
+            if request.session.session_key is None and self.select_authenticator_class().DJANGO_SESSION_IS_NEEDED:
                 return JsonResponse(
                     {
                         "status": self.Status.ERROR,
