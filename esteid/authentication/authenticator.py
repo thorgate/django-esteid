@@ -91,12 +91,16 @@ class Authenticator:
         try:
             session_data = session[self._SESSION_KEY]
         except KeyError:
-            session_data = {}
+            return self.clean_session_data()
 
         try:
             session_data = SessionData(session_data)
+            if session_data.result is not None:
+                session_data.result = AuthenticationResult(session_data.result)
+                session_data.result.is_valid()
             session_data.is_valid()
         except (ValueError, TypeError):
+            logging.exception("Invalid session data %r found, cleaning it up.", dict(session_data))
             session_data = self.clean_session_data()
             self._cleanup_session(session)
 
