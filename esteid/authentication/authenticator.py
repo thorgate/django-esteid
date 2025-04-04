@@ -95,7 +95,7 @@ class Authenticator:
 
         try:
             session_data = SessionData(session_data)
-            if session_data.result is not None:
+            if getattr(session_data, "result", None) is not None:
                 session_data.result = AuthenticationResult(session_data.result)
                 session_data.result.is_valid()
             session_data.is_valid()
