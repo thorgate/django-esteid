@@ -163,7 +163,6 @@ class SignViewMixin(SessionViewMixin):
 
         if self._signer_instance.session_data.status != self.Status.PENDING:
             # Return cached data, if available
-            print(self._signer_instance.session_data)
             return JsonResponse(
                 {"status": self._signer_instance.session_data.status},
                 status=self.Status.http_status_for_status(self._signer_instance.session_data.status),
