@@ -62,6 +62,7 @@ class InterimSessionData(PredictableDict):
     temp_container_file: str
     temp_signature_file: str
     timestamp: int
+    status: str
 
     @property
     def digest(self):

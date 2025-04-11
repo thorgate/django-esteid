@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from esteid.authentication.types import Status
 from esteid.exceptions import InvalidParameter
 from esteid.idcard import IdCardSigner
 from esteid.idcard import signer as signer_module
@@ -15,7 +16,9 @@ from esteid.idcard import signer as signer_module
 def idcardsigner():
     signer = IdCardSigner({}, initial=True)
     mock_container = Mock(name="mock_container")
-    with patch.object(signer, "open_container", return_value=mock_container), patch.object(signer, "save_session_data"):
+    with patch.object(signer, "open_container", return_value=mock_container), patch.object(
+        signer, "save_session_data"
+    ), patch.object(signer, "set_container"):
         mock_container.prepare_signature.return_value = mock_xml_sig = Mock(name="mock_xml_sig")
         mock_xml_sig.digest.return_value = b"some binary digest"
 
@@ -32,6 +35,7 @@ def idcard_session_data():
             "temp_signature_file": f.name,
             "temp_container_file": "...",
             "timestamp": int(time()),
+            "status": Status.SUCCESS,
         }
     )
     os.remove(f.name)
@@ -66,11 +70,9 @@ def test_idcardsigner_prepare(idcardsigner, static_certificate):
     xml_sig = idcardsigner.open_container().prepare_signature(...)
     assert xml_sig._mock_name == "mock_xml_sig"
 
-    idcardsigner.save_session_data.assert_called_once_with(
-        digest=xml_sig.digest(),
-        container=container,
-        xml_sig=xml_sig,
-    )
+    idcardsigner.set_container.assert_called_once_with(container=container, xml_sig=xml_sig)
+    idcardsigner.save_session_data.assert_called_once_with()
+    assert idcardsigner.session_data.digest == xml_sig.digest()
 
     assert result == {"digest": base64.b64encode(xml_sig.digest()).decode()}
 

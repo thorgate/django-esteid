@@ -49,10 +49,9 @@ class IdCardAuthenticator(Authenticator):
         hash_value = generate_hash(self.hash_type, random_bytes)
         hash_value_b64 = base64.b64encode(hash_value).decode()
 
-        self.save_session_data(
-            session_id=uuid.uuid4().hex,
-            hash_value_b64=hash_value_b64,
-        )
+        self.session_data.session_id = uuid.uuid4().hex
+        self.session_data.hash_value_b64 = hash_value_b64
+        self.save_session_data()
 
         raise ActionInProgress(
             data={

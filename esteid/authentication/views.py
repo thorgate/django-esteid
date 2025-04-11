@@ -1,6 +1,8 @@
 import logging
-from typing import Type, TYPE_CHECKING
+from http import HTTPStatus
+from typing import Optional, Type, TYPE_CHECKING
 
+from django.contrib.auth import HASH_SESSION_KEY, login, SESSION_KEY
 from django.http import HttpRequest, JsonResponse
 
 from esteid.exceptions import ActionInProgress
@@ -41,6 +43,10 @@ class AuthenticationViewMixin(SessionViewMixin):
     authentication_method: str = None
     authenticator: Type[Authenticator] = None
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._authenticator_instance: Optional[Authenticator] = None
+
     def on_auth_success(self, request, data: AuthenticationResult):
         """
         A hook to make use of the authentication data once the process is complete.
@@ -48,6 +54,24 @@ class AuthenticationViewMixin(SessionViewMixin):
         May be used to store the data into session, authenticate a user etc.
         """
         pass
+
+    @classmethod
+    def login(cls, request, user, backend=None):
+        # This should prevent session key rotation in login. Key rotation must be prevented, as in some cases
+        # the request where authentication actually happens will never be delivered to FE due to network error.
+        #
+        # esteid-helper retries in this case, but if session cookie was changed and lost there is nothing
+        # we can do.
+        #
+        # See condition in login()
+        if request.session.get(SESSION_KEY) is None:
+            request.session[SESSION_KEY] = user.pk
+            session_auth_hash = ""
+            if hasattr(user, "get_session_auth_hash"):
+                session_auth_hash = user.get_session_auth_hash()
+            if session_auth_hash:
+                request.session[HASH_SESSION_KEY] = session_auth_hash
+        login(request, user, backend)
 
     def success_response(self, request, data: AuthenticationResult):
         """Customizable response on success"""
@@ -58,56 +82,96 @@ class AuthenticationViewMixin(SessionViewMixin):
             return self.authenticator
         return Authenticator.select_authenticator(self.authentication_method)
 
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            if request.session.session_key is None and self.select_authenticator_class().DJANGO_SESSION_IS_NEEDED:
+                return JsonResponse(
+                    {
+                        "status": self.Status.ERROR,
+                        "error": "DjangoSessionHasChanged",
+                        # This error message is unlikely to reach the end user and is more for a developer,
+                        # esteid-helper will retry on Gone status
+                        "message": "Unable to log you in, likely due to network error. Please try again",
+                        # If you are a developer reading this, you need to check login() method and possibly
+                        # override it to ensure that the session key doesn't get cycled.
+                        #
+                        # This happens when key is cycled but due to network error updated session cookie is
+                        # not delivered to the FE and FE keeps using the old session key.
+                    },
+                    status=HTTPStatus.GONE,
+                )
+        except AttributeError:
+            pass
+
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        finally:
+            if self._authenticator_instance is not None:
+                if self._authenticator_instance.session_data.is_valid(raise_exception=False):
+                    self._authenticator_instance.save_session_data()
+
+    def handle_user_cancel(self):
+        if self._authenticator_instance is not None:
+            self._authenticator_instance.session_data.status = self.Status.CANCELLED
+
+    def handle_error(self):
+        if self._authenticator_instance is not None:
+            self._authenticator_instance.session_data.status = self.Status.ERROR
+
+    def get_nonce(self, request) -> Optional[bytes]:
+        return None
+
     def start_session(self, request: "RequestType", *args, **kwargs):
         """
         Initiates an authentication session.
         """
 
         auth_class = self.select_authenticator_class()
-        authenticator = auth_class.start_session(request.session, request.data, origin=get_origin(request))
-
-        do_cleanup = True
+        self._authenticator_instance = auth_class.start_session(
+            request.session, request.data, origin=get_origin(request)
+        )
 
         try:
-            result = authenticator.authenticate()
-
+            self._authenticator_instance.session_data.result = self._authenticator_instance.authenticate(
+                random_bytes=self.get_nonce(request)
+            )
         except ActionInProgress as e:
-            do_cleanup = False
             # return SUCCESS to indicate that the upstream service successfully accepted the request
             return JsonResponse({"status": self.Status.SUCCESS, **e.data}, status=e.status)
 
-        else:
-            # Handle a theoretical case of immediate authentication
-            self.on_auth_success(request, result)
-            return JsonResponse({**result, "status": self.Status.SUCCESS})
-
-        finally:
-            if do_cleanup:
-                authenticator.cleanup()
+        # Handle a theoretical case of immediate authentication
+        self.on_auth_success(request, self._authenticator_instance.session_data.result)
+        self._authenticator_instance.session_data.status = self.Status.SUCCESS
+        return self.success_response(request, self._authenticator_instance.session_data.result)
 
     def finish_session(self, request: "RequestType", *args, **kwargs):
         """
         Checks the status of an authentication session
         """
         authenticator_class = self.select_authenticator_class()
-        authenticator = authenticator_class.load_session(request.session, origin=get_origin(request))
+        self._authenticator_instance = authenticator_class.load_session(request.session, origin=get_origin(request))
 
-        do_cleanup = True
+        if (
+            self._authenticator_instance.session_data.status != self.Status.PENDING
+            and self._authenticator_instance.session_data.result is not None
+        ):
+            # Return cached data, if available
+            return JsonResponse(
+                {
+                    "status": self._authenticator_instance.session_data.status,
+                    **self._authenticator_instance.session_data.result,
+                },
+                status=self.Status.http_status_for_status(self._authenticator_instance.session_data.status),
+            )
 
         try:
-            result = authenticator.poll(request.data)
-
+            self._authenticator_instance.session_data.result = self._authenticator_instance.poll(request.data)
         except ActionInProgress as e:
-            do_cleanup = False
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
 
-        else:
-            self.on_auth_success(request, result)
-            return self.success_response(request, result)
-
-        finally:
-            if do_cleanup:
-                authenticator.cleanup()
+        self.on_auth_success(request, self._authenticator_instance.session_data.result)
+        self._authenticator_instance.session_data.status = self.Status.SUCCESS
+        return self.success_response(request, self._authenticator_instance.session_data.result)
 
     def handle_delete_request(self, request):
         authenticator_class = self.select_authenticator_class()

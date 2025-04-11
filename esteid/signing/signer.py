@@ -13,6 +13,7 @@ from esteid import settings
 from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 from esteid.util import get_request_session_method
 
+from ..authentication.types import Status
 from .types import DataFile, InterimSessionData
 
 
@@ -95,26 +96,30 @@ class Signer:
         """Customize this to receive and check any data prior to `prepare()`"""
         pass
 
-    def save_session_data(self, *, digest: bytes, container: Container, xml_sig: XmlSignature):
+    @classmethod
+    def clean_session_data(cls):
+        """
+        Creates a new session data object.
+        """
+        return cls.SessionData(status=Status.PENDING)
+
+    def set_container(self, *, container: Container, xml_sig: XmlSignature):
+        with NamedTemporaryFile(delete=False) as temp_signature_file:
+            temp_signature_file.write(xml_sig.dump())
+        self.session_data.temp_signature_file = temp_signature_file.name
+
+        with NamedTemporaryFile("wb", delete=False) as temp_container_file:
+            temp_container_file.write(container.finalize().getbuffer())
+        self.session_data.temp_container_file = temp_container_file.name
+
+    def save_session_data(self):
         """
         Saves the interim session data along with a timestamp that is used to determine session validity.
 
         Can be extended to accept additional arguments
         """
-        data_obj = self.session_data
-
-        data_obj.digest = digest
-        data_obj.timestamp = int(time())
-
-        with NamedTemporaryFile(delete=False) as temp_signature_file:
-            temp_signature_file.write(xml_sig.dump())
-        data_obj.temp_signature_file = temp_signature_file.name
-
-        with NamedTemporaryFile("wb", delete=False) as temp_container_file:
-            temp_container_file.write(container.finalize().getbuffer())
-        data_obj.temp_container_file = temp_container_file.name
-
-        self.session[self._SESSION_KEY] = dict(data_obj)
+        self.session_data.timestamp = int(time())
+        self.session[self._SESSION_KEY] = dict(self.session_data)
 
     # Methods that probably do not need overriding
 
@@ -122,12 +127,13 @@ class Signer:
         try:
             session_data = session[self._SESSION_KEY]
         except KeyError:
-            session_data = {}
+            session_data = self.clean_session_data()
 
         try:
             session_data = self.SessionData(session_data)
-        except TypeError:
-            session_data = self.SessionData()
+            session_data.is_valid()
+        except (ValueError, TypeError):
+            session_data = self.clean_session_data()
             self._cleanup_session(session)
 
         # Not doing session data validation here, because
@@ -149,11 +155,11 @@ class Signer:
                 except AttributeError:
                     timestamp = 0
 
-                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT and session_data.status == Status.PENDING:
                     raise SigningSessionExists("Another signing session already in progress")
 
                 # session expired => create a fresh data store
-                session_data = self.SessionData()
+                session_data = self.clean_session_data()
 
                 # clear the old session data. This incurs no DB overhead:
                 # Django issues the actual DB query only in the process_response phase.
@@ -173,11 +179,11 @@ class Signer:
         self.session = session
         self.session_data = session_data
 
-    def cleanup(self):
+    def cleanup(self, *, delete_session=True):
         """
         Cleans temporary signing session data and files.
         """
-        return self._cleanup_session(self.session)
+        return self._cleanup_session(self.session, delete_session=delete_session)
 
     @classmethod
     def start_session(cls, session, initial_data) -> "Signer":
@@ -196,8 +202,12 @@ class Signer:
         return cls(session, initial=False)
 
     @classmethod
-    def _cleanup_session(cls, session):
-        data = session.pop(cls._SESSION_KEY, None)
+    def _cleanup_session(cls, session, *, delete_session=True):
+        data = session.get(cls._SESSION_KEY, None)
+
+        if delete_session:
+            session.pop(cls._SESSION_KEY, None)
+
         if not data:
             return
 

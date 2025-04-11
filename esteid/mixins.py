@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404, HttpRequest, JsonResponse, QueryDict
 from django.utils.translation import gettext
 
+from esteid.authentication.types import Status
 from esteid.exceptions import CanceledByUser, EsteidError, InvalidParameters
 
 
@@ -37,11 +38,8 @@ class SessionViewMixin:
     Also does common error handling.
     """
 
-    class Status:
-        ERROR = "error"
-        PENDING = "pending"
-        SUCCESS = "success"
-        CANCELLED = "cancelled"
+    class Status(Status):
+        pass
 
     start_session: Callable
     finish_session: Callable
@@ -50,6 +48,9 @@ class SessionViewMixin:
         return JsonResponse({"status": self.Status.ERROR, **e.get_user_error()}, status=e.status)
 
     def handle_user_cancel(self):
+        pass
+
+    def handle_error(self):
         pass
 
     def handle_errors(self, e: Exception, stage="start"):
@@ -66,6 +67,7 @@ class SessionViewMixin:
             raise e
 
         if isinstance(e, DjangoValidationError):
+            self.handle_error()
             return JsonResponse(
                 {"status": self.Status.ERROR, "error": e.__class__.__name__, "message": str(e)},
                 status=HTTPStatus.CONFLICT,

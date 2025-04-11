@@ -1,4 +1,3 @@
-# pragma: no cover
 import base64
 import binascii
 import logging

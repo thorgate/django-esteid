@@ -2,7 +2,7 @@ import logging
 from time import time
 from typing import Dict, Optional, Type
 
-from esteid.authentication.types import AuthenticationResult, SessionData
+from esteid.authentication.types import AuthenticationResult, SessionData, Status
 from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 
 
@@ -30,6 +30,10 @@ class Authenticator:
     """
 
     AUTHENTICATION_METHODS: Dict[str, Type["Authenticator"]] = {}
+
+    # For some authentication mechanisms that involve talking to the backend, django session needs
+    # needs to be set before the authentication process starts.
+    DJANGO_SESSION_IS_NEEDED = False
 
     _SESSION_KEY = f"{__name__}.session"
 
@@ -73,28 +77,35 @@ class Authenticator:
     # Session management.
     # NOTE: this part is largely a copy-paste from signing.
 
-    def save_session_data(self, *, session_id, hash_value_b64):
+    @classmethod
+    def clean_session_data(cls):
+        """
+        Creates a new session data object.
+        """
+        return SessionData(status=Status.PENDING, result=None)
+
+    def save_session_data(self):
         """
         Saves the session data between initialization and polling requests
         """
-        session_data = self.session_data or SessionData()
-
-        session_data.session_id = session_id
-        session_data.hash_value_b64 = hash_value_b64
-        session_data.timestamp = int(time())
-
-        self.session[self._SESSION_KEY] = dict(session_data)
+        self.session_data.timestamp = int(time())
+        self.session[self._SESSION_KEY] = dict(self.session_data)
 
     def load_session_data(self, session) -> SessionData:
         try:
             session_data = session[self._SESSION_KEY]
         except KeyError:
-            session_data = {}
+            return self.clean_session_data()
 
         try:
             session_data = SessionData(session_data)
-        except TypeError:
-            session_data = SessionData()
+            if getattr(session_data, "result", None) is not None:
+                session_data.result = AuthenticationResult(session_data.result)
+                session_data.result.is_valid()
+            session_data.is_valid()
+        except (ValueError, TypeError):
+            logging.exception("Invalid session data %r found, cleaning it up.", dict(session_data))
+            session_data = self.clean_session_data()
             self._cleanup_session(session)
 
         # Not doing session data validation here, because
@@ -116,11 +127,11 @@ class Authenticator:
                 except AttributeError:
                     timestamp = 0
 
-                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT:
+                if time() < timestamp + self.SESSION_VALIDITY_TIMEOUT and session_data.status == Status.PENDING:
                     raise SigningSessionExists("Another authentication session already in progress")
 
-                # session expired => create a fresh data store
-                session_data = SessionData()
+                # session expired or is complete => create a fresh data store
+                session_data = self.clean_session_data()
 
                 # wipe the old data from session.
                 self._cleanup_session(session)

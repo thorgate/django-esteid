@@ -4,13 +4,18 @@ from unittest.mock import patch
 import pytest
 
 from esteid.authentication import Authenticator
-from esteid.authentication.types import SessionData
+from esteid.authentication.types import SessionData, Status
 from esteid.exceptions import EsteidError, SigningSessionDoesNotExist, SigningSessionExists
 
 
 @pytest.fixture()
 def test_session_data():
-    return SessionData(timestamp=11111, session_id="test", hash_value_b64="MQ==")  # a very old timestamp
+    return SessionData(
+        timestamp=11111,  # a very old timestamp
+        session_id="test",
+        hash_value_b64="MQ==",
+        status=Status.PENDING,
+    )
 
 
 @patch.object(Authenticator, "AUTHENTICATION_METHODS", {})
@@ -45,7 +50,7 @@ def test_authenticator_init__initial_true(test_session_data):
     session = {}
     authenticator = Authenticator(session, initial=True)
 
-    assert authenticator.session_data == {}
+    assert authenticator.session_data == authenticator.clean_session_data()
     assert authenticator.session is session
     assert session == {}
 
@@ -55,7 +60,7 @@ def test_authenticator_init__initial_true(test_session_data):
     session = {Authenticator._SESSION_KEY: wrong_data}
     authenticator = Authenticator(session, initial=True)
 
-    assert authenticator.session_data == {}
+    assert authenticator.session_data == authenticator.clean_session_data()
     assert authenticator.session is session
     assert session == {}
 
@@ -63,19 +68,49 @@ def test_authenticator_init__initial_true(test_session_data):
     session = {Authenticator._SESSION_KEY: {**test_session_data}}
     authenticator = Authenticator(session, initial=True)
 
-    assert authenticator.session_data == {}
+    assert authenticator.session_data == authenticator.clean_session_data()
     assert authenticator.session is session
     assert session == {}
 
-    # Some (unvalidated) session data present, not expired => error
-    session = {Authenticator._SESSION_KEY: {"timestamp": int(time()), "key": "value"}}
+    # Some invalid session data present, session is reset
+    session = {
+        Authenticator._SESSION_KEY: {
+            "timestamp": int(time()),
+            "key": "value",
+        }
+    }
+    authenticator = Authenticator(session, initial=True)
+    assert authenticator.session_data == authenticator.clean_session_data()
+    assert authenticator.session is session
+    assert session == {}
+
+    # Correct session data present, not expired => error
+    session = {
+        Authenticator._SESSION_KEY: {
+            "timestamp": int(time()),
+            "status": Status.PENDING,
+            "session_id": "test",
+            "result": None,
+            "hash_value_b64": "hash",
+        }
+    }
     with pytest.raises(SigningSessionExists):
         Authenticator(session, initial=True)
 
-    # Correct session data present, not expired => error
-    session = {Authenticator._SESSION_KEY: {**test_session_data, "timestamp": int(time()), "key": "value"}}
-    with pytest.raises(SigningSessionExists):
-        Authenticator(session, initial=True)
+    # Correct session data present, not expired but not pending anymore => success, session is reset
+    session = {
+        Authenticator._SESSION_KEY: {
+            "timestamp": int(time()),
+            "status": Status.SUCCESS,
+            "session_id": "test",
+            "result": None,
+            "hash_value_b64": "hash",
+        }
+    }
+    authenticator = Authenticator(session, initial=True)
+    assert authenticator.session_data == authenticator.clean_session_data()
+    assert authenticator.session is session
+    assert session == {}
 
 
 def test_authenticator_init__initial_false(test_session_data):

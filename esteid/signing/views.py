@@ -1,5 +1,5 @@
 import logging
-from typing import BinaryIO, Type, TYPE_CHECKING, Union
+from typing import BinaryIO, Optional, Type, TYPE_CHECKING, Union
 
 from django.http import HttpRequest, JsonResponse
 
@@ -37,6 +37,10 @@ class SignViewMixin(SessionViewMixin):
     # these come from the `url()` definition as in `View.as_view(signing_method='...')`, either one is enough
     signer_class: Type[Signer] = None
     signing_method: str = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._signer_instance: Optional[Signer] = None
 
     def get_container(self, *args, **kwargs) -> Union[str, BinaryIO, pyasice.Container]:
         """
@@ -103,13 +107,31 @@ class SignViewMixin(SessionViewMixin):
             return self.signer_class
         return Signer.select_signer(self.signing_method)
 
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        finally:
+            if self._signer_instance is not None and self._signer_instance.session_data.is_valid(raise_exception=False):
+                self._signer_instance.save_session_data()
+
+    def handle_user_cancel(self):
+        if self._signer_instance is not None:
+            self._signer_instance.session_data.status = self.Status.CANCELLED
+
+    def handle_error(self):
+        if self._signer_instance is not None:
+            self._signer_instance.session_data.status = self.Status.ERROR
+
+    def get_nonce(self, request) -> Optional[bytes]:
+        return None
+
     def start_session(self, request: "RequestType", *args, **kwargs):
         """
         Initiates a signing session
         """
 
         signer_class = self.select_signer_class()
-        signer = signer_class.start_session(request.session, request.data)
+        self._signer_instance = signer_class.start_session(request.session, request.data)
 
         try:
             container = self.get_container(*args, **kwargs)
@@ -126,9 +148,9 @@ class SignViewMixin(SessionViewMixin):
                 else:
                     container = pyasice.Container(container)
 
-        self.check_eligibility(signer, container)
+        self.check_eligibility(self._signer_instance, container)
 
-        response_to_user = signer.prepare(container, files_to_sign)
+        response_to_user = self._signer_instance.prepare(container, files_to_sign)
 
         return JsonResponse({**response_to_user, "status": self.Status.SUCCESS})
 
@@ -137,21 +159,31 @@ class SignViewMixin(SessionViewMixin):
         Checks the status of a signing session and attempts to finalize signing
         """
         signer_class = self.select_signer_class()
-        signer = signer_class.load_session(request.session)
+        self._signer_instance = signer_class.load_session(request.session)
+
+        if self._signer_instance.session_data.status != self.Status.PENDING:
+            # Return cached data, if available
+            return JsonResponse(
+                {"status": self._signer_instance.session_data.status},
+                status=self.Status.http_status_for_status(self._signer_instance.session_data.status),
+            )
 
         do_cleanup = True
 
         try:
-            container = signer.finalize(getattr(request, "data", None))
+            container = self._signer_instance.finalize(getattr(request, "data", None))
             self.save_container(container, *args, **kwargs)
 
         except ActionInProgress as e:
             do_cleanup = False
             return JsonResponse({"status": self.Status.PENDING, **e.data}, status=e.status)
 
+        else:
+            self._signer_instance.session_data.status = self.Status.SUCCESS
+
         finally:
             if do_cleanup:
-                signer.cleanup()
+                self._signer_instance.cleanup(delete_session=False)
 
         return self.get_success_response(*args, **kwargs)
 

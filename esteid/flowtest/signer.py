@@ -11,7 +11,9 @@ class MySigner(Signer):
         container = self.open_container(container, files)
         xml_sig = pyasice.XmlSignature.create()
 
-        self.save_session_data(digest=b"test", container=container, xml_sig=xml_sig)
+        self.set_container(container=container, xml_sig=xml_sig)
+        self.session_data.digest = b"test"
+        self.save_session_data()
 
         return {"verification_code": "1234"}
 

@@ -9,7 +9,7 @@ from django.contrib.sessions.backends import db
 from django.test import Client
 from django.urls import reverse
 
-from esteid.authentication.types import AuthenticationResult
+from esteid.authentication.types import AuthenticationResult, Status
 from esteid.flowtest.views import AuthTestView
 from esteid.mobileid.i18n import TranslatedMobileIDService
 from esteid.mobileid.types import AuthenticateResult as MobileIdAuthInitResult
@@ -133,7 +133,7 @@ def test_auth_flow_smartid(
             **auth_result,
         }
 
-        assert SmartIdAuthenticator._SESSION_KEY not in session, "Failed to clean up session"
+        assert session[SmartIdAuthenticator._SESSION_KEY]["status"] != Status.PENDING, "Failed to finalize session"
 
 
 @pytest.mark.parametrize(
@@ -180,4 +180,4 @@ def test_auth_flow_mobileid(
             **auth_result,
         }
 
-        assert SmartIdAuthenticator._SESSION_KEY not in session, "Failed to clean up session"
+        assert session[SmartIdAuthenticator._SESSION_KEY]["status"] != Status.PENDING, "Failed to finalize session"

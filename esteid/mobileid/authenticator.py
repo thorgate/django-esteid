@@ -18,6 +18,8 @@ class MobileIdAuthenticator(Authenticator):
     id_code: str
     language: str
 
+    DJANGO_SESSION_IS_NEEDED = True
+
     def setup(self, initial_data: dict = None):
         """
         Receives user input via POST: `id_code`, `phone_number`, `language`
@@ -46,9 +48,9 @@ class MobileIdAuthenticator(Authenticator):
             self.id_code, self.phone_number, language=self.language, random_bytes=random_bytes
         )
 
-        self.save_session_data(
-            session_id=auth_initial_result.session_id, hash_value_b64=auth_initial_result.hash_value_b64
-        )
+        self.session_data.session_id = auth_initial_result.session_id
+        self.session_data.hash_value_b64 = auth_initial_result.hash_value_b64
+        self.save_session_data()
 
         raise ActionInProgress(
             data={

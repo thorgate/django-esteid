@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 import pyasice
-from pyasice import Container, XmlSignature
+from pyasice import Container
 
 from esteid.exceptions import ActionInProgress, InvalidIdCode, InvalidParameters
 from esteid.signing import DataFile, Signer
@@ -52,12 +52,10 @@ class SmartIdSigner(Signer):
 
         sign_session = service.sign_by_document_number(document_number, xml_sig.signed_data())
 
-        self.save_session_data(
-            digest=sign_session.digest,
-            container=container,
-            xml_sig=xml_sig,
-            session_id=sign_session.session_id,
-        )
+        self.session_data.digest = sign_session.digest
+        self.session_data.session_id = sign_session.session_id
+        self.set_container(container=container, xml_sig=xml_sig)
+        self.save_session_data()
 
         return {
             "verification_code": sign_session.verification_code,
@@ -90,9 +88,3 @@ class SmartIdSigner(Signer):
         container.add_signature(xml_sig)
 
         return container
-
-    def save_session_data(self, *, digest: bytes, container: Container, xml_sig: XmlSignature, session_id: str):
-        data_obj = self.session_data
-        data_obj.session_id = session_id
-
-        super().save_session_data(digest=digest, container=container, xml_sig=xml_sig)

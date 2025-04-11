@@ -25,11 +25,12 @@ class EsteidError(Exception):
     kwargs: dict
 
     def __init__(self, message=None, **kwargs):
+        self.message = message or self.default_message
         super().__init__(message)
         self.kwargs = kwargs
 
     def get_message(self):
-        return str(self.default_message).format(**self.kwargs)
+        return str(self.message).format(**self.kwargs)
 
     def get_user_error(self):
         return {
