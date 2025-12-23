@@ -1,7 +1,7 @@
 import json
 import logging
 from http import HTTPStatus
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Literal, TYPE_CHECKING
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404, HttpRequest, JsonResponse, QueryDict
@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+SessionStageType = Literal["start", "finish"]
+
+
 class SessionViewMixin:
     """
     Provides POST and PATCH method handlers for auth/signing session management.
@@ -52,7 +55,16 @@ class SessionViewMixin:
     def handle_user_cancel(self):
         pass
 
-    def handle_errors(self, e: Exception, stage="start"):
+    def on_failure(self, e: Exception, stage: SessionStageType, request: HttpRequest):
+        """
+        Hook called when exception occurs during authentication/signing.
+        It runs before "handle_errors" and allows to perform logging, auditing, or other side effects.
+        """
+        pass
+
+    def handle_errors(self, e: Exception, stage: SessionStageType = "start", request: HttpRequest = None):
+        self.on_failure(e, stage, request)
+
         if isinstance(e, EsteidError):
             if isinstance(e, CanceledByUser):
                 self.handle_user_cancel()
@@ -84,7 +96,7 @@ class SessionViewMixin:
         try:
             return self.start_session(request, *args, **kwargs)
         except Exception as e:
-            return self.handle_errors(e, stage="start")
+            return self.handle_errors(e, stage="start", request=request)
 
     def patch(self, request, *args, **kwargs):
         """
@@ -93,7 +105,7 @@ class SessionViewMixin:
         try:
             return self.finish_session(request, *args, **kwargs)
         except Exception as e:
-            return self.handle_errors(e, stage="finish")
+            return self.handle_errors(e, stage="finish", request=request)
 
 
 class DjangoRestCompatibilityMixin(SessionViewMixin):
