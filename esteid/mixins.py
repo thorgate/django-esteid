@@ -1,7 +1,8 @@
 import json
 import logging
+from contextvars import ContextVar
 from http import HTTPStatus
-from typing import Callable, Literal, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404, HttpRequest, JsonResponse, QueryDict
@@ -30,7 +31,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-SessionStageType = Literal["start", "finish"]
+_current_request: ContextVar[Optional[HttpRequest]] = ContextVar("_current_request", default=None)
+
+
+def get_current_request() -> Optional[HttpRequest]:
+    """Public getter for the current request stored in context variable."""
+    return _current_request.get()
 
 
 class SessionViewMixin:
@@ -55,16 +61,7 @@ class SessionViewMixin:
     def handle_user_cancel(self):
         pass
 
-    def on_failure(self, e: Exception, stage: SessionStageType, request: HttpRequest):
-        """
-        Hook called when exception occurs during authentication/signing.
-        It runs before "handle_errors" and allows to perform logging, auditing, or other side effects.
-        """
-        pass
-
-    def handle_errors(self, e: Exception, stage: SessionStageType = "start", request: HttpRequest = None):
-        self.on_failure(e, stage, request)
-
+    def handle_errors(self, e: Exception, stage="start"):
         if isinstance(e, EsteidError):
             if isinstance(e, CanceledByUser):
                 self.handle_user_cancel()
@@ -93,19 +90,25 @@ class SessionViewMixin:
         """
         Handles session start requests
         """
+        token = _current_request.set(request)
         try:
             return self.start_session(request, *args, **kwargs)
         except Exception as e:
-            return self.handle_errors(e, stage="start", request=request)
+            return self.handle_errors(e, stage="start")
+        finally:
+            _current_request.reset(token)
 
     def patch(self, request, *args, **kwargs):
         """
         Handles session finish requests
         """
+        token = _current_request.set(request)
         try:
             return self.finish_session(request, *args, **kwargs)
         except Exception as e:
-            return self.handle_errors(e, stage="finish", request=request)
+            return self.handle_errors(e, stage="finish")
+        finally:
+            _current_request.reset(token)
 
 
 class DjangoRestCompatibilityMixin(SessionViewMixin):
