@@ -2,7 +2,7 @@ import hashlib
 import os
 import re
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 
 import requests
 from django.utils import timezone
@@ -59,11 +59,11 @@ def convert_time(timestamp):
 
     if isinstance(timestamp, datetime):
         if timezone.is_naive(timestamp):
-            timestamp = timezone.make_aware(timestamp, timezone.utc)
+            timestamp = timezone.make_aware(timestamp, dt_timezone.utc)
 
         return timestamp
 
-    return timezone.make_aware(datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ"), timezone.utc)
+    return timezone.make_aware(datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ"), dt_timezone.utc)
 
 
 def get_instance_converter(cls, prepare_kwargs=camel_2_py):
